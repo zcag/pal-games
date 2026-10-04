@@ -73,12 +73,14 @@ pal's main on every push.
 
 ## How a change reaches players
 
-1. A push to main whose tests pass builds every game whose package changed
-   (`pal-pack`, from the pal checkout the tests ran against), uploads it to
-   pal.cagdas.io and hands it to pal's registry signer
-   (`.github/workflows/ci.yml`, `publish`).
-2. pal's `extensions.yml` builds it again from this commit, checks it is
-   the same package, signs it and adds it to the **edge** index.
+1. Push to main. CI runs `make test` against pal's main; that is all this
+   repo's CI does, and nothing here holds a secret.
+2. Within about 15 minutes pal's registry (its `extensions.yml`) sees the
+   new main, checks that its CI run here is green, builds every game at
+   that commit itself and signs and publishes the ones whose package
+   changed to the **edge** index (at once when it is run with `publish` in
+   pal's Actions). A main whose CI is pending or red waits; nothing but a
+   green main is ever published.
 3. `make ext-release NAMES="snake"` in pal promotes it to **stable**, the
    index every pal follows, and every app release promotes everything on
    edge. Installed games update themselves within hours.

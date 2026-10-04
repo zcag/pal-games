@@ -1,7 +1,7 @@
 // Snake II as the Nokia 3310 (firmware v6.07) plays it: the rules, pure and
 // deterministic. Every fact here was read off the real firmware running in
 // a DCT3 emulator (docs in README.md, "How it was measured"); the replays in
-// test/snake.test.ts feed the emulator's recorded key
+// host/test/extensions/snake.test.ts feed the emulator's recorded key
 // presses through this file and compare every frame.
 //
 // Time is in the firmware's game unit `u` (8 ms on a real phone): a step is

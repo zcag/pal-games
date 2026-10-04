@@ -32,7 +32,7 @@ and DESIGN.md say how it plays and why.
 - Quiet, plain words over jargon; animations are fine, never add
   `prefers-reduced-motion` handling.
 - `make test` before every push: it is what CI runs (on macOS and Linux),
-  against pal's main. `NAMES="snake"` narrows it to one game's tests while
+  against pal's main, and a green run is what gets a commit published. `NAMES="snake"` narrows it to one game's tests while
   working; the push still needs the whole run.
 - Commit subjects are `<name>: what changed`, one game a commit where you
   can: the store's per-build notes and pal-site's game pages read them.
@@ -44,19 +44,22 @@ and DESIGN.md say how it plays and why.
 
 ## How a change reaches players
 
-- A green push to main builds every game whose package changed, uploads
-  it and hands it to pal's registry signer (the `publish` job in
-  `.github/workflows/ci.yml`, pal's `.github/actions/publish-extensions`):
-  it lands on the **edge** index once pal's `extensions.yml` run is green.
-  Push extension changes straight to edge; they are tried there.
-- Players follow **stable**: `make ext-release NAMES="snake"` in pal
-  promotes edge's newest build, and every app release promotes everything
-  on edge. Promoting is a release decision, made after the change was
-  tried. Auto-update is on by default, so a promoted build reaches everyone
-  within hours; a bad one is pulled with pal's `yank` dispatch input
-  (`.pal/docs/releasing.md`).
-- **Compatibility.** A package is stamped with the `PROTOCOL` of the pal it
-  was built with (`.pal/sdk/src/protocol.ts`). A game that uses something
+- A green push to main is published by pal's registry, which polls this
+  repo: within about 15 minutes (or at once, run with `publish` in pal's
+  Actions) its `extensions.yml` sees the commit, checks that this repo's CI
+  run on it is green, builds every game at that commit itself and signs
+  and publishes the changed ones to the **edge** index. A main whose CI is
+  pending or red is not published. This repo's CI only tests, and nothing
+  here holds a secret: never add one. Push game changes straight to
+  edge; they are tried there.
+- Players follow **stable**: `make ext-release NAMES="..."` in pal
+  promotes edge's newest builds, and every app release promotes everything
+  on edge. Promoting is a release decision, made after the change
+  was tried. Auto-update is on by default, so a promoted build reaches
+  everyone within hours; a bad one is pulled with pal's `yank` dispatch
+  input (`.pal/docs/releasing.md`).
+- **Compatibility.** A package is built with pal's main and stamped with
+  its `PROTOCOL` (`.pal/sdk/src/protocol.ts`). A game that uses something
   new in the SDK or the kit needs it on pal's main first; the build is not
   offered to an app older than that.
 - **Identity.** A build is its tree hash, ordered by its commit's time; the
