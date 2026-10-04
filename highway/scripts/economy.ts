@@ -4,7 +4,7 @@
 // own meta.finish (multipliers, missions, levels, the day's double), buying the next car when they
 // can and otherwise an upgrade. Everything is read from content/meta/progress at run time, so it
 // keeps working as those change; --rec applies the recommended numbers below as overrides.
-//   bun extensions/highway/scripts/economy.ts [--runs 12] [--profile regular,good] [--cars all|0,3,8]
+//   bun highway/scripts/economy.ts [--runs 12] [--profile regular,good] [--cars all|0,3,8]
 //     [--levels 0,2,5] [--modes endless,twoway] [--cap 600] [--players 200] [--day 40] [--spend 0.3]
 //     [--rec] [--json out.json] [--table]
 import { Worker, isMainThread, parentPort } from "node:worker_threads";

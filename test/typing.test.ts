@@ -8,10 +8,10 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import {
   DEFAULTS, MAX_EXTRA, backspace, boardOf, configOf, configure, endZen, file, optionsOf, paceAt, paceWpm, settingOf, good, keyLabel, kinds, label, missed, modeKey, newRun, noRecords, recent, recordsOf, refill, result, rolling, storedRecords, summary, titleOf,
   typeChar, typeSpace, viewActions, type Config, type Run,
-} from "../../../extensions/typing/typing.ts";
-import { WORDS, generate } from "../../../extensions/typing/words.ts";
-import type { View } from "../../../sdk/src/protocol.ts";
-import { Host, stored } from "../harness.ts";
+} from "../typing/typing.ts";
+import { WORDS, generate } from "../typing/words.ts";
+import type { View } from "../.pal/sdk/src/protocol.ts";
+import { Host, stored } from "../.pal/host/test/harness.ts";
 import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
 
 /** A seeded rng (mulberry32), so a draw is the same every run. */

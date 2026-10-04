@@ -40,7 +40,7 @@ as a view level whose body is the extension's own page (`surface/`, a
   screens.
 - `scripts/drive.ts` measures every car (0 to 100, top speed, braking, a lane
   change); `scripts/trace.ts` traces a lane change step by step.
-- `bun host/src/surface.ts extensions/highway 8733` serves the page in a
+- `bun host/src/surface.ts highway 8733` serves the page in a
   browser.
 
 ## Assets and their licences

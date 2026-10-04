@@ -35,6 +35,6 @@ The whole design, and why each part is there: [DESIGN.md](DESIGN.md).
   (WebGL2), `music.ts` and `songs.ts` (the synthesised music, which is also
   the clock).
 - `scripts/survey.ts`: how long the bot lasts on every board.
-- Tests: `host/test/extensions/vortex.test.ts`.
+- Tests: `test/vortex.test.ts`.
 
 The font is Orbitron (SIL Open Font License, `surface/font/OFL.txt`).

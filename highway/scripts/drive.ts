@@ -1,5 +1,5 @@
 // How each car drives, measured on the dial: 0-100, 0-200, top speed, 100 to a crawl, a lane change.
-//   bun extensions/highway/scripts/drive.ts [car id]
+//   bun highway/scripts/drive.ts [car id]
 import { Vehicle } from "../game/vehicle.ts";
 import { CARS, FEEL, spec } from "../game/content.ts";
 const dt = 1 / 120;

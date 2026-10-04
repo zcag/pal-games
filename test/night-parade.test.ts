@@ -1,14 +1,14 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import type { View } from "../../../sdk/src/protocol.ts";
-import { Host } from "../harness.ts";
-import { night, play } from "../../../extensions/night-parade/game/bot.ts";
-import { BOSSES, type BossKind } from "../../../extensions/night-parade/game/content/bosses.ts";
-import { actAt } from "../../../extensions/night-parade/game/content/stage.ts";
-import { ITEMS, type ItemKind } from "../../../extensions/night-parade/game/content/items.ts";
-import { WEAPONS, WEAPON_MAX, type WeaponKind } from "../../../extensions/night-parade/game/content/weapons.ts";
-import { addWeapon, hazard, hurt, hurtPlayer, restat, spawnAt, spawnBoss, type State } from "../../../extensions/night-parade/game/sim/core.ts";
-import { SLOTS, levelUp, openChest } from "../../../extensions/night-parade/game/sim/progress.ts";
-import { banish, blessing, choose, offers, reroll, skip, step } from "../../../extensions/night-parade/game/sim/index.ts";
+import type { View } from "../.pal/sdk/src/protocol.ts";
+import { Host } from "../.pal/host/test/harness.ts";
+import { night, play } from "../night-parade/game/bot.ts";
+import { BOSSES, type BossKind } from "../night-parade/game/content/bosses.ts";
+import { actAt } from "../night-parade/game/content/stage.ts";
+import { ITEMS, type ItemKind } from "../night-parade/game/content/items.ts";
+import { WEAPONS, WEAPON_MAX, type WeaponKind } from "../night-parade/game/content/weapons.ts";
+import { addWeapon, hazard, hurt, hurtPlayer, restat, spawnAt, spawnBoss, type State } from "../night-parade/game/sim/core.ts";
+import { SLOTS, levelUp, openChest } from "../night-parade/game/sim/progress.ts";
+import { banish, blessing, choose, offers, reroll, skip, step } from "../night-parade/game/sim/index.ts";
 
 const still = { x: 0, y: 0, dash: false };
 const run = (s: State, secs: number) => { for (let i = 0; i < secs * 60 && s.phase === "play"; i++) step(s, still); };

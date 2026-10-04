@@ -1,4 +1,4 @@
-// Writes app/src/gallery/shots/sudoku.json: the store screenshots' fixture.
+// Writes test/shots/sudoku.json: the store screenshots' fixture.
 // The page asks the extension for everything (`pal.send`: the puzzle, the
 // stats, today's dailies, the solve), so the fixture runs the extension in
 // the host harness over a data file of its own (`PAL_SUDOKU_DIR`, a temp
@@ -11,8 +11,8 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Host } from "../../host/test/harness.ts";
-import { NOW, pinClock, seeded, writeFixture } from "../../app/scripts/fixture-kit.ts";
+import { Host } from "../.pal/host/test/harness.ts";
+import { NOW, pinClock, seeded, writeFixture } from "../.pal/app/scripts/fixture-kit.ts";
 import { encode, newPlay, type Play } from "./game.ts";
 import type { Solve } from "./stats.ts";
 import type { Data } from "./store.ts";

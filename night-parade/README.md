@@ -79,9 +79,9 @@ shake are the page's own Settings.
 - `game/content/` holds every number and word, `game/sim/` the night (no
   DOM, 60 steps a second from a seed), `game/meta.ts` the save, and
   `game/bot.ts` a player that needs no keyboard. The page is `surface/`.
-- `bun host/src/surface.ts extensions/night-parade` serves the page in a
+- `bun host/src/surface.ts night-parade` serves the page in a
   browser; `?dev` puts its state on `window.np`.
-- `bun extensions/night-parade/scripts/survey.ts kaze 24 [shrine]`: the bot
+- `bun night-parade/scripts/survey.ts kaze 24 [shrine]`: the bot
   plays many nights and prints how far they got, levels, bosses, what hurt;
   `scripts/dps.ts` benchmarks every weapon alone; `scripts/bosstime.ts`
   times each boss.

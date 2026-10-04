@@ -10,18 +10,18 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parseMonth, parseTag } from "../../../extensions/crossword/crosshare.ts";
+import { parseMonth, parseTag } from "../crossword/crosshare.ts";
 import {
   REVEALED, RIGHT, WRONG, arrow, backspace, check, clear, click, crossing, current, decode, del, encode, gridOf, isBlock, newPlay, nextWord, progressOf, reveal,
   select, selectWord, status, toggle, type, type Play,
-} from "../../../extensions/crossword/game.ts";
-import { fromIpuz } from "../../../extensions/crossword/ipuz.ts";
-import type { Entry, MonthView, NewestView, Offline, Opened, SolvedReply, StatsView } from "../../../extensions/crossword/index.ts";
-import type { View } from "../../../sdk/src/protocol.ts";
-import { beats, plus, streaks, summary, tally, type Solve } from "../../../extensions/crossword/stats.ts";
-import type { Data } from "../../../extensions/crossword/store.ts";
+} from "../crossword/game.ts";
+import { fromIpuz } from "../crossword/ipuz.ts";
+import type { Entry, MonthView, NewestView, Offline, Opened, SolvedReply, StatsView } from "../crossword/index.ts";
+import type { View } from "../.pal/sdk/src/protocol.ts";
+import { beats, plus, streaks, summary, tally, type Solve } from "../crossword/stats.ts";
+import type { Data } from "../crossword/store.ts";
 import { CART, DUMP, TALL, fakeCrosshare, ipuz, monthPage, tagPage } from "./crossword-fixtures.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, stored } from "../.pal/host/test/harness.ts";
 
 //  # T A L L       1 across TALL, 5 BELIE, 6 OPINE, 7 SEVER, 8 SEED
 //  B E L I E       1 down TEPEE, 2 ALIVE, 3 LINED, 4 LEER, 5 BOSS

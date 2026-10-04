@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { Vehicle } from "../../../extensions/highway/game/vehicle.ts";
-import { Director } from "../../../extensions/highway/game/director.ts";
-import { Score } from "../../../extensions/highway/game/score.ts";
-import { CARS, FEEL, MODES, spec } from "../../../extensions/highway/game/content.ts";
-import { Drive } from "../../../extensions/highway/game/drive.ts";
-import { ONE_WAY } from "../../../extensions/highway/game/layout.ts";
-import { fresh, buyCar, buyUpgrade, load, stored, xpTotal, type Save } from "../../../extensions/highway/game/meta.ts";
-import { gainXp, xpFor } from "../../../extensions/highway/game/progress.ts";
+import { Vehicle } from "../highway/game/vehicle.ts";
+import { Director } from "../highway/game/director.ts";
+import { Score } from "../highway/game/score.ts";
+import { CARS, FEEL, MODES, spec } from "../highway/game/content.ts";
+import { Drive } from "../highway/game/drive.ts";
+import { ONE_WAY } from "../highway/game/layout.ts";
+import { fresh, buyCar, buyUpgrade, load, stored, xpTotal, type Save } from "../highway/game/meta.ts";
+import { gainXp, xpFor } from "../highway/game/progress.ts";
 import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
 
 const NO_UP = { speed: 0, handling: 0, brakes: 0, nitro: 0 };

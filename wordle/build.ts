@@ -19,7 +19,7 @@
 // change once shipped. Allowed is the union of all the lists' five-letter
 // words plus the answers.
 //
-//   bun run extensions/wordle/build.ts <12dicts dir> <enable1.txt>
+//   bun run wordle/build.ts <12dicts dir> <enable1.txt>
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 

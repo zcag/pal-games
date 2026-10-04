@@ -4,13 +4,13 @@
 // the storage split for sync (and the old blob taken apart), the scores
 // posted when a game ends, the sign-in hint at game over.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { tile } from "../../../sdk/src/icon.ts";
-import { DEFAULTS, SIZE, actions, apply, canMove, isState, newGame, phase, slide, slideLine, spawn, type Board, type State } from "../../../extensions/2048/game.ts";
-import { finished } from "../../../extensions/2048/index.ts";
-import { TILE, lookOf, render } from "../../../extensions/2048/render.ts";
-import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
-import { checkView } from "../../../sdk/src/view.ts";
-import { Host, stored } from "../harness.ts";
+import { tile } from "../.pal/sdk/src/icon.ts";
+import { DEFAULTS, SIZE, actions, apply, canMove, isState, newGame, phase, slide, slideLine, spawn, type Board, type State } from "../2048/game.ts";
+import { finished } from "../2048/index.ts";
+import { TILE, lookOf, render } from "../2048/render.ts";
+import type { View, ViewNode } from "../.pal/sdk/src/protocol.ts";
+import { checkView } from "../.pal/sdk/src/view.ts";
+import { Host, stored } from "../.pal/host/test/harness.ts";
 
 let ids = 1;
 const tiles = (vs: number[]): Board => vs.map((v) => (v ? { id: ids++, v } : null));

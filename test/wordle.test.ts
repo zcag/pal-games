@@ -5,13 +5,13 @@
 // counted from the days (so two machines' streaks merge), stats from before
 // moved over, a won daily posted to its board, the sign-in hint.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { tile } from "../../../sdk/src/icon.ts";
-import { COLS, DEFAULTS, ROWS, actions, apply, days0, fromStore, hardModeError, isState, isValid, keyMarks, mark, share, stats0, streakOf, sync, toStore, type Days, type Game, type State } from "../../../extensions/wordle/game.ts";
-import { render } from "../../../extensions/wordle/render.ts";
-import { ALLOWED, ANSWERS, STRIDE, dailyAnswer, dayOf } from "../../../extensions/wordle/words.ts";
-import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
-import { checkView } from "../../../sdk/src/view.ts";
-import { Host, stored } from "../harness.ts";
+import { tile } from "../.pal/sdk/src/icon.ts";
+import { COLS, DEFAULTS, ROWS, actions, apply, days0, fromStore, hardModeError, isState, isValid, keyMarks, mark, share, stats0, streakOf, sync, toStore, type Days, type Game, type State } from "../wordle/game.ts";
+import { render } from "../wordle/render.ts";
+import { ALLOWED, ANSWERS, STRIDE, dailyAnswer, dayOf } from "../wordle/words.ts";
+import type { View, ViewNode } from "../.pal/sdk/src/protocol.ts";
+import { checkView } from "../.pal/sdk/src/view.ts";
+import { Host, stored } from "../.pal/host/test/harness.ts";
 
 const TODAY = 100;
 /** The host's clock for the tests over the wire: a daily puzzle is a function of the day. */

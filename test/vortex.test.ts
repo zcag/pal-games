@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { CLEAR, FEEL, RANKS, STAGES, sectionAt } from "../../../extensions/vortex/game/content.ts";
-import { GRAZE, LEGS, PATTERN_IDS, chartSeed, create, inside, sectionOf, skipTo, step, travel, type State } from "../../../extensions/vortex/game/sim.ts";
-import { decide, play, safest } from "../../../extensions/vortex/game/bot.ts";
-import { BOARDS, MEDALS_TOTAL, Player, boardIdOf, daily, dailyOf, dailyOpen, fresh, ghostOf, ghostStep, keyOf, load, medalCount, open, record, settle, skinOpen, type Keys, type Save } from "../../../extensions/vortex/game/meta.ts";
+import { CLEAR, FEEL, RANKS, STAGES, sectionAt } from "../vortex/game/content.ts";
+import { GRAZE, LEGS, PATTERN_IDS, chartSeed, create, inside, sectionOf, skipTo, step, travel, type State } from "../vortex/game/sim.ts";
+import { decide, play, safest } from "../vortex/game/bot.ts";
+import { BOARDS, MEDALS_TOTAL, Player, boardIdOf, daily, dailyOf, dailyOpen, fresh, ghostOf, ghostStep, keyOf, load, medalCount, open, record, settle, skinOpen, type Keys, type Save } from "../vortex/game/meta.ts";
 import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
 
 const TAU = Math.PI * 2;

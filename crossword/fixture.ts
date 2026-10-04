@@ -1,4 +1,4 @@
-// Writes app/src/gallery/shots/crossword.json: the store screenshots'
+// Writes test/shots/crossword.json: the store screenshots'
 // fixture. The page asks the extension for everything (`pal.send`: the
 // sources, the puzzle, the month, the stats, the solve), so the fixture runs
 // the extension in the host harness over a data directory of its own
@@ -13,9 +13,9 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Host } from "../../host/test/harness.ts";
-import { TALL } from "../../host/test/extensions/crossword-fixtures.ts";
-import { NOW, pinClock, seeded, writeFixture } from "../../app/scripts/fixture-kit.ts";
+import { Host } from "../.pal/host/test/harness.ts";
+import { TALL } from "../test/crossword-fixtures.ts";
+import { NOW, pinClock, seeded, writeFixture } from "../.pal/app/scripts/fixture-kit.ts";
 import { encode, gridOf, newPlay, select, type Play } from "./game.ts";
 import { fromIpuz } from "./ipuz.ts";
 import type { Listed } from "./sources.ts";

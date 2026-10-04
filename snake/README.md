@@ -138,7 +138,7 @@ with its emulated time. From it:
   footage of real 3310s; 7.745 ms in the emulator). The disassembly gave
   rand() (`seed * 0x625F + 0x3623 mod 0xFFF1`), the food's and the
   creature's placement, and the creature table (`rand() % 6`).
-- **The proof**: `host/test/extensions/snake-emulator.fixture.json` holds
+- **The proof**: `test/snake-emulator.fixture.json` holds
   123 recorded runs (menus and their keys, every level and maze played to
   the end, bonus creatures eaten and missed, the collision grace at levels
   1 and 9, pauses and Continue, deaths with and without a top score, keys

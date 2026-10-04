@@ -1,4 +1,4 @@
-// Writes app/src/gallery/shots/yahtzee.json: the store screenshots'
+// Writes test/shots/yahtzee.json: the store screenshots'
 // fixture. Each palette is a card as the page finds it in storage: a game
 // from game.ts played by a plain strategy (keep the most common face,
 // throw the rest, score the box that adds most) on seeded dice, searched
@@ -9,8 +9,8 @@
 // own for that state, through the host harness. No shot throws: a throw's
 // tumble is the page's own Math.random, so every die in a picture is one
 // the stored state already holds. `make shots EXT=yahtzee`.
-import { Host, stored } from "../../host/test/harness.ts";
-import { pinClock, seeded, writeFixture } from "../../app/scripts/fixture-kit.ts";
+import { Host, stored } from "../.pal/host/test/harness.ts";
+import { pinClock, seeded, writeFixture } from "../.pal/app/scripts/fixture-kit.ts";
 import { ROLLS, apply, bestOption, counts, isJoker, isOpen, isYahtzee, newGame, options, type Rng, type State } from "./game.ts";
 import manifest from "./pal.json" with { type: "json" };
 

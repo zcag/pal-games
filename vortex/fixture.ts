@@ -1,11 +1,11 @@
-// Writes app/src/gallery/shots/vortex.json: the store screenshots' fixture.
+// Writes test/shots/vortex.json: the store screenshots' fixture.
 // Each palette seeds the page's storage: a save some sessions in, and for the
 // in-game shots a scene (surface/main.ts `stage`): a run from a seed played
 // forward by the bot, then shown live with the bot still steering, or ended
 // there for the death card. Chance is seeded in the page (shots.mjs), so a
 // picture is the same every run. `make shots EXT=vortex`.
-import { Host } from "../../host/test/harness.ts";
-import { pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
+import { Host } from "../.pal/host/test/harness.ts";
+import { pinClock, writeFixture } from "../.pal/app/scripts/fixture-kit.ts";
 import { fresh, type Save, type Scene } from "./game/meta.ts";
 import manifest from "./pal.json" with { type: "json" };
 

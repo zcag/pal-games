@@ -85,7 +85,7 @@ Two text files ship with the extension, one word per line, built by
   `2of4brif`, `5d+2a`) and of **ENABLE** (the Enhanced North American
   Benchmark Lexicon, public domain), the answers included.
 
-`bun run extensions/wordle/build.ts <12dicts dir> <enable1.txt>` rebuilds
+`bun run wordle/build.ts <12dicts dir> <enable1.txt>` rebuilds
 both.
 
 ## Setup

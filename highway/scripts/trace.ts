@@ -1,5 +1,5 @@
 // A lane change, step by step: where the time goes.
-//   bun extensions/highway/scripts/trace.ts [car id] [km/h]
+//   bun highway/scripts/trace.ts [car id] [km/h]
 import { Vehicle } from "../game/vehicle.ts";
 import { CARS, spec } from "../game/content.ts";
 const car = CARS.find((c) => c.id === (process.argv[2] ?? "jdm-sport-99"))!;

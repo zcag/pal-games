@@ -3,15 +3,15 @@
 // pure: the fit at both panel widths), and the extension over the wire: a
 // view palette whose view is the page.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { tile } from "../../../sdk/src/icon.ts";
-import { DEFAULTS, F, RANKS, STOCK, T, UNDO, WASTE, actions, apply, canFinish, clock, dailyDeal, easyWin, finishStep, headline, isState, newGame, play as drag, quickTarget, seeded, utcDay, type Action, type Card, type Pile, type State } from "../../../extensions/solitaire/game.ts";
-import { KEYS, changes, restore, scores } from "../../../extensions/solitaire/progress.ts";
-import manifest from "../../../extensions/solitaire/pal.json" with { type: "json" };
-import { checkLeaderboards, checkSync, leaderboardOf } from "../../../sdk/src/manifest.ts";
-import type { Manifest } from "../../../sdk/src/protocol.ts";
-import { RATIO, geometry, layout } from "../../../extensions/solitaire/surface/layout.ts";
-import type { View } from "../../../sdk/src/protocol.ts";
-import { Host } from "../harness.ts";
+import { tile } from "../.pal/sdk/src/icon.ts";
+import { DEFAULTS, F, RANKS, STOCK, T, UNDO, WASTE, actions, apply, canFinish, clock, dailyDeal, easyWin, finishStep, headline, isState, newGame, play as drag, quickTarget, seeded, utcDay, type Action, type Card, type Pile, type State } from "../solitaire/game.ts";
+import { KEYS, changes, restore, scores } from "../solitaire/progress.ts";
+import manifest from "../solitaire/pal.json" with { type: "json" };
+import { checkLeaderboards, checkSync, leaderboardOf } from "../.pal/sdk/src/manifest.ts";
+import type { Manifest } from "../.pal/sdk/src/protocol.ts";
+import { RATIO, geometry, layout } from "../solitaire/surface/layout.ts";
+import type { View } from "../.pal/sdk/src/protocol.ts";
+import { Host } from "../.pal/host/test/harness.ts";
 
 const pile = (down: Card[], up: Card[]): Pile => ({ down, up });
 const empty = (): Pile[] => Array.from({ length: 7 }, () => pile([], []));

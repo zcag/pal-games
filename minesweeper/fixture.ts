@@ -1,4 +1,4 @@
-// Writes app/src/gallery/shots/minesweeper.json: the store screenshots'
+// Writes test/shots/minesweeper.json: the store screenshots'
 // fixture. The palette is the extension's own view (the surface node and
 // the actions ⌘K lists, through the host harness); the page's storage is
 // seeded with boards from game.ts: the first open on a seeded field, then
@@ -8,8 +8,8 @@
 // the page never draws its own; the won and lost shots press the last key
 // themselves and wait until the confetti and the blast have settled.
 // `make shots EXT=minesweeper`.
-import { Host } from "../../host/test/harness.ts";
-import { NOW, pinClock, seeded, writeFixture } from "../../app/scripts/fixture-kit.ts";
+import { Host } from "../.pal/host/test/harness.ts";
+import { NOW, pinClock, seeded, writeFixture } from "../.pal/app/scripts/fixture-kit.ts";
 import { apply, around, count, isChord, newGame, type Level, type State } from "./game.ts";
 import manifest from "./pal.json" with { type: "json" };
 

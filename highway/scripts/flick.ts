@@ -1,5 +1,5 @@
 // A flick: hold left until the car crosses at full speed, then right; how long until it moves the other way.
-//   bun extensions/highway/scripts/flick.ts
+//   bun highway/scripts/flick.ts
 import { Vehicle } from "../game/vehicle.ts";
 import { CARS, FEEL, spec } from "../game/content.ts";
 const dt = 1 / 120;

@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { night, play } from "../../../extensions/night-parade/game/bot.ts";
+import { night, play } from "../night-parade/game/bot.ts";
 import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
-import { SHRINE } from "../../../extensions/night-parade/game/content/meta.ts";
-import { ENEMIES } from "../../../extensions/night-parade/game/content/enemies.ts";
-import { BOSSES } from "../../../extensions/night-parade/game/content/bosses.ts";
-import { HEROES } from "../../../extensions/night-parade/game/content/heroes.ts";
-import { NIGHT, boardsOf, buy, earnedUnlocks, fresh, load, type Save, loadout, nightBonus, packRun, priceOf, refund, settle, shrineStats, unpackRun } from "../../../extensions/night-parade/game/meta.ts";
+import { SHRINE } from "../night-parade/game/content/meta.ts";
+import { ENEMIES } from "../night-parade/game/content/enemies.ts";
+import { BOSSES } from "../night-parade/game/content/bosses.ts";
+import { HEROES } from "../night-parade/game/content/heroes.ts";
+import { NIGHT, boardsOf, buy, earnedUnlocks, fresh, load, type Save, loadout, nightBonus, packRun, priceOf, refund, settle, shrineStats, unpackRun } from "../night-parade/game/meta.ts";
 
 test("a stored save loads with anything newer filled in", () => {
   const s = fresh();

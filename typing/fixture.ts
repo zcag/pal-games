@@ -1,4 +1,4 @@
-// Writes app/src/gallery/shots/typing.json: the store screenshots'
+// Writes test/shots/typing.json: the store screenshots'
 // fixture. The page keeps the options ("config") and the records
 // ("records") in storage; the records are two months of tests filed one by
 // one through typing.ts's own `file` (a speed that climbs from the high
@@ -8,8 +8,8 @@
 // every frame by the shots) at a steady human pace, a key every 105 to 185
 // ms, with a slip or two.
 // `make shots EXT=typing`.
-import { Host, stored } from "../../host/test/harness.ts";
-import { NOW, pinClock, seeded, writeFixture } from "../../app/scripts/fixture-kit.ts";
+import { Host, stored } from "../.pal/host/test/harness.ts";
+import { NOW, pinClock, seeded, writeFixture } from "../.pal/app/scripts/fixture-kit.ts";
 import { configOf, file, newRun, noRecords, type Config, type Records, type Result } from "./typing.ts";
 import manifest from "./pal.json" with { type: "json" };
 

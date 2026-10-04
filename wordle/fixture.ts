@@ -1,10 +1,10 @@
-// Writes app/src/gallery/shots/wordle.json: the store screenshots' fixture,
+// Writes test/shots/wordle.json: the store screenshots' fixture,
 // a daily in progress as the opening tree (three guesses in, two letters
 // typed), a bad word's notice and the solved board
 // with the stats, each its own palette, rendered by render.ts from rigged states so the shots
 // show what a game looks like without playing one. `bun run
-// extensions/wordle/fixture.ts`, then `node app/scripts/shots.mjs wordle`.
-import { NOW, pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
+// wordle/fixture.ts`, then `node app/scripts/shots.mjs wordle`.
+import { NOW, pinClock, writeFixture } from "../.pal/app/scripts/fixture-kit.ts";
 import { DEFAULTS, apply, type State } from "./game.ts";
 import { render } from "./render.ts";
 import { dayOf } from "./words.ts";

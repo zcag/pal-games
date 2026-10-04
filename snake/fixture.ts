@@ -1,4 +1,4 @@
-// Writes app/src/gallery/shots/snake.json: the store screenshots' fixture.
+// Writes test/shots/snake.json: the store screenshots' fixture.
 // The page keeps the phone's memory in storage (the level, the maze, the top
 // score, a paused game, rand()'s state), so each palette seeds one: a game
 // from game.ts on the firmware's own rand() (seed 1, as at power-on), played
@@ -8,8 +8,8 @@
 // Continue draws the paused game still and unlit (the phone waits for a key),
 // or the Top score screen, shot once its cup has come to rest. The phone is
 // deterministic and none of it is random. `make shots EXT=snake`.
-import { Host } from "../../host/test/harness.ts";
-import { pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
+import { Host } from "../.pal/host/test/harness.ts";
+import { pinClock, writeFixture } from "../.pal/app/scripts/fixture-kit.ts";
 import { W, newGame, step, step1, walls, type Dir, type Game } from "./game.ts";
 import type { Memory } from "./phone.ts";
 import manifest from "./pal.json" with { type: "json" };

@@ -8,12 +8,12 @@
 // over the wire: a view palette whose body is its surface page.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { CELLS, GRACE, MAZES, STARTS, STEP, W, cell, newGame, nextSeed, placeFood, step, steer, walls, type Dir, type Event, type Game, type Key } from "../../../extensions/snake/game.ts";
-import { blank, drawGame, frame } from "../../../extensions/snake/lcd.ts";
-import { advance, boardsOf, boot, gone, isMemory, memory, menuItems, press, shared, withShared, type Phone } from "../../../extensions/snake/phone.ts";
-import { hz, TONES } from "../../../extensions/snake/tones.ts";
-import type { View } from "../../../sdk/src/protocol.ts";
-import { Host } from "../harness.ts";
+import { CELLS, GRACE, MAZES, STARTS, STEP, W, cell, newGame, nextSeed, placeFood, step, steer, walls, type Dir, type Event, type Game, type Key } from "../snake/game.ts";
+import { blank, drawGame, frame } from "../snake/lcd.ts";
+import { advance, boardsOf, boot, gone, isMemory, memory, menuItems, press, shared, withShared, type Phone } from "../snake/phone.ts";
+import { hz, TONES } from "../snake/tones.ts";
+import type { View } from "../.pal/sdk/src/protocol.ts";
+import { Host } from "../.pal/host/test/harness.ts";
 import { replay, type Run } from "./snake-replay.ts";
 import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
 

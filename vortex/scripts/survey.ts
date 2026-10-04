@@ -1,6 +1,6 @@
 // How long the planning bot lasts on every board, over a few seeds: a board
 // it cannot survive has a pattern spaced too tight for the turn it asks.
-// `bun extensions/vortex/scripts/survey.ts [seconds] [seeds]`
+// `bun vortex/scripts/survey.ts [seconds] [seeds]`
 import { STAGES } from "../game/content.ts";
 import { create } from "../game/sim.ts";
 import { play } from "../game/bot.ts";

@@ -5,10 +5,10 @@
 // machines that both played against each other.
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { checkLeaderboards, checkSync, leaderboardOf } from "../../../sdk/src/manifest.ts";
-import type { Manifest, SyncRule } from "../../../sdk/src/protocol.ts";
+import { checkLeaderboards, checkSync, leaderboardOf } from "../.pal/sdk/src/manifest.ts";
+import type { Manifest, SyncRule } from "../.pal/sdk/src/protocol.ts";
 
-const EXT = join(import.meta.dir, "../../../extensions");
+const EXT = join(import.meta.dir, "..");
 
 export const manifestOf = (name: string) => JSON.parse(readFileSync(join(EXT, name, "pal.json"), "utf8")) as Manifest & { sync: Record<string, SyncRule> };
 

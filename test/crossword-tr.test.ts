@@ -10,12 +10,12 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { check, fold, gridOf, letterOf, newPlay, proper, same, select, status, type, WRONG, type Play } from "../../../extensions/crossword/game.ts";
-import type { MonthView, Opened, SolvedReply, SourcesView, StatsView } from "../../../extensions/crossword/index.ts";
-import { cumhuriyetPuzzle, fromEntries, istanbulDay, parseHaberturk, parseSabahMonth, parseSabahPlayer } from "../../../extensions/crossword/turkish.ts";
-import type { Data } from "../../../extensions/crossword/store.ts";
+import { check, fold, gridOf, letterOf, newPlay, proper, same, select, status, type, WRONG, type Play } from "../crossword/game.ts";
+import type { MonthView, Opened, SolvedReply, SourcesView, StatsView } from "../crossword/index.ts";
+import { cumhuriyetPuzzle, fromEntries, istanbulDay, parseHaberturk, parseSabahMonth, parseSabahPlayer } from "../crossword/turkish.ts";
+import type { Data } from "../crossword/store.ts";
 import { CUM_SMALL, HT_8, SABAH_SMALL, fakePapers, htPage } from "./crossword-tr-fixtures.ts";
-import { Host } from "../harness.ts";
+import { Host } from "../.pal/host/test/harness.ts";
 
 const htEntries = (list = HT_8) => list.map((e) => ({ x: e.startx, y: e.starty, across: e.orientation === "across", answer: e.answer, clue: e.clue }));
 const ht = fromEntries(htEntries(), { id: "ht-x", title: "Kare Bulmaca", author: "", lang: "tr" });

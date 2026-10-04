@@ -10,9 +10,9 @@
 // compared in time. Where Snake II was left (C on its menu, a digit: the
 // phone's Games list or dialer), the emulator's frames up to Snake II coming
 // back are the phone's own and are skipped; Menu there picks Snake II again.
-import { frame } from "../../../extensions/snake/lcd.ts";
-import type { Key } from "../../../extensions/snake/game.ts";
-import { REPEAT_EVERY, REPEAT_FIRST, advance, boot, enter, gone, press, repeats, type Phone } from "../../../extensions/snake/phone.ts";
+import { frame } from "../snake/lcd.ts";
+import type { Key } from "../snake/game.ts";
+import { REPEAT_EVERY, REPEAT_FIRST, advance, boot, enter, gone, press, repeats, type Phone } from "../snake/phone.ts";
 
 export type Run = { keys: [number, Key, number][]; ft: number[]; frames: string; buzz: number[][]; light: number[][] };
 export type Result = {

@@ -4,15 +4,15 @@
 // one `surface` with the legal moves as actions. The page itself
 // (surface/) is browser code and is not run here.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { tile } from "../../../sdk/src/icon.ts";
-import { DEFAULTS, RESHUFFLE_AT, actions, apply, canDouble, canSplit, isBlackjack, newGame, shoe, value, type Settings, type State } from "../../../extensions/blackjack/game.ts";
-import { type Card } from "../../../extensions/blackjack/game.ts";
-import { MAX_CHIPS, chipsFor, money, moveFor, titleOf, viewActions } from "../../../extensions/blackjack/moves.ts";
-import { KEYS, changes, restore, scores } from "../../../extensions/blackjack/progress.ts";
-import manifest from "../../../extensions/blackjack/pal.json" with { type: "json" };
-import { checkLeaderboards, checkSync, leaderboardOf } from "../../../sdk/src/manifest.ts";
-import type { Manifest, View } from "../../../sdk/src/protocol.ts";
-import { Host, stored } from "../harness.ts";
+import { tile } from "../.pal/sdk/src/icon.ts";
+import { DEFAULTS, RESHUFFLE_AT, actions, apply, canDouble, canSplit, isBlackjack, newGame, shoe, value, type Settings, type State } from "../blackjack/game.ts";
+import { type Card } from "../blackjack/game.ts";
+import { MAX_CHIPS, chipsFor, money, moveFor, titleOf, viewActions } from "../blackjack/moves.ts";
+import { KEYS, changes, restore, scores } from "../blackjack/progress.ts";
+import manifest from "../blackjack/pal.json" with { type: "json" };
+import { checkLeaderboards, checkSync, leaderboardOf } from "../.pal/sdk/src/manifest.ts";
+import type { Manifest, View } from "../.pal/sdk/src/protocol.ts";
+import { Host, stored } from "../.pal/host/test/harness.ts";
 
 /** A shoe that deals `order` in that order: the dealer pops from the end. */
 const rig = (st: State, order: Card[]): State => ({ ...st, shoe: [...st.shoe.slice(0, 100), ...[...order].reverse()] });

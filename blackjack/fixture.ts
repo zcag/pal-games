@@ -1,4 +1,4 @@
-// Writes app/src/gallery/shots/blackjack.json: the store screenshots'
+// Writes test/shots/blackjack.json: the store screenshots'
 // fixture. Each palette is a table as the page finds it in storage: a
 // state from game.ts over a shoe from a seeded shuffle, picked (seed by
 // seed) so the hand plays out as the shot wants: a natural on the deal,
@@ -10,8 +10,8 @@
 // (`pal.send({ moved })` is what refreshes them in pal). Every card is in
 // the stored shoe, so the page draws nothing at random.
 // `make shots EXT=blackjack`.
-import { Host, stored } from "../../host/test/harness.ts";
-import { pinClock, seeded, writeFixture } from "../../app/scripts/fixture-kit.ts";
+import { Host, stored } from "../.pal/host/test/harness.ts";
+import { pinClock, seeded, writeFixture } from "../.pal/app/scripts/fixture-kit.ts";
 import { DEFAULTS, apply, isBust, newGame, rankOf, total, value, type State } from "./game.ts";
 import manifest from "./pal.json" with { type: "json" };
 

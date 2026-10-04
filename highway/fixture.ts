@@ -1,11 +1,11 @@
-// Writes app/src/gallery/shots/highway.json: the store screenshots' fixture.
+// Writes test/shots/highway.json: the store screenshots' fixture.
 // Each palette seeds the page's storage: a save a few hours in, and a scene
 // (game/meta.ts `Scene`) that stages the garage, a run already going (played
 // forward by the page's own driver, then shown live) or a run's end. Chance is
 // seeded in the page (shots.mjs), so a picture is the same every run.
 // `make shots EXT=highway`.
-import { Host } from "../../host/test/harness.ts";
-import { pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
+import { Host } from "../.pal/host/test/harness.ts";
+import { pinClock, writeFixture } from "../.pal/app/scripts/fixture-kit.ts";
 import { fresh, type Save, type Scene } from "./game/meta.ts";
 import manifest from "./pal.json" with { type: "json" };
 

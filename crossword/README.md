@@ -24,7 +24,7 @@ the page says so plainly and lists the puzzles opened before. Nothing of
 any source's ships with pal: the puzzles are their makers' work, fetched
 when you play and credited on the page with a link to the puzzle's own
 page. The tests and the screenshots use puzzles made for them
-(`host/test/extensions/crossword-fixtures.ts`, `crossword-tr-fixtures.ts`).
+(`test/crossword-fixtures.ts`, `crossword-tr-fixtures.ts`).
 
 | Source | What | Archive | Size |
 | --- | --- | --- | --- |

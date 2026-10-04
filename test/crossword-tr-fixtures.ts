@@ -10,8 +10,8 @@
 //   Sabah       the month slider (POST, JSON with the articles' HTML), an
 //               article with the player in an iframe, the player page with the
 //               puzzle as base64 JSON; its grids cross Ç with C
-import { gridOf } from "../../../extensions/crossword/game.ts";
-import { cumhuriyetPuzzle } from "../../../extensions/crossword/turkish.ts";
+import { gridOf } from "../crossword/game.ts";
+import { cumhuriyetPuzzle } from "../crossword/turkish.ts";
 
 type HtEntry = { clue: string; answer: string; orientation: "across" | "down"; startx: number; starty: number };
 

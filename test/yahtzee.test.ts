@@ -6,14 +6,14 @@
 // dice may go in as its actions. The page (surface/) is browser code and
 // is not run here.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { tile } from "../../../sdk/src/icon.ts";
-import { CATEGORIES, apply, average, bestOption, counted, dailyFace, dailyGame, gain, isJoker, isState, newGame, options, round, score, started, totals, utcDay, type Category, type State } from "../../../extensions/yahtzee/game.ts";
-import { moveOf, titleOf, viewActions } from "../../../extensions/yahtzee/moves.ts";
-import { KEYS, changes, restore, scores } from "../../../extensions/yahtzee/progress.ts";
-import manifest from "../../../extensions/yahtzee/pal.json" with { type: "json" };
-import { checkLeaderboards, checkSync, leaderboardOf } from "../../../sdk/src/manifest.ts";
-import type { Manifest, View } from "../../../sdk/src/protocol.ts";
-import { Host, stored } from "../harness.ts";
+import { tile } from "../.pal/sdk/src/icon.ts";
+import { CATEGORIES, apply, average, bestOption, counted, dailyFace, dailyGame, gain, isJoker, isState, newGame, options, round, score, started, totals, utcDay, type Category, type State } from "../yahtzee/game.ts";
+import { moveOf, titleOf, viewActions } from "../yahtzee/moves.ts";
+import { KEYS, changes, restore, scores } from "../yahtzee/progress.ts";
+import manifest from "../yahtzee/pal.json" with { type: "json" };
+import { checkLeaderboards, checkSync, leaderboardOf } from "../.pal/sdk/src/manifest.ts";
+import type { Manifest, View } from "../.pal/sdk/src/protocol.ts";
+import { Host, stored } from "../.pal/host/test/harness.ts";
 
 /** An rng that rolls these faces, in order. */
 const faces = (...f: number[]) => { const q = f.map((d) => (d - 1) / 6 + 0.01); return () => q.shift() ?? 0; };

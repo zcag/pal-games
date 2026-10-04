@@ -1,12 +1,12 @@
-// Writes app/src/gallery/shots/night-parade.json: the store screenshots'
+// Writes test/shots/night-parade.json: the store screenshots'
 // fixture. Each palette seeds the page's storage: a save that has seen some
 // nights (gold, unlocked heroes, a codex), and for the in-game shots a scene
 // (surface/main.ts `Scene`): a night from a seed with a build, played forward
 // by the bot, then shown live with the bot still playing. Chance is seeded in
 // the page (shots.mjs), so a picture is the same every run.
 // `make shots EXT=night-parade`.
-import { Host } from "../../host/test/harness.ts";
-import { pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
+import { Host } from "../.pal/host/test/harness.ts";
+import { pinClock, writeFixture } from "../.pal/app/scripts/fixture-kit.ts";
 import { fresh, type Save, type Scene } from "./game/meta.ts";
 import manifest from "./pal.json" with { type: "json" };
 

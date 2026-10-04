@@ -4,13 +4,13 @@
 // wire: a view palette whose body is its surface page, with the moves as
 // actions for cmd+k.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { tile } from "../../../sdk/src/icon.ts";
-import { DEFAULTS, LEVELS, adopt, apply, around, clockText, count, dailyBoard, isChord, isState, layMines, middle, minesLeft, newGame, pause, pointAt, resume, rings, settle, status, utcDay, type Level, type State } from "../../../extensions/minesweeper/game.ts";
-import { KEYS, changes, restore, scores } from "../../../extensions/minesweeper/progress.ts";
-import manifest from "../../../extensions/minesweeper/pal.json" with { type: "json" };
-import { checkLeaderboards, checkSync, leaderboardOf } from "../../../sdk/src/manifest.ts";
-import type { Manifest, View } from "../../../sdk/src/protocol.ts";
-import { Host } from "../harness.ts";
+import { tile } from "../.pal/sdk/src/icon.ts";
+import { DEFAULTS, LEVELS, adopt, apply, around, clockText, count, dailyBoard, isChord, isState, layMines, middle, minesLeft, newGame, pause, pointAt, resume, rings, settle, status, utcDay, type Level, type State } from "../minesweeper/game.ts";
+import { KEYS, changes, restore, scores } from "../minesweeper/progress.ts";
+import manifest from "../minesweeper/pal.json" with { type: "json" };
+import { checkLeaderboards, checkSync, leaderboardOf } from "../.pal/sdk/src/manifest.ts";
+import type { Manifest, View } from "../.pal/sdk/src/protocol.ts";
+import { Host } from "../.pal/host/test/harness.ts";
 
 /**
  * A board in play from a picture: `*` a mine, `.` closed, `o` open, `F` a

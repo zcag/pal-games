@@ -10,15 +10,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   applyHint, clearNotes, decode, digitCounts, encode, enter, erase, fillNotes, hint, marks, newPlay, place, progressOf, toggleNote, unitsDone, wrongCells, type Play,
-} from "../../../extensions/sudoku/game.ts";
-import type { Entry, MonthView, Opened, SolvedReply, StatsView, TodayView } from "../../../extensions/sudoku/index.ts";
-import type { View } from "../../../sdk/src/protocol.ts";
-import { beats, plus, streaks, summary, tally, type Solve } from "../../../extensions/sudoku/stats.ts";
-import type { Data } from "../../../extensions/sudoku/store.ts";
+} from "../sudoku/game.ts";
+import type { Entry, MonthView, Opened, SolvedReply, StatsView, TodayView } from "../sudoku/index.ts";
+import type { View } from "../.pal/sdk/src/protocol.ts";
+import { beats, plus, streaks, summary, tally, type Solve } from "../sudoku/stats.ts";
+import type { Data } from "../sudoku/store.ts";
 import {
   ALL, DIFFS, PEERS, UNITS, apply, bit, candidates, conflicts, countSolutions, findStep, fromText, generate, grade, rng, solve, toText, type Diff,
-} from "../../../extensions/sudoku/sudoku.ts";
-import { Host, stored } from "../harness.ts";
+} from "../sudoku/sudoku.ts";
+import { Host, stored } from "../.pal/host/test/harness.ts";
 
 // A classic puzzle and its answer.
 const P = fromText("530070000600195000098000060800060003400803001700020006060000280000419005000080079");

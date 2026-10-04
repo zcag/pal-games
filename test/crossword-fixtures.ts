@@ -3,7 +3,7 @@
 // as ipuz, and a stand-in for crosshare.org serving them the way the site
 // does: a month of daily minis and a page of the newest minis as Next.js
 // pages with the list in __NEXT_DATA__, and /api/ipuz/<id>.
-import type { Ipuz } from "../../../extensions/crossword/ipuz.ts";
+import type { Ipuz } from "../crossword/ipuz.ts";
 
 /** An ipuz from the grid's rows ("#" a block) and the clues by number, as Crosshare writes it. */
 export function ipuz(title: string, author: string, rows: string[], across: Record<number, string>, down: Record<number, string>, notes = "Created on crosshare.org"): Ipuz {

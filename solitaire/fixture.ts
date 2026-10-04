@@ -1,4 +1,4 @@
-// Writes app/src/gallery/shots/solitaire.json: the store screenshots'
+// Writes test/shots/solitaire.json: the store screenshots'
 // fixture. The palette is the extension's own view (the surface node and
 // the actions ⌘K lists, through the host harness); the page's storage is
 // seeded with states from game.ts: a deal from a seeded deck, then that
@@ -8,8 +8,8 @@
 // runs in the page: a stored state is drawn as it is (no deal animation),
 // and a stored win opens the won table without the bouncing cascade.
 // `make shots EXT=solitaire`.
-import { Host } from "../../host/test/harness.ts";
-import { pinClock, seeded, writeFixture } from "../../app/scripts/fixture-kit.ts";
+import { Host } from "../.pal/host/test/harness.ts";
+import { pinClock, seeded, writeFixture } from "../.pal/app/scripts/fixture-kit.ts";
 import { DEFAULTS, F, SUITS, T, WASTE, isTableau, move, newGame, quickTarget, refusal, suitOf, turn, type State } from "./game.ts";
 import manifest from "./pal.json" with { type: "json" };
 

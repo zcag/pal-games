@@ -1,11 +1,11 @@
-// Writes app/src/gallery/shots/2048.json: the store screenshots' fixture, a
+// Writes test/shots/2048.json: the store screenshots' fixture, a
 // mid-game board as the opening tree and the trees a key brings (a move
 // that makes 2048, a move into game over), rendered by render.ts from
 // rigged states so the shots show what a game looks like without playing
 // one. No host and no clock: the states are rigged and the spawns come from a
 // fixed sequence, so the fixture is the same every run.
-// `bun run extensions/2048/fixture.ts`, or `make shots EXT=2048`.
-import { pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
+// `bun run 2048/fixture.ts`, or `make shots EXT=2048`.
+import { pinClock, writeFixture } from "../.pal/app/scripts/fixture-kit.ts";
 import { DEFAULTS, apply, type Board, type State } from "./game.ts";
 import { render } from "./render.ts";
 import manifest from "./pal.json";
