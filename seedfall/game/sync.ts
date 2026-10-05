@@ -3,31 +3,27 @@
 // machine wrote last, while what a player keeps for good merges so neither machine loses it: achievements, the
 // collection log, research and modules unlocked, perks and shards, records. pal.json's rules are SYNC (a test holds
 // them equal), and `absorb` folds the same rules into a running game when a merged save arrives.
-import { FINDS, MATERIALS } from "./content/world.ts";
-import { PERKS } from "./content/economy.ts";
 import type { GameState } from "./game.ts";
 
-export type Rule = "max" | "min" | "union" | "sum" | "latest" | "local" | { fields: Record<string, Rule> };
-
-const all = (keys: readonly (string | number)[], rule: Rule) => Object.fromEntries(keys.map((k) => [String(k), rule]));
+export type Rule = "max" | "min" | "union" | "sum" | "latest" | "local" | { fields?: Record<string, Rule>; each?: Rule };
 
 export const STATE: Rule = {
   fields: {
     shards: "max",
-    perks: { fields: all(PERKS.map((p) => p.id), "max") },
+    perks: { each: "max" },
     achievements: "union",
     research: "union",
     unlocked: "union",
     everReached: "max",
     log: {
       fields: {
-        finds: { fields: all(FINDS.filter((f) => f && f.id > 0).map((f) => f.id), { fields: { n: "max" } }) },
-        caches: { fields: all([...new Set(MATERIALS.filter((m) => m?.cache).map((m) => m.cache!))], "max") },
+        finds: { each: { fields: { n: "max" } } },
+        caches: { each: "max" },
         places: "union", life: "union", planets: "union", read: "union", sets: "union",
       },
     },
     records: { fields: { richestHaul: "max", longestDive: "max", launches: "max" } },
-    stats: { fields: all(["jackpots", "relics", "ingots", "overcharged", "blastTiles", "wrecks", "tows"], "max") },
+    stats: { each: "max" },
   },
 };
 
@@ -50,7 +46,7 @@ export function fold(rule: Rule | undefined, mine: unknown, theirs: unknown): un
   }
   if (rule && typeof rule === "object") {
     const a = mine as Record<string, unknown>, b = theirs as Record<string, unknown>;
-    return Object.fromEntries([...new Set([...Object.keys(a), ...Object.keys(b)])].map((k) => [k, fold(rule.fields[k], a[k], b[k])]));
+    return Object.fromEntries([...new Set([...Object.keys(a), ...Object.keys(b)])].map((k) => [k, fold(rule.fields?.[k] ?? rule.each, a[k], b[k])]));
   }
   return mine;
 }

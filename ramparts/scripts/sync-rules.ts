@@ -1,5 +1,4 @@
-// Writes pal.json's `sync` from game/sync.ts (the rules follow the content: every tower, boon,
-// relic, enemy, boss, event and commander). Run after adding content:
+// Writes pal.json's `sync` from game/sync.ts. Run after changing the rules:
 //   bun ramparts/scripts/sync-rules.ts
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

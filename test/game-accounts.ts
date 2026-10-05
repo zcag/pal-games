@@ -47,8 +47,8 @@ export function merge(rule: SyncRule | undefined, mine: unknown, theirs: unknown
     return [...(mine as unknown[]), ...(theirs as unknown[])].filter((x) => !seen.has(JSON.stringify(x)) && !!seen.add(JSON.stringify(x)));
   }
   if (rule && typeof rule === "object") {
-    const f = rule.fields as Record<string, SyncRule>, a = mine as Record<string, unknown>, b = theirs as Record<string, unknown>, o = (base ?? {}) as Record<string, unknown>;
-    return Object.fromEntries([...new Set([...Object.keys(b), ...Object.keys(a)])].map((k) => [k, merge(f[k], a[k], b[k], o[k])]));
+    const f = (rule.fields ?? {}) as Record<string, SyncRule>, a = mine as Record<string, unknown>, b = theirs as Record<string, unknown>, o = (base ?? {}) as Record<string, unknown>;
+    return Object.fromEntries([...new Set([...Object.keys(b), ...Object.keys(a)])].map((k) => [k, merge(f[k] ?? rule.each, a[k], b[k], o[k])]));
   }
   return mine;
 }
