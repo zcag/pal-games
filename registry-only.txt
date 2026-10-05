@@ -11,6 +11,7 @@ highway
 minesweeper
 night-parade
 ramparts
+seedfall
 snake
 solitaire
 sudoku
