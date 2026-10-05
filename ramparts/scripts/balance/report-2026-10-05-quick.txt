@@ -1,0 +1,117 @@
+Ramparts balance report 2026-10-05  (runs per cell 60, careers 60)
+
+== Targets ==
+check                          target     measured                     
+learning run 1 dies in act I   45-60%     45%                      ok  
+learning run 1 dies in act II  30-45%     45%                      ok  
+learning run 1 wins            < 3%       0%                       ok  
+first win by run 8             60-75%     97%                      MISS
+median first win               run 5-6    run 5                    ok  
+decent k0.6 A0 (Marshal)       35-50%     35%                      ok  
+expert k0.9 A0                 ~80%       45%                      MISS
+expert k0.9 A5                 ~50%       37%                      MISS
+expert k0.9 A10                15-25%     12%                      MISS
+battle length (won, 1x)        2:00-3:15  3:07 median (2:22-4:25)  ok  
+run length (decent win)        30-45 min  54.5 min                 MISS
+novice k0.2 wins               rare       0%                           
+run time of a decent win (real, setup + reward included): battles 6.2 x 2:54, elites 3.5 x 3:34, bosses 4.0 x 4:21, other nodes 10.3
+
+== Commanders (decent k0.6, A0) ==
+commander      win  vs Marshal  died act I/II/III/IV 
+marshal        35%  +0          15% / 30% / 17% / 3% 
+alchemist      23%  -12         13% / 40% / 12% / 12%
+seer           18%  -17         30% / 32% / 12% / 8% 
+quartermaster  12%  -23         50% / 22% / 10% / 7% 
+warden         13%  -22         35% / 35% / 15% / 2% 
+
+== Learning player ==
+first win on run: 2: 3%  3: 8%  4: 22%  5: 32%  6: 20%  7: 8%  8: 3%  9: 2%  >12: 2%
+run 1: act 1.6 k 0.2 | run 2: act 1.6 k 0.3 | run 3: act 2.1 k 0.4 | run 4: act 2.6 k 0.5 | run 5: act 3.3 k 0.6 | run 6: act 3.8 k 0.7 | run 7: act 3.6 k 0.7 | run 8: act 3.3 k 0.8
+run 1 death: I-7 43%  II-7 17%  II-5 10%  III-7 8%  II-2 7%  II-1 5%  II-3 3%  II-4 3%  I-5 2%
+
+== Where runs end (act-floor, losses) ==
+novice     I-7 47%  II-1 13%  II-3 13%  I-5 7%  II-2 7%  III-2 3%  I-3 3%  II-7 3%  III-7 3%
+decent     WIN 20%  I-7 19%  II-7 14%  III-7 8%  II-2 5%  I-5 5%  II-1 5%  I-3 4%  II-5 4%
+expert A0  WIN 45%  I-7 12%  III-7 12%  II-7 10%  IV-3 7%  IV-1 5%  III-2 3%  III-5 2%  III-1 2%
+
+== Battles (all personas) ==
+act  kind    n     lives lost (mean)  won  length  called early  gold at w1/w4/last
+1    battle  1213  1.1                99%  2:27    1.3           42/60/71          
+1    elite   601   4.0                95%  3:16    0.8           45/62/80          
+1    boss    533   12.4               77%  4:20    1.9           42/63/74          
+2    battle  805   3.5                93%  2:53    0.9           47/72/87          
+2    elite   357   4.9                91%  3:30    0.8           46/76/100         
+2    boss    326   12.1               73%  4:20    1.3           48/74/100         
+3    battle  460   2.8                97%  3:10    1.3           58/85/103         
+3    elite   178   3.3                92%  3:56    1.1           60/87/110         
+3    boss    208   14.2               74%  4:03    1.3           58/82/112         
+4    battle  60    3.8                88%  3:23    1.2           59/97/108         
+4    elite   93    4.2                94%  4:06    1.2           54/83/132         
+4    boss    148   9.9                84%  5:10    1.6           51/88/111         
+novice          lives lost per battle by act: 2.1 / 9.4 / 5.8 / -
+learning run 1  lives lost per battle by act: 1.3 / 5.4 / 5.2 / -
+decent          lives lost per battle by act: 2.9 / 4.9 / 3.1 / 5.4
+expert A0       lives lost per battle by act: 0.8 / 1.7 / 3.0 / 3.6
+lives lost per battle to each enemy kind (decent + expert A0; battles, elites and bosses together):
+  act 1: gorrak 1.2, runner 0.8, brood 0.7, bat 0.6, footman 0.5, swarmling 0.2, brute 0.2, juggernaut 0.1, hivequeen 0.1
+  act 2: wyrm 1.2, shade 1.1, bat 0.9, lich 0.7, brute 0.7, shieldbearer 0.3, drake 0.3, runner 0.2, swarmling 0.2
+  act 3: colossus 1.3, shade 1.0, packlord 0.8, bat 0.7, pup 0.5, drake 0.4, shard 0.4, runner 0.1, footman 0.1
+  act 4: tyrant 3.6, bat 1.2, drake 1.0, shade 0.7, ember-runner 0.5, ember-drake 0.3, footman 0.2, brute 0.1, runner 0.1
+
+== Bosses (decent + expert A0) ==
+boss       met  beaten  runs it ended  its health left then
+gorrak     173  90%     17             30%                 
+lich       122  84%     20             42%                 
+packlord   52   77%     12             13%                 
+tyrant     102  86%     14             27%                 
+hivequeen  158  70%     47             19%                 
+colossus   94   79%     20             21%                 
+wyrm       92   70%     28             30%                 
+
+== Towers (decent + expert A0) ==
+tower      owned  built/battle  dmg share  dmg per gold (x mean)  win when owned  top dmg in wins  2+ in half (wins)
+archer     88%    84%           68%        1.2                    26%             85% !            89% FLAG         
+barracks   61%    36%           1%         0.2                    29%             0% !             33%              
+mage       60%    33%           10%        0.9                    29%             7%               14%              
+bombard    49%    2%            0%         1.8                    22%             0% !             0%               
+frost      36%    12%           0%         0.2                    22%             0% !             2%               
+pyre       33%    27%           10%        1.1                    24%             3% !             20%              
+alchemist  30%    15%           1%         0.7                    23%             0% !             5%               
+storm      16%    11%           5%         0.8                    34%             2% !             6%               
+beacon     37%    15%           0%         0.0                    43%             0% !             0%               
+banner     32%    2%            0%         0.0                    19%             0% !             0%               
+ballista   9%     5%            2%         1.2                    27%             2% !             2%               
+thornwood  42%    8%            1%         0.8                    23%             0% !             0%               
+
+== Specialisations (share when that tower specialises; target 35-65%; damage per gold x mean) ==
+tower      spec A               spec B                   n         
+archer     marksmen 21% (1.4)   volley 79% (1.2)         5240  MISS
+barracks   paladins 0%          blademasters 100% (0.1)  188   MISS
+mage       arcanist 100% (0.8)  hexer 0% (1.0)           377   MISS
+bombard    mortar -             shrapnel -               0         
+frost      glacier 29% (0.3)    shatter 71% (0.2)        42    MISS
+pyre       inferno 17% (0.8)    firestorm 83% (1.1)      271   MISS
+alchemist  acid 35% (0.8)       naphtha 65% (0.4)        34        
+storm      tempest 50% (0.8)    overload 50% (0.9)       139       
+beacon     lighthouse 8% (0.0)  huntersmark 92% (0.0)    24    MISS
+banner     wardrums 33% (0.0)   treasury 67% (0.0)       15    MISS
+ballista   harpoon 0%           siegebolt 100% (1.1)     55    MISS
+thornwood  bramble 84% (0.7)    treant 16% (0.7)         25    MISS
+
+== Cards and relics (decent, explore picks: win when picked vs offered and not picked) ==
+cards offered 15+ times: 117; picked < 10%: 16; picked > 70%: 6
+  rarely picked: frostbite 0%, whetstones 0%, heavy-shot 0%, thick-oil 0%, drilled 0%, long-winter 0%, rapid-loader 0%, ballista 4% (lift -6), quick-muster 4%, black-powder 5%, tall-pole 6%, endless-winter 7%, twin-flasks 8%, caustic-oil 8%, focus 8%, strong-brew 9%
+  must-picks:    glass-arrows 95%, spyglass 94%, cinder-rain 91%, spear-of-dawn 81%, armourers-awl 73%, pitch-arrows 71% (lift 27)
+  biggest random-pick lifts: pact-of-embers +35, pitch-arrows +27, curse-engine +24, hunters-moon +23, overseer +19, bait +11, banner +6, mage +5
+  smallest: ballista -6, veteran -13, trophy -14, royal-mint -17, barracks -19, long-fuse -19, rangefinder -26, overclock -45
+relics held (observational win-rate vs all decent, n>=20): top phoenix-feather +61 (21), prism-lens +45 (26), deadeyes-oath +43 (30), wildfire-crown +38 (24), lucky-horseshoe +32 (38), echo-stone +32 (23)
+
+== Synergy lifts (pair together vs each alone, same pads and gold; target 40-100%) ==
+  Shatterline (Shatter + Archer III)         -1%  LOW
+  Shatterline (Shatter + Ballista III)       -1%  LOW
+  Wildfire (Naphtha + Pyre III)              -6%  LOW
+  Wildfire (Alchemist III + Inferno)          9%  LOW
+  Deadeye (Beacon III + Marksmen)            16%  LOW
+  Deadeye (Hunter's Mark + Marksmen)         23%  LOW
+
+(quick, 82 s, 10 threads)

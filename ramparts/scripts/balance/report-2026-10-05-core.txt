@@ -1,0 +1,109 @@
+Ramparts balance report 2026-10-05  (runs per cell 300, careers 0)
+
+== Targets ==
+check                          target     measured                     
+learning run 1 dies in act I   45-60%     NaN%                     MISS
+learning run 1 dies in act II  30-45%     NaN%                     MISS
+learning run 1 wins            < 3%       0%                       ok  
+first win by run 8             60-75%     NaN%                     MISS
+median first win               run 5-6    never                    MISS
+decent k0.6 A0 (Marshal)       35-50%     28%                      MISS
+expert k0.9 A0                 ~80%       38%                      MISS
+expert k0.9 A5                 ~50%       0%                       MISS
+expert k0.9 A10                15-25%     0%                       MISS
+battle length (won, 1x)        2:00-3:15  3:13 median (2:24-4:32)  ok  
+run length (decent win)        30-45 min  54.7 min                 MISS
+novice k0.2 wins               rare       0%                           
+run time of a decent win (real, setup + reward included): battles 6.4 x 2:53, elites 3.5 x 3:33, bosses 4.0 x 4:17, other nodes 10.2
+
+== Commanders (decent k0.6, A0) ==
+commander      win  vs Marshal  died act I/II/III/IV     
+marshal        28%  +0          20% / 22% / 24% / 6%     
+alchemist      0%   -28         NaN% / NaN% / NaN% / NaN%
+seer           0%   -28         NaN% / NaN% / NaN% / NaN%
+quartermaster  0%   -28         NaN% / NaN% / NaN% / NaN%
+warden         0%   -28         NaN% / NaN% / NaN% / NaN%
+
+== Learning player ==
+first win on run: 
+
+run 1 death: 
+
+== Where runs end (act-floor, losses) ==
+novice     
+decent     WIN 28%  I-7 19%  III-7 17%  II-7 12%  II-2 5%  IV-3 4%  III-2 3%  IV-1 3%  III-5 2%
+expert A0  WIN 38%  III-7 22%  II-7 14%  I-7 9%  IV-3 4%  IV-1 3%  III-3 2%  III-2 2%  III-1 2%
+
+== Battles (all personas) ==
+act  kind    n     lives lost (mean)  won   length  called early  gold at w1/w4/last
+1    battle  1220  0.2                100%  2:26    1.6           53/68/78          
+1    elite   757   2.2                100%  3:17    1.2           54/64/84          
+1    boss    597   10.5               86%   4:21    2.4           56/66/80          
+2    battle  982   2.3                97%   2:52    1.2           56/75/94          
+2    elite   434   3.5                97%   3:34    1.1           54/80/104         
+2    boss    475   11.2               84%   4:26    1.6           56/79/101         
+3    battle  772   2.9                96%   3:10    1.4           61/86/112         
+3    elite   321   2.6                97%   3:54    1.7           56/92/114         
+3    boss    355   16.3               68%   4:15    1.6           57/94/112         
+4    battle  90    3.1                93%   3:22    1.3           58/94/125         
+4    elite   150   4.4                93%   4:07    1.2           48/85/134         
+4    boss    224   8.5                89%   5:32    1.7           49/92/122         
+novice          lives lost per battle by act: - / - / - / -
+learning run 1  lives lost per battle by act: - / - / - / -
+decent          lives lost per battle by act: 1.2 / 3.3 / 3.0 / 4.4
+expert A0       lives lost per battle by act: 0.7 / 2.1 / 2.7 / 3.5
+lives lost per battle to each enemy kind (decent + expert A0; battles, elites and bosses together):
+  act 1: gorrak 1.2, brood 0.7, runner 0.3, swarmling 0.3, bat 0.2, juggernaut 0.2, footman 0.2, brute 0.0, risen 0.0
+  act 2: wyrm 1.7, shade 1.0, lich 0.6, bat 0.4, brute 0.3, drake 0.2, shieldbearer 0.1, sandling 0.1, footman 0.1
+  act 3: colossus 1.6, shade 1.1, packlord 1.1, bat 0.7, pup 0.7, drake 0.4, shard 0.3, footman 0.1, brute 0.0
+  act 4: tyrant 2.6, drake 0.9, bat 0.9, shade 0.6, ember-runner 0.4, ember-drake 0.4, footman 0.1, brute 0.1, runner 0.1
+
+== Bosses (decent + expert A0) ==
+boss       met  beaten  runs it ended  its health left then
+gorrak     325  97%     11             18%                 
+lich       233  91%     20             41%                 
+packlord   161  60%     64             21%                 
+tyrant     224  89%     24             20%                 
+colossus   194  74%     51             21%                 
+hivequeen  272  73%     73             12%                 
+wyrm       242  76%     57             24%                 
+
+== Towers (decent + expert A0) ==
+tower      owned  built/battle  dmg share  dmg per gold (x mean)  win when owned  top dmg in wins  2+ in half (wins)
+archer     100%   90%           68%        1.2                    33%             85% !            93% FLAG         
+barracks   97%    66%           2%         0.2                    34%             0% !             65% FLAG         
+mage       100%   41%           13%        0.9                    33%             6%               12%              
+bombard    30%    8%            2%         1.2                    26%             0% !             0%               
+frost      17%    5%            0%         0.2                    25%             0% !             1%               
+pyre       19%    13%           7%         1.4                    32%             4% !             10%              
+alchemist  20%    7%            1%         0.7                    31%             0% !             0%               
+storm      17%    8%            4%         1.0                    42%             4% !             3%               
+beacon     55%    20%           0%         0.0                    43%             0% !             0%               
+banner     20%    2%            0%         0.0                    36%             0% !             0%               
+ballista   5%     4%            3%         1.2                    30%             3% !             4%               
+thornwood  31%    7%            1%         0.5                    39%             0% !             0%               
+
+== Specialisations (share when that tower specialises; target 35-65%; damage per gold x mean) ==
+tower      spec A                spec B                   n          
+archer     marksmen 9% (1.5)     volley 91% (1.3)         12858  MISS
+barracks   paladins 0%           blademasters 100% (0.1)  520    MISS
+mage       arcanist 100% (0.9)   hexer 0%                 1356   MISS
+bombard    mortar 99% (0.8)      shrapnel 1% (0.9)        84     MISS
+frost      glacier 57% (0.2)     shatter 43% (0.1)        30         
+pyre       inferno 6% (1.4)      firestorm 94% (1.4)      571    MISS
+alchemist  acid 57% (0.7)        naphtha 43% (0.5)        103        
+storm      tempest 60% (0.9)     overload 40% (1.0)       351        
+beacon     lighthouse 12% (0.0)  huntersmark 88% (0.0)    95     MISS
+banner     wardrums 31% (0.0)    treasury 69% (0.0)       42     MISS
+ballista   harpoon 0%            siegebolt 100% (1.3)     155    MISS
+thornwood  bramble 94% (0.5)     treant 6% (0.6)          136    MISS
+
+== Cards and relics (decent, explore picks: win when picked vs offered and not picked) ==
+cards offered 15+ times: 108; picked < 10%: 16; picked > 70%: 5
+  rarely picked: tall-pole 0%, ballista 1%, long-reach 2%, quick-muster 4%, long-mark 5%, quick-roots 5%, drilled 6%, wider-light 6%, whetstones 6%, bright-mark 6%, black-powder 7%, quick-signal 7%, caustic-oil 8%, endless-winter 9%, storm 9%, brave-hearts 10%
+  must-picks:    glass-arrows 97%, spyglass 80%, armourers-awl 79%, thorn-collar 77%, twin-shot 75%
+  biggest random-pick lifts: 
+  smallest: 
+relics held (observational win-rate vs all decent, n>=20): top prism-lens +49 (45), deadeyes-oath +41 (49), ninth-pad +38 (21), twin-crests +37 (20), dragonglass +32 (28), tidewater-vial +31 (39)
+
+(core, 121 s, 8 threads)

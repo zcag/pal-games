@@ -1,0 +1,10 @@
+
+== Commanders, decent k0.6 A0 (300 runs each) ==
+commander      win  vs Marshal  lives lost per battle by act  ends                                                                               
+marshal        35%  +0          3.7 / 5.2 / 5.6 / 4.2         WIN 35%  I-7 17%  III-7 14%  II-7 11%  II-2 5%  II-5 4%  IV-1 2%  III-2 2%  II-1 2%
+alchemist      17%  -18         3.4 / 7.3 / 5.7 / 12.0        II-7 29%  WIN 17%  I-7 11%  IV-3 9%  III-7 6%  II-2 5%  II-1 3%  III-3 3%  III-1 3%
+seer           23%  -11         5.4 / 6.9 / 4.9 / 8.0         WIN 23%  II-7 12%  I-3 9%  I-5 7%  III-7 7%  II-2 7%  II-5 6%  I-7 5%  II-1 5%     
+quartermaster  15%  -20         6.0 / 7.2 / 4.9 / 7.0         I-7 34%  WIN 15%  II-7 7%  III-7 7%  II-2 6%  I-5 5%  I-3 5%  II-1 5%  II-5 4%     
+warden         19%  -15         6.6 / 7.2 / 6.7 / 6.4         I-7 38%  WIN 19%  III-7 9%  II-7 9%  II-3 4%  II-1 4%  II-2 4%  II-5 2%  IV-3 2%   
+
+(cmds, 111 s, 16 threads)
