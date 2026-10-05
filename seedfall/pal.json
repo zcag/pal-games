@@ -1,0 +1,631 @@
+{
+  "name": "seedfall",
+  "title": "Seedfall",
+  "description": "A mining incremental in the manner of Motherload: fly a drilling pod down through the planet Vell, haul ore back up to the town of Gantry, sell it, upgrade, and go deeper through seven biomes to the core. Rigs mine while you are away, research and modules change how you dig, and at the bottom sits the Seed: wake it, launch it, and follow it to the next planet with shards that buy permanent perks. Lit pixel art, music and sound all made in code.",
+  "version": "1.0.0",
+  "icon": {
+    "tile": {
+      "svg": "M5 1.5h6V3H5zM3 3h10v5.5H3zM9.5 4.2h2.3v2.3H9.5zM4.5 9.5h7L8 15z",
+      "bg": "orange"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "keywords": [
+    "mining",
+    "incremental",
+    "idle",
+    "motherload",
+    "upgrades",
+    "prestige"
+  ],
+  "settings": [
+    {
+      "id": "volume",
+      "label": "Volume",
+      "kind": "number",
+      "description": "How loud the whole game is; music and effects keep their own balance in the game's settings, and Shift+M mutes it.",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "slider": true,
+      "default": 80
+    }
+  ],
+  "sync": {
+    "save": {
+      "fields": {
+        "v": "max",
+        "state": {
+          "fields": {
+            "shards": "max",
+            "perks": {
+              "fields": {
+                "headstart": "max",
+                "contacts": "max",
+                "keptrigs": "max",
+                "engineer": "max",
+                "prospector": "max",
+                "crews": "max",
+                "widersilo": "max",
+                "pockets": "max",
+                "drillmastery": "max",
+                "lens": "max",
+                "memory": "max"
+              }
+            },
+            "achievements": "union",
+            "research": "union",
+            "unlocked": "union",
+            "everReached": "max",
+            "log": {
+              "fields": {
+                "finds": {
+                  "fields": {
+                    "1": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "3": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "5": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "7": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "9": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "11": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "13": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "15": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "17": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "19": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "21": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "23": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "25": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "27": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "29": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "31": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "33": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "35": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "37": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "39": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "41": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "43": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "45": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "47": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "49": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "51": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "53": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "55": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "56": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "57": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "58": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "59": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "60": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "61": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "62": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "63": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "64": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "65": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "66": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "67": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "68": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "69": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "70": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "71": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "72": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "73": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "74": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "75": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "76": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "77": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "78": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "79": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "80": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "81": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "82": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "83": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "84": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "85": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "86": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "87": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "88": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "89": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "90": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "91": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "92": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "93": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "94": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "95": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "96": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    },
+                    "97": {
+                      "fields": {
+                        "n": "max"
+                      }
+                    }
+                  }
+                },
+                "caches": {
+                  "fields": {
+                    "crate": "max",
+                    "cart": "max",
+                    "geode": "max",
+                    "spore": "max",
+                    "ember": "max",
+                    "coffer": "max",
+                    "seedpod": "max",
+                    "urn": "max",
+                    "strongbox": "max"
+                  }
+                },
+                "places": "union",
+                "life": "union",
+                "planets": "union",
+                "read": "union",
+                "sets": "union"
+              }
+            },
+            "records": {
+              "fields": {
+                "richestHaul": "max",
+                "longestDive": "max",
+                "launches": "max"
+              }
+            },
+            "stats": {
+              "fields": {
+                "jackpots": "max",
+                "relics": "max",
+                "ingots": "max",
+                "overcharged": "max",
+                "blastTiles": "max",
+                "wrecks": "max",
+                "tows": "max"
+              }
+            }
+          }
+        },
+        "diff": "latest",
+        "live": "latest"
+      }
+    },
+    "hints": "union",
+    "mix": "latest",
+    "scene": "local"
+  },
+  "leaderboards": [
+    {
+      "id": "core",
+      "title": "Fastest to the Core",
+      "order": "asc",
+      "format": "time",
+      "min": 60,
+      "max": 360000
+    }
+  ],
+  "store": {
+    "tagline": "Dig down, haul ore up, wake the Seed at the core",
+    "category": "fun",
+    "play": true,
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "actions": [
+      {
+        "title": "Drive and drill",
+        "description": "Left and right drive, and drill sideways against rock; down drills, and on the pad drives into the mine. A and D, S too.",
+        "keys": "left, right, down"
+      },
+      {
+        "title": "Thrust",
+        "description": "Up, W or Space.",
+        "keys": "up"
+      },
+      {
+        "title": "Use an item",
+        "description": "Fuel cell, repair kit, dynamite, big charge, teleporter, coolant; 7 for Overcharge once it is fitted.",
+        "keys": "1"
+      },
+      {
+        "title": "Scanner pulse",
+        "keys": "q"
+      },
+      {
+        "title": "Dump the cheapest ore",
+        "keys": "x"
+      },
+      {
+        "title": "Enter a building",
+        "description": "In town; in the core chamber, wake the Seed.",
+        "keys": "e"
+      },
+      {
+        "title": "Buy the suggested upgrade",
+        "description": "In town.",
+        "keys": "b"
+      },
+      {
+        "title": "Workshop, cargo, map, collection log",
+        "keys": "u, tab, m, l"
+      },
+      {
+        "title": "Pause menu",
+        "description": "The log, achievements and settings; Backspace closes a menu.",
+        "keys": "p"
+      },
+      {
+        "title": "Sound on or off",
+        "keys": "shift+m"
+      }
+    ],
+    "features": [
+      "Fly a drilling pod down through seven biomes, from topsoil and the old mines through crystal caves, fungal hollows and magma to the ruins of the Sowers and the core",
+      "Every dive is a fuel gamble: the HUD marks the fuel you need to get home, and a heavy cargo bay climbs slow and burns more",
+      "Land on the depot pad and the haul sells, the tank fills and the hull is mended on their own; then buy the next upgrade with one key",
+      "Rigs mine while you are away and fill the silo, the lab trickles research data, and research and modules change how you dig",
+      "26 ores, jackpots and 31 relics to find, a collection log, achievements and orders from the market",
+      "Wake the Seed at the core and launch it: shards buy permanent perks, and the next run is on another planet with its own rules",
+      "Lit pixel art, music and sound, all made in code; the world is generated from a seed",
+      "A leaderboard for the fastest run to the core; signed in, your achievements, log, perks and shards follow you to your other machines and play.cagdas.io"
+    ],
+    "screenshots": [
+      {
+        "file": "1-crystal.png",
+        "caption": "Down in the crystal caves: the pod's lamp, the ore glinting in the rock, fuel, hull and cargo at a glance"
+      },
+      {
+        "file": "2-town.png",
+        "caption": "Gantry at sunset: land on the depot pad and the haul sells, the tank fills and the hull is mended"
+      },
+      {
+        "file": "3-workshop.png",
+        "caption": "The workshop: every part of the pod, what the next level does in plain numbers, and the one to buy next"
+      },
+      {
+        "file": "4-magma.png",
+        "caption": "The magma layer: lava lakes light the rock, and the heat climbs while you stay"
+      },
+      {
+        "file": "5-chamber.png",
+        "caption": "The Seed at the bottom of the world: wake it and launch it, and follow it to the next planet"
+      },
+      {
+        "file": "6-log.png",
+        "caption": "The collection log: every ore, jackpot and relic you have found, and where"
+      }
+    ]
+  },
+  "palettes": {
+    "seedfall": {
+      "title": "Seedfall",
+      "kind": "view",
+      "description": "Mine down through Vell to the Seed. Escape leaves and keeps your game; while the panel is hidden the rigs keep mining as offline time.",
+      "keys": [
+        {
+          "keys": "left",
+          "title": "Drive and drill (arrows or WASD)"
+        },
+        {
+          "keys": "up",
+          "title": "Thrust (Up, W or Space)"
+        },
+        {
+          "keys": "1",
+          "title": "Items, 1 to 7"
+        },
+        {
+          "keys": "q",
+          "title": "Scanner pulse"
+        },
+        {
+          "keys": "e",
+          "title": "Enter a building, wake the Seed"
+        },
+        {
+          "keys": "b",
+          "title": "Buy the suggested upgrade, in town"
+        },
+        {
+          "keys": "u",
+          "title": "Workshop, in town"
+        },
+        {
+          "keys": "tab",
+          "title": "Cargo"
+        },
+        {
+          "keys": "m",
+          "title": "Map"
+        },
+        {
+          "keys": "l",
+          "title": "Collection log"
+        },
+        {
+          "keys": "p",
+          "title": "Pause menu"
+        },
+        {
+          "keys": "backspace",
+          "title": "Close a menu"
+        },
+        {
+          "keys": "shift+m",
+          "title": "Sound on or off"
+        }
+      ]
+    }
+  }
+}

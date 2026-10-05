@@ -10,6 +10,7 @@ crossword
 highway
 minesweeper
 night-parade
+seedfall
 snake
 solitaire
 sudoku
