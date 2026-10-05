@@ -1,9 +1,7 @@
 // Seedfall's audio: everything synthesised at runtime with WebAudio (design/audio.md).
 //
-// Wiring (the lead, src/surface/main.ts):
+// Wiring (surface/main.ts imports Audio from here and the content from game/content/world.ts):
 //
-//   import { Audio } from "./audio/index.ts";
-//   import { MATERIALS, FINDS } from "../game/content/world.ts";
 //   const audio = new Audio({ materials: MATERIALS, finds: FINDS });
 //   addEventListener("keydown", () => audio.resume());           // and pointerdown: the context needs a gesture
 //   // each frame, after game.step:

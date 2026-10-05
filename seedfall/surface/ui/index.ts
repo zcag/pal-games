@@ -1,10 +1,7 @@
 // Seedfall's UI: HTML over the canvas (design/art.md section 9).
 //
-// Wiring (the lead, src/surface/main.ts):
+// Wiring (surface/main.ts imports Ui from here and gameModel from ui/model.ts):
 //
-//   import "./style.css";
-//   import { Ui } from "./ui/index.ts";
-//   import { gameModel } from "./ui/model.ts";
 //   const ui = new Ui(document.getElementById("ui")!, gameModel(game));
 //   ui.onSound((kind, opts) => audio.ui(kind, opts));     // names match Audio's UiSound
 //   keys.listen((e) => ui.handleKey(e));                 // UI keys first; true swallows
