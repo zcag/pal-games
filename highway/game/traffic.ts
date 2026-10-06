@@ -27,6 +27,7 @@ export type Npc = {
   politeness: number;
   cooldown: number; // seconds before it may change lanes again
   itch: number; // seconds it has wanted another lane; it acts once this passes its patience (`patienceOf`)
+  think: number; // seconds until it next looks at the lanes beside it (`DECIDE`)
   hit?: { vx: number; yaw: number; r: number }; // knocked by a crash: sliding, no longer driving
   passed?: boolean; // the player has gone by it
   prev?: { x: number; z: number; yaw: number }; // where it was a step ago, for drawing between steps
@@ -38,6 +39,9 @@ const S0 = 2.5; // jam distance, m
 const CHANGE_TIME = 3.2; // s to drive across a lane
 const SIGNAL_TIME = 1.4; // s of indicator before moving
 const B_SAFE = 3.5; // m/s^2 the follower in the target lane may be asked to brake
+/** How often a driver looks at the lanes beside it, s: eight times a second, quicker than anyone reacts, each driver on
+ *  its own beat. (Every step, 120 a second, it was most of what a run cost.) */
+const DECIDE = 1 / 8;
 
 /** IDM acceleration for a car at speed v with a gap and closing speed to its leader. */
 export function idm(n: Pick<Npc, "v0" | "T" | "a" | "b">, v: number, gap: number, dv: number) {
@@ -55,17 +59,33 @@ export class Traffic {
 
   /** A car on the road; `cooldown` is how long before it may first change lanes (drawn per driver by the caller, so cars
    *  placed together do not all decide together). */
-  add(n: Omit<Npc, "id" | "from" | "t" | "signal" | "signalT" | "braking" | "x" | "itch">) {
-    const car: Npc = { ...n, id: this.nextId++, from: n.lane, t: 1, signal: 0, signalT: 0, braking: false, x: 0, itch: 0 };
+  add(n: Omit<Npc, "id" | "from" | "t" | "signal" | "signalT" | "braking" | "x" | "itch" | "think">) {
+    const id = this.nextId++;
+    const car: Npc = { ...n, id, from: n.lane, t: 1, signal: 0, signalT: 0, braking: false, x: 0, itch: 0, think: DECIDE * ((id * 0.7548776662) % 1) };
     this.cars.push(car);
+    this.index = null;
     return car;
+  }
+
+  /** The cars by direction and the lanes they take up (both, while crossing): who is ahead or behind is looked for
+   *  among them, not the whole road. Made again when a car arrives, leaves or changes lanes. */
+  private index: Map<number, Npc[]> | null = null;
+  private inLane(lane: number, oncoming: boolean) {
+    if (!this.index) {
+      this.index = new Map();
+      for (const o of this.cars) for (const l of o.t < 1 && o.from !== o.lane ? [o.lane, o.from] : [o.lane]) {
+        const k = l * 2 + (o.oncoming ? 1 : 0);
+        (this.index.get(k) ?? this.index.set(k, []).get(k)!).push(o);
+      }
+    }
+    return this.index.get(lane * 2 + (oncoming ? 1 : 0)) ?? [];
   }
 
   /** The nearest car ahead of z in a lane (same direction), the ego included. */
   private leader(lane: number, z: number, oncoming: boolean, ego: Ego | null, self?: Npc): Body | null {
     let best: Body | null = null, bestGap = Infinity;
-    for (const o of this.cars) {
-      if (o === self || o.oncoming !== oncoming || !occupies(o, lane)) continue;
+    for (const o of this.inLane(lane, oncoming)) {
+      if (o === self) continue;
       const gap = (o.z - z) * dirOf(oncoming);
       if (gap > 0 && gap < bestGap) { bestGap = gap; best = o; }
     }
@@ -78,8 +98,8 @@ export class Traffic {
 
   private follower(lane: number, z: number, oncoming: boolean, ego: Ego | null, self?: Npc): Body | null {
     let best: Body | null = null, bestGap = Infinity;
-    for (const o of this.cars) {
-      if (o === self || o.oncoming !== oncoming || !occupies(o, lane)) continue;
+    for (const o of this.inLane(lane, oncoming)) {
+      if (o === self) continue;
       const gap = (z - o.z) * dirOf(oncoming);
       if (gap > 0 && gap < bestGap) { bestGap = gap; best = o; }
     }
@@ -95,9 +115,7 @@ export class Traffic {
     return idm(n, v, (lead.z - z) * dir - (lead.length + length) / 2, v - lead.v);
   }
 
-  private dt = 0;
   step(dt: number, ego: Ego | null) {
-    this.dt = dt;
     for (const n of this.cars) {
       if (n.hit) {
         // sliding on locked or scrubbing tyres until it stops
@@ -124,16 +142,17 @@ export class Traffic {
         if (n.signalT > SIGNAL_TIME) {
           const target = n.lane + n.signal;
           // still safe? then go
-          if (target >= 0 && target < lanesHere && this.safe(n, target, ego)) { n.from = n.lane; n.lane = target; n.t = 0; }
+          if (target >= 0 && target < lanesHere && this.safe(n, target, ego)) { n.from = n.lane; n.lane = target; n.t = 0; this.index = null; }
           else if (n.signalT > SIGNAL_TIME * 3) { n.signal = 0; n.signalT = 0; n.cooldown = 4; }
         }
       }
       if (n.t < 1) {
         n.t = Math.min(1, n.t + dt / CHANGE_TIME);
-        if (n.t >= 1) { n.from = n.lane; n.signal = 0; n.signalT = 0; n.cooldown = 6 + (n.id % 5); }
+        if (n.t >= 1) { n.from = n.lane; n.signal = 0; n.signalT = 0; n.cooldown = 6 + (n.id % 5); this.index = null; }
       }
       n.cooldown -= dt;
-      if (!n.signal && n.t >= 1 && n.cooldown <= 0) this.consider(n, lanesHere, ego);
+      n.think -= dt;
+      if (!n.signal && n.t >= 1 && n.cooldown <= 0 && n.think <= 0) { n.think += DECIDE; this.consider(n, lanesHere, ego); }
     }
   }
 
@@ -176,17 +195,19 @@ export class Traffic {
     // a better lane is not taken at once: each driver waits its own while, so a queue behind a slow truck does not all
     // pull out on the same step
     if (!best) { n.itch = 0; return; }
-    n.itch += this.dt;
+    n.itch += DECIDE;
     if (n.itch >= patienceOf(n)) { n.signal = best as -1 | 1; n.signalT = 0; n.itch = 0; }
   }
 
-  remove(pred: (n: Npc) => boolean) { this.cars = this.cars.filter((n) => !pred(n)); }
+  remove(pred: (n: Npc) => boolean) {
+    const before = this.cars.length;
+    this.cars = this.cars.filter((n) => !pred(n));
+    if (this.cars.length !== before) this.index = null;
+  }
 }
 
 const dirOf = (oncoming: boolean) => (oncoming ? -1 : 1);
 
-/** Does a car take up a lane: its own, and the one it is leaving while it crosses. */
-export function occupies(n: Npc, lane: number) { return n.lane === lane || (n.t < 1 && n.from === lane); }
 
 /** Smooth lateral progress through a lane change (an S curve). */
 /** How long a driver waits before acting on a better lane, s: 0.4 to 2.6, its own (from its id), the same every run. */

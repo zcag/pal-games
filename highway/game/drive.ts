@@ -99,7 +99,7 @@ export class Drive {
     return {
       car: this.car.id, mode: this.mode,
       drive: data(this, ["layout", "car", "size", "sizeOf", "events", "veh", "traffic", "director", "score", "mode"]),
-      veh: data(this.veh, ["spec"]), traffic: data(this.traffic), director: data(this.director, ["o"]), score: data(this.score),
+      veh: data(this.veh, ["spec"]), traffic: data(this.traffic, ["index"]), director: data(this.director, ["o"]), score: data(this.score),
     };
   }
 
@@ -108,7 +108,7 @@ export class Drive {
   clone(): Drive {
     const c: Drive = Object.assign(Object.create(Drive.prototype), this);
     c.veh = Object.assign(Object.create(Vehicle.prototype), this.veh);
-    c.traffic = Object.assign(Object.create(Traffic.prototype), this.traffic, { cars: this.traffic.cars.map((n) => ({ ...n, hit: n.hit && { ...n.hit } })) });
+    c.traffic = Object.assign(Object.create(Traffic.prototype), this.traffic, { cars: this.traffic.cars.map((n) => ({ ...n, hit: n.hit && { ...n.hit } })), index: null });
     c.director = Object.assign(Object.create(Director.prototype), this.director, { planned: [...this.director.planned], spare: this.director.spare && { ...this.director.spare } });
     c.score = Object.assign(Object.create(Score.prototype), this.score, { graded: { ...this.score.graded } });
     c.spring = { ...this.spring };
