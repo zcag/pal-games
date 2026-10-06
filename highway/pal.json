@@ -1,7 +1,7 @@
 {
   "name": "highway",
   "title": "Highway",
-  "description": "Weave through highway traffic at speed: pass close for near misses, chain them into combos that carry you past your top speed, and earn your way up a garage of seventeen cars with three upgrades each. Driver levels open new modes, places and paints, and three missions always give the next run a goal. Four modes, five places under photographed skies.",
+  "description": "Weave through highway traffic on a road trip across five regions: short Sprints on fixed roads with three stars each, a rival to beat at the end of every region for their car, and a garage of seventeen cars that turn sharper and brake harder class by class. Near misses chain into combos that carry you past your top speed. Free Drive has four endless modes with leaderboards.",
   "version": "1.0.0",
   "icon": {
     "tile": {
@@ -348,7 +348,7 @@
     }
   ],
   "store": {
-    "tagline": "Weave through highway traffic at speed",
+    "tagline": "A road trip through highway traffic",
     "category": "fun",
     "play": true,
     "platforms": [
@@ -380,22 +380,21 @@
         "keys": "r"
       },
       {
-        "title": "In the garage",
-        "description": "Up and down pick a line, left and right change it, Enter buys, Space drives.",
+        "title": "On the map",
+        "description": "Left and right walk the road, up and down change region, Enter drives; G the garage, F Free Drive, Backspace back.",
         "keys": "enter"
       }
     ],
     "features": [
-      "Handling built for feel: the car goes where your thumb says and stops where you let go, leaning and diving on its springs; a better car or a handling upgrade turns quicker and switches direction sooner",
+      "A road trip across five regions, from a quiet countryside morning to a night run, each with its own sky, its own car class and busier roads",
+      "Sprints: about a minute to a finish line on a road that is the same every try, so it can be learned; three stars for the time, your best run beside you as a ghost, R tries again at once",
+      "A duel at the end of every region against a rival driving the best line; win it for their car and the next region",
+      "Handling built for feel: the car goes where your thumb says and stops where you let go, leaning and diving on its springs; every class turns in sharper, settles sooner and brakes harder",
       "Traffic with drivers: they keep their distance, brake, signal and change lanes when it's safe, placed so a lane is always open",
-      "Pass close above 100 km/h for a near miss, graded by the gap you left; near misses within four seconds build a combo, and threading a gap between two cars pays a bonus",
-      "Momentum: every near miss in a combo pushes you past your top speed, more for a closer one; break the chain and it fades",
-      "Four modes: Endless, Two-Way (the oncoming side pays three times), Time Attack against the clock, and Speed Trap above a rising speed",
-      "Sprints: short runs to a finish line on a road that is the same every try, three stars each for the time, and your best run beside you as a ghost",
-      "Driver levels from 1 to 40 that open modes, places and paint collections, and three missions at a time that grow with you",
-      "Seventeen cars in five classes, City to Super, each quicker and sharper than the last with its own engine note; engine, handling and brake upgrades, and the garage shows what each one adds before you pay",
-      "Five places under photographed skies, from a cloudy countryside to a night run with headlights; close pal mid-run and it waits where you left it",
-      "A leaderboard for each mode; signed in, your cash, cars, level and records follow you to your other machines and play.cagdas.io"
+      "Near misses graded by the gap you left; near misses within four seconds build a combo, and a combo carries you past your top speed",
+      "A garage of seventeen cars in five classes with their own engine notes: buy them as their regions open, upgrade the engine, handling and brakes, paint them any colour",
+      "Free Drive: Endless, Two-Way, Time Attack and Speed Trap with any car you own, each with its leaderboard",
+      "Signed in, your cash, cars and best times follow you to your other machines and play.cagdas.io"
     ],
     "screenshots": [
       {

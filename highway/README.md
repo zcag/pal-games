@@ -6,23 +6,31 @@ as a view level whose body is the extension's own page (`surface/`, a
 
 ## Playing
 
-- **The garage** is a sign beside the road while your car drives behind it:
-  up and down pick a line, left and right change it (car, paint, mode, place),
-  Enter buys (a car, a colour, an upgrade level, a place), Space drives.
-- **A run**: up is the gas, down the brake, left and right steer (WASD too).
-  Pass a car close above 100 km/h for a near miss, graded by the gap you
-  left (Close, Very close, Paint trader); near misses within four seconds of
-  each other build a combo. Points grow with the cube of your speed.
+- **The map** is home: the road trip across five regions (Countryside, High
+  Noon, Golden Hour, Grey Day, Night Run), eight Sprints and a duel each.
+  Left and right walk the road, up and down change region, Enter drives the
+  stop. G opens the garage, F Free Drive; Backspace comes back to the map.
+- **A Sprint** is a run to a finish line on a road that is the same every
+  try, in your car for the region's class; three stars for the time, a
+  ghost of your best beside you, R tries again at once. A duel is the same
+  against a rival; win it for their car and the next region.
+- **The garage**: every car in its bay; up and down pick a line (car, paint,
+  engine, handling, brakes), left and right change it, Enter buys, upgrades
+  or makes a car the one its region's Sprints are driven in.
+- **Free Drive**: Endless, Two-Way, Time Attack and Speed Trap with any car
+  you own, under any open region's sky; one leaderboard per mode.
+- **Driving**: up is the gas, down the brake, left and right steer (WASD
+  too). Pass a car close above 80 km/h for a near miss, graded by the gap
+  you left (Close, Very close, Paint trader); near misses within four
+  seconds build a combo, and a combo pushes you past your top speed.
 - **Crashes**: a bump is a bump; hitting something 35 km/h slower than you,
   or anything coming the other way, ends the run. A car collides as its
   shape from above, a little inside what is drawn: a gap you see is a miss.
-- **Modes**: Endless (four lanes your way) and Two-Way (the oncoming side
-  pays three times).
-- C changes the view (chase, far, bumper), P pauses, M mutes.
-- **Leaderboards**: one per mode, every finished run's points. Signed in to
-  a pal account, the save syncs: cash, XP (stored as every XP earned, so two
-  machines add up) and totals by `sum`, records and upgrades by `max`, paints
-  by `union`; a kept run stays on its machine.
+- C changes the view, P pauses, M mutes.
+- **Signed in** to a pal account, the save syncs: cash and totals by `sum`,
+  upgrades by `max`, best times by `min`; what is open is worked out from the
+  best times, so machines never disagree. A kept run and the ghosts stay on
+  their machine.
 
 ## How it is built
 
@@ -30,17 +38,23 @@ as a view level whose body is the extension's own page (`surface/`, a
   slip, load transfer, an engine with gears, a driver aid that holds the
   heading you ask for), `traffic.ts` the drivers (IDM car following, MOBIL
   lane changes, signals), `director.ts` where traffic appears (patterns per
-  row, always a lane through), `score.ts`, `crash.ts` (outlines and impulses),
-  `content.ts` every number and name, `meta.ts` the save.
+  row, always a lane through; a Sprint's road fixed by its seed), `score.ts`,
+  `crash.ts` (outlines and impulses), `content.ts` every number and name,
+  `sprint.ts` the road trip's regions and Sprints, `trip.ts` its rules (what
+  is open, what a finish pays), `meta.ts` the save.
 - `surface/`: the page. `world.ts` builds a place (sky, road, rails, land),
   `terrain.ts` streams the land and plans it (forest, fields or a town each
   side, cuttings and embankments, an overpass every kilometre or two),
   `foliage.ts` makes trees cheap (impostors baked at startup) and the grass,
   `structures.ts` the overpasses, noise barriers, signs and lamp light,
-  `run.ts` a run, `camera.ts` the views, `audio.ts` the sound, `main.ts` the
-  screens.
+  `run.ts` a run, `camera.ts` the views, `audio.ts` the sound, `trip.ts` the
+  map, `garage.ts` the garage, `main.ts` the screens.
 - `scripts/drive.ts` measures every car (0 to 100, top speed, braking, a lane
-  change); `scripts/trace.ts` traces a lane change step by step.
+  change); `scripts/trace.ts` traces a lane change step by step;
+  `scripts/sprint.ts` searches each Sprint's best time (the stars' anchor)
+  and the rivals' lines (`surface/rivals/`).
+- **Map art** (`surface/map/`): painted for this game by FLUX.2 [klein] 4B
+  on a local machine.
 - `bun host/src/surface.ts highway 8733` serves the page in a
   browser.
 
