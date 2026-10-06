@@ -142,8 +142,10 @@ button[data-key]:hover { background: rgba(255, 255, 255, 0.12); }
 #nitro.ready kbd { opacity: 1; }
 #nitro.ready span { color: var(--white); }
 #nitro.lit i::after { background: linear-gradient(90deg, #ff9f1c, #fff1a8); box-shadow: 0 0 10px rgba(255, 180, 60, 0.8); }
-#modebox { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); text-align: center; }
-#modebox b { display: block; font-size: 30px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+#modebox { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); text-align: center; display: flex; gap: 22px; }
+#modebox > div { min-width: 92px; }
+#modebox b { display: block; font-size: 30px; font-weight: 800; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+#modebox b small { font-size: 15px; font-weight: 700; letter-spacing: 0; margin-left: 3px; }
 #modebox b.low { color: #ff8a7a; }
 #modebox span { font-size: 11px; color: var(--dim); }
 .pop.mission { background: var(--white); color: var(--sign); }

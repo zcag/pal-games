@@ -520,8 +520,14 @@ function hud() {
   nb.classList.toggle("lit", d.boosting);
   nb.classList.toggle("ready", !d.boosting && d.nitro >= 0.25);
   // the mode's own clock or floor
-  if (d.mode === "time") $("modebox").innerHTML = `<b class="${d.clock < 10 ? "low" : ""}">${d.clock.toFixed(1)}</b><span>${d.checkpoints ? `${d.checkpoints} checkpoint${d.checkpoints > 1 ? "s" : ""}` : "Next time at 2.5 km"}</span>`;
-  if (d.mode === "trap") $("modebox").innerHTML = `<b class="${d.under > 0 ? "low" : ""}">${Math.round(kmh(d.floor))}</b><span>${d.under > 0 ? `Speed up: ${(3 - d.under).toFixed(1)} s` : `Stay above, ${unit()}`}</span>`;
+  // Time Attack: the clock and the road left to the next checkpoint, the same size side by side
+  const cell = (value: string, label: string, low = false) => `<div><b class="${low ? "low" : ""}">${value}</b><span>${label}</span></div>`;
+  if (d.mode === "time") {
+    const left = Math.max(0, d.toCheckpoint);
+    $("modebox").innerHTML = cell(d.clock.toFixed(1), "seconds", d.clock < 10)
+      + cell(left >= 1000 ? `${(left / 1000).toFixed(1)}<small>km</small>` : `${Math.ceil(left / 10) * 10}<small>m</small>`, `to the next +${d.bonus} s`);
+  }
+  if (d.mode === "trap") $("modebox").innerHTML = cell(String(Math.round(kmh(d.floor))), d.under > 0 ? `Speed up: ${(3 - d.under).toFixed(1)} s` : `Stay above, ${unit()}`, d.under > 0);
   // a mission finished mid-run says so at once
   const st = statsOf(s, d.mode);
   for (const m of save.missions) if (!done.has(m) && progressOf(m, st) >= 1) { done.add(m); pop(`Mission done<small>${m.text}</small>`, "mission"); sound.play("ui_confirm", { gain: 0.6 }); }

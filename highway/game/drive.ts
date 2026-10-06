@@ -38,6 +38,8 @@ export type Size = { x: number; z: number; hull?: Pt[] };
 /** How far inside what is drawn a car collides, m: across and along. A gap the eye sees is a miss, and a
  *  scrape a hair under it is forgiven too (the screen's last pixel of paint is never the reason a run ends). */
 export const INSET = 0.08, INSET_END = 0.1;
+/** Time Attack's checkpoints are this far apart on the dial, m. */
+const CHECKPOINT_M = 2500;
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
@@ -108,6 +110,11 @@ export class Drive {
   private outline(s: Size): { w: number; l: number; hull?: Pt[] } {
     return s.hull ? { w: s.x, l: s.z, hull: s.hull } : { w: s.x - 2 * INSET, l: s.z - 2 * INSET_END };
   }
+
+  /** Time Attack: metres on the dial to the next checkpoint (one every 2.5 km), and the seconds it adds: 30, 27,
+   *  24 ... never under 12. */
+  get toCheckpoint() { return (this.checkpoints + 1) * CHECKPOINT_M - this.score.distance; }
+  get bonus() { return Math.max(12, 30 - 3 * this.checkpoints); }
 
   get kmh() { return this.veh.kmh / FEEL.pace; }
 
@@ -237,9 +244,8 @@ export class Drive {
     // the modes' own rules
     if (this.mode === "time") {
       this.clock -= dt;
-      // every 2.5 km on the dial: 30 s, 27, 24 ... never under 12
-      if (this.score.distance >= (this.checkpoints + 1) * 2500) {
-        const added = Math.max(12, 30 - 3 * this.checkpoints);
+      if (this.toCheckpoint <= 0) {
+        const added = this.bonus;
         this.checkpoints++;
         this.clock += added;
         ev.checkpoint?.(added);

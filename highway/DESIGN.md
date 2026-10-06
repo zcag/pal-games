@@ -188,5 +188,5 @@ falls behind a faster car, and near misses that pay with speed fixed that.
 | --- | --- | --- |
 | Endless | at once | four lanes your way; one crash ends it |
 | Two-Way | level 2 | the oncoming side pays three times, touching it ends the run |
-| Time Attack | level 5 | a clock from 60 s; every 2.5 km adds time, a little less each time |
+| Time Attack | level 5 | a clock from 60 s; every 2.5 km adds time, a little less each time; the clock and the road left to the next checkpoint sit side by side at one size |
 | Speed Trap | level 10 | stay above a speed that rises every 10 s; 3 s below it ends the run |

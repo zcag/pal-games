@@ -135,6 +135,12 @@ test("Speed Trap ends a run held under its floor; Time Attack's clock runs down"
   const time = new Drive(ONE_WAY, CARS[6], NO_UP, size, 2.6, sizeOf, {}, { seed: 3, mode: "time" });
   for (let i = 0; i < 120; i++) time.step(1 / 120, { throttle: 0.3, brake: 0, steer: 0 });
   expect(time.clock).toBeCloseTo(59, 1);
+  // the HUD's second figure: the road left to the next checkpoint, and what it adds
+  expect(time.toCheckpoint).toBeCloseTo(2500 - time.score.distance, 6);
+  expect(time.bonus).toBe(30);
+  time.score.distance = 2500;
+  time.step(1 / 120, { throttle: 0.3, brake: 0, steer: 0 });
+  expect([time.checkpoints, time.bonus, Math.round(time.toCheckpoint / 100)]).toEqual([1, 27, 25]);
 });
 
 test("a run packed and unpacked carries on exactly as it would have", () => {
