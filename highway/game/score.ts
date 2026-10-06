@@ -7,7 +7,7 @@
 // momentum: each pass in it pushes the car past its top speed (`surge`,
 // game/drive.ts). It also keeps what missions ask about.
 
-export const NEAR_SPEED = 100; // km/h: below this nothing counts as a near miss, and a combo dies
+export const NEAR_SPEED = 80; // km/h: below this nothing counts as a near miss, and a combo dies
 export const COMBO_TIME = 4; // s
 /** `surge`: km/h a pass of the grade adds to the combo's push past the top speed. */
 export const GRADES = [

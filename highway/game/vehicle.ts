@@ -49,8 +49,8 @@ const G = 9.81, RHO = 1.2, CRR = 0.012, SHIFT_TIME = 0.16;
 // real car's shape (it yaws in, leans, settles); it is the speed of it that is a game's.
 const SIDE_GRIP = 1.6;
 
-/** Handling, 0 (a city car, stock) to 1 (the best car, fully upgraded). */
-export const handlingOf = (s: Spec) => Math.max(0, Math.min(1, ((s.agility ?? 1.2) - 0.95) / 0.75));
+/** Handling, 0 (a city car, stock) to 1 (the best car, fully upgraded: agility 1.70 + 0.25). */
+export const handlingOf = (s: Spec) => Math.max(0, Math.min(1, ((s.agility ?? 1.2) - 0.95) / 1.0));
 /** What full steering crosses the road at, m/s, at a forward speed (world m/s). */
 export const acrossAt = (s: Spec, u: number) => (5.5 + (u / FEEL.pace) * 0.07) * (0.85 + 0.6 * handlingOf(s)) * FEEL.across * FEEL.pace;
 /** How hard the sideways speed may change, m/s² (twice that checking a slide). */

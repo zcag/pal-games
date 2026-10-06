@@ -8,7 +8,7 @@ import { Traffic, crossing, heading, type Npc } from "./traffic.ts";
 import { Director, type Course } from "./director.ts";
 import { Score, DOUBLE_SURGE, type Miss } from "./score.ts";
 import { collide, resolve, type Pt, type Rigid } from "./crash.ts";
-import { TRAFFIC, FEEL, spec, trafficTop, type ModeId, type PlayerCar, type Upgrades } from "./content.ts";
+import { TRAFFIC, FEEL, spec, topOf, trafficTop, type ModeId, type PlayerCar, type Upgrades } from "./content.ts";
 import { laneX, oncomingX, edges, LANE_W, RAIL, type Layout } from "./layout.ts";
 
 /** Closing speed that ends a run (km/h on the dial), as in the original; any touch of an oncoming car does too. */
@@ -41,7 +41,7 @@ export type Size = { x: number; z: number; hull?: Pt[] };
 export const INSET = 0.08, INSET_END = 0.1;
 /** Momentum: the combo pushes at most this share past the top speed, with this much acceleration (m/s², on the dial),
  *  and once it breaks the push fades this many km/h a second. */
-const SURGE_MAX = 0.25, SURGE_PUSH = 6, SURGE_FADE = 20;
+const SURGE_MAX = 0.15, SURGE_PUSH = 6, SURGE_FADE = 20;
 /** Time Attack's checkpoints are this far apart on the dial, m. */
 const CHECKPOINT_M = 2500;
 
@@ -114,8 +114,8 @@ export class Drive {
     this.pace = FEEL.pace;
   }
 
-  /** The most a combo can push past the top speed, km/h: a quarter of it. */
-  get surgeMax() { return (this.car.top + this.up.speed * 7) * SURGE_MAX; }
+  /** The most a combo can push past the top speed, km/h: 15% of it. */
+  get surgeMax() { return topOf(this.car, this.up) * SURGE_MAX; }
 
   /** A Sprint's metres left to the line. */
   get toLine() { return this.sprint ? Math.max(0, this.sprint.length - this.score.distance) : 0; }

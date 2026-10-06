@@ -29,7 +29,10 @@ export const REDLINE: Record<PlayerCar["engine"], number> = { sedan: 6400, sport
 /** The top speed traffic is set by, km/h: the original scales it with yours, so every car meets the same
  *  road; here it follows only half of the climb above the first car, so a faster car truly outruns it
  *  (passes more cars, a minute) and is worth buying. */
-export const trafficTop = (car: PlayerCar, up: Upgrades) => 158 + (car.top + up.speed * 7 - 158) * 0.5;
+export const trafficTop = (car: PlayerCar, up: Upgrades) => 158 + (topOf(car, up) - 158) * 0.5;
+/** A car's top speed with its engine upgrade, km/h on the dial: each level +1.5%. The engine is mostly pickup
+ *  (`spec`: +10% power a level): speed is not what a better car is for (DESIGN.md, "Speed through the trip"). */
+export const topOf = (car: PlayerCar, up: Upgrades) => car.top * (1 + 0.015 * up.speed);
 
 export type Stats = { speed: number; accel: number; handling: number; brakes: number }; // 1..10 as the garage shows them
 export type PlayerCar = {
@@ -46,23 +49,23 @@ export type PlayerCar = {
 /** The ladder, in five classes (CLASSES): every car quicker, sharper and better on the brakes than the one
  *  before, the big jumps between classes, each class with its own engine note. Prices: scripts/economy.ts. */
 export const CARS: PlayerCar[] = [
-  { id: "compact-07", name: "Compact '07", price: 0, top: 158, mass: 880, grip: 1.25, agility: 0.96, brake: 0.90, engine: "sedan", paint: "#e8e6e0" },
-  { id: "kiri-10", name: "Kiri '10", price: 2500, top: 170, mass: 1150, grip: 1.28, agility: 1.00, brake: 0.93, engine: "sedan", paint: "#2a5caa" },
-  { id: "milano-95", name: "Milano '95", price: 5000, top: 182, mass: 980, grip: 1.30, agility: 1.05, brake: 0.96, engine: "sedan", paint: "#c81d25" },
-  { id: "tozzo-98", name: "Tozzo '98", price: 7500, top: 200, mass: 1260, grip: 1.30, agility: 1.10, brake: 0.98, engine: "sport", paint: "#d8d8d8" },
-  { id: "sigil-07", name: "Sigil '07", price: 10000, top: 210, mass: 1300, grip: 1.32, agility: 1.13, brake: 1.00, engine: "sport", paint: "#13161c" },
-  { id: "tiara-gt-83", name: "Tiara GT '83", price: 12500, top: 220, mass: 1050, grip: 1.33, agility: 1.17, brake: 1.02, engine: "sport", paint: "#f2f0ea" },
-  { id: "asti-stradale-89", name: "Asti Stradale '89", price: 15000, top: 230, mass: 1200, grip: 1.38, agility: 1.21, brake: 1.04, engine: "sport", paint: "#b3121b" },
-  { id: "thunderbolt-96", name: "Thunderbolt '96", price: 18000, top: 245, mass: 1320, grip: 1.40, agility: 1.23, brake: 1.05, engine: "muscle", paint: "#1b3f8f" },
-  { id: "jdm-sport-99", name: "JDM Sport '99", price: 21000, top: 255, mass: 1480, grip: 1.40, agility: 1.26, brake: 1.06, engine: "muscle", paint: "#3c4652" },
-  { id: "exterminator-00", name: "Exterminator '00", price: 24500, top: 265, mass: 1550, grip: 1.35, agility: 1.29, brake: 1.07, engine: "muscle", paint: "#e2b310" },
-  { id: "phoenix-455-71", name: "Phoenix 455 '71", price: 28000, top: 275, mass: 1620, grip: 1.30, agility: 1.31, brake: 1.08, engine: "muscle", paint: "#0f0f12" },
-  { id: "stinger-96", name: "Stinger '96", price: 32000, top: 290, mass: 1560, grip: 1.42, agility: 1.35, brake: 1.10, engine: "gt", paint: "#d6421a" },
-  { id: "hazer-turbo-81", name: "Hazer Turbo '81", price: 36000, top: 300, mass: 1230, grip: 1.38, agility: 1.39, brake: 1.12, engine: "gt", paint: "#b9bcc0" },
-  { id: "libeccio-v6-91", name: "Libeccio V6 '91", price: 40500, top: 310, mass: 1250, grip: 1.44, agility: 1.43, brake: 1.14, engine: "gt", paint: "#1d6b43" },
-  { id: "roadster-00", name: "Roadster '00", price: 45000, top: 325, mass: 980, grip: 1.46, agility: 1.48, brake: 1.16, engine: "super", paint: "#f0c419" },
-  { id: "cheetah-84", name: "Cheetah '84", price: 50000, top: 340, mass: 1500, grip: 1.45, agility: 1.53, brake: 1.18, engine: "super", paint: "#c0111d" },
-  { id: "saba-v12-95", name: "Saba V12 '95", price: 56000, top: 360, mass: 1450, grip: 1.50, agility: 1.58, brake: 1.22, engine: "super", paint: "#e85d04" },
+  { id: "compact-07", name: "Compact '07", price: 0, top: 120, mass: 880, grip: 1.25, agility: 0.96, brake: 0.90, engine: "sedan", paint: "#e8e6e0" },
+  { id: "kiri-10", name: "Kiri '10", price: 2500, top: 127, mass: 1150, grip: 1.28, agility: 1.00, brake: 0.93, engine: "sedan", paint: "#2a5caa" },
+  { id: "milano-95", name: "Milano '95", price: 5000, top: 135, mass: 980, grip: 1.30, agility: 1.05, brake: 0.96, engine: "sedan", paint: "#c81d25" },
+  { id: "tozzo-98", name: "Tozzo '98", price: 7500, top: 145, mass: 1260, grip: 1.30, agility: 1.12, brake: 0.98, engine: "sport", paint: "#d8d8d8" },
+  { id: "sigil-07", name: "Sigil '07", price: 10000, top: 150, mass: 1300, grip: 1.32, agility: 1.17, brake: 1.00, engine: "sport", paint: "#13161c" },
+  { id: "tiara-gt-83", name: "Tiara GT '83", price: 12500, top: 155, mass: 1050, grip: 1.33, agility: 1.22, brake: 1.02, engine: "sport", paint: "#f2f0ea" },
+  { id: "asti-stradale-89", name: "Asti Stradale '89", price: 15000, top: 160, mass: 1200, grip: 1.38, agility: 1.27, brake: 1.04, engine: "sport", paint: "#b3121b" },
+  { id: "thunderbolt-96", name: "Thunderbolt '96", price: 18000, top: 165, mass: 1320, grip: 1.40, agility: 1.30, brake: 1.05, engine: "muscle", paint: "#1b3f8f" },
+  { id: "jdm-sport-99", name: "JDM Sport '99", price: 21000, top: 170, mass: 1480, grip: 1.40, agility: 1.34, brake: 1.06, engine: "muscle", paint: "#3c4652" },
+  { id: "exterminator-00", name: "Exterminator '00", price: 24500, top: 175, mass: 1550, grip: 1.35, agility: 1.38, brake: 1.07, engine: "muscle", paint: "#e2b310" },
+  { id: "phoenix-455-71", name: "Phoenix 455 '71", price: 28000, top: 180, mass: 1620, grip: 1.30, agility: 1.42, brake: 1.08, engine: "muscle", paint: "#0f0f12" },
+  { id: "stinger-96", name: "Stinger '96", price: 32000, top: 185, mass: 1560, grip: 1.42, agility: 1.48, brake: 1.10, engine: "gt", paint: "#d6421a" },
+  { id: "hazer-turbo-81", name: "Hazer Turbo '81", price: 36000, top: 192, mass: 1230, grip: 1.38, agility: 1.53, brake: 1.12, engine: "gt", paint: "#b9bcc0" },
+  { id: "libeccio-v6-91", name: "Libeccio V6 '91", price: 40500, top: 200, mass: 1250, grip: 1.44, agility: 1.58, brake: 1.14, engine: "gt", paint: "#1d6b43" },
+  { id: "roadster-00", name: "Roadster '00", price: 45000, top: 205, mass: 980, grip: 1.46, agility: 1.62, brake: 1.16, engine: "super", paint: "#f0c419" },
+  { id: "cheetah-84", name: "Cheetah '84", price: 50000, top: 215, mass: 1500, grip: 1.45, agility: 1.66, brake: 1.18, engine: "super", paint: "#c0111d" },
+  { id: "saba-v12-95", name: "Saba V12 '95", price: 56000, top: 225, mass: 1450, grip: 1.50, agility: 1.70, brake: 1.22, engine: "super", paint: "#e85d04" },
 ];
 
 /** Paints in collections: the first is open from the start, the others open with driver levels (game/progress.ts). */
@@ -85,8 +88,11 @@ const G = 9.81, RHO = 1.2, CDA = 0.62, CRR = 0.012, EFF = 0.88;
 
 /** The physics for a car with its upgrades: power solved from the top speed, gears to suit. */
 export function spec(car: PlayerCar, up: Upgrades, wheelbase: number): Spec & { agility: number } {
-  const top = ((car.top + up.speed * 7) / 3.6) * FEEL.pace; // each speed level is +7 km/h; the world's pace scales it all
+  const top = (topOf(car, up) / 3.6) * FEEL.pace; // the world's pace scales it all
   const power = (0.5 * RHO * CDA * top ** 3 + CRR * car.mass * G * top) / EFF / 1000; // kW at the top speed
+  // power for the pickup, the gearing keeps the top close: each class pulls harder than the one before, and the
+  // engine upgrade adds a tenth a level, so a better car gets back up to speed quicker after a squeeze
+  const punch = (1 + 0.12 * CLASSES.findIndex((c) => c === classOf(car))) * (1 + 0.1 * up.speed);
   const redline = REDLINE[car.engine];
   const wheelRadius = 0.32;
   // top gear just reaches the redline a little past top speed; the rest step down geometrically
@@ -96,7 +102,7 @@ export function spec(car: PlayerCar, up: Upgrades, wheelbase: number): Spec & { 
   const gears = Array.from({ length: n }, (_, i) => first * Math.pow(topRatio / first, i / (n - 1)) * final);
   return {
     mass: car.mass, wheelbase, cgFront: 0.55, cgHeight: 0.5,
-    power: power * 1.08, torque: (power * 1000 * 1.08) / ((redline * 0.62 * Math.PI) / 30), redline, idle: 850,
+    power: power * 1.08 * punch, torque: (power * 1000 * 1.08 * punch) / ((redline * 0.62 * Math.PI) / 30), redline, idle: 850,
     gears, final, wheelRadius, drag: CDA,
     grip: car.grip + up.handling * 0.03,
     corner: 22,
@@ -111,11 +117,11 @@ export function spec(car: PlayerCar, up: Upgrades, wheelbase: number): Spec & { 
 /** The garage's bars, 1..10, from a car and its upgrades. */
 export function stats(car: PlayerCar, up: Upgrades): Stats {
   const k = (v: number, lo: number, hi: number) => Math.max(1, Math.min(10, 1 + ((v - lo) / (hi - lo)) * 9));
-  const top = car.top + up.speed * 7;
+  const top = topOf(car, up);
   return {
-    speed: k(top, 150, 400),
-    accel: k((top ** 3 / car.mass) / 1e3, 4, 45),
-    handling: k(car.agility + up.handling * 0.05, 0.95, 1.85),
+    speed: k(top, 115, 240),
+    accel: k(((top ** 3 / car.mass) * (1 + 0.12 * CLASSES.findIndex((c) => c === classOf(car))) * (1 + 0.1 * up.speed)) / 1e3, 4, 33),
+    handling: k(car.agility + up.handling * 0.05, 0.95, 1.95),
     brakes: k(car.brake + up.brakes * 0.06, 0.88, 1.55),
   };
 }

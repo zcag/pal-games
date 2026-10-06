@@ -52,7 +52,7 @@ test("the director never fills every lane of a row", () => {
 
 test("a near miss counts only fast and close, and builds a combo", () => {
   const s = new Score();
-  expect(s.pass(0.5, 90, false)).toBeNull();
+  expect(s.pass(0.5, 75, false)).toBeNull();
   expect(s.pass(1.5, 150, false)).toBeNull();
   const a = s.pass(0.5, 150, false)!, b = s.pass(0.2, 150, true)!;
   expect(a.combo).toBe(1);
@@ -189,6 +189,7 @@ describe("Sprints", () => {
   });
 
   test("stars are margins over the best time, and a ghost says its time at any point of the road", () => {
+    const sp = { ...SPRINTS[1], best: 60 };
     const [one, two, three] = starTimes(sp);
     expect(one > two && two > three && three > sp.best).toBe(true);
     expect([starsFor(sp, three), starsFor(sp, two), starsFor(sp, one), starsFor(sp, one + 0.1)]).toEqual([3, 2, 1, 0]);
@@ -222,8 +223,8 @@ test("momentum: a combo's surge takes the car past its top speed, and fades once
   const step = () => { d.traffic.cars.length = 0; d.step(1 / 120, { throttle: 1, brake: 0, steer: 0 }); }; // an empty road: no pass restarts the combo
   for (let i = 0; i < 120 * 40; i++) { d.score.combo = 5; d.score.comboLeft = 4; step(); }
   d.surge = Math.min(d.surge, d.surgeMax);
-  expect(d.surgeMax).toBeCloseTo(car.top * 0.25, 6);
-  expect(d.kmh).toBeGreaterThan(car.top * 1.2);
+  expect(d.surgeMax).toBeCloseTo(car.top * 0.15, 6);
+  expect(d.kmh).toBeGreaterThan(car.top * 1.12);
   d.score.breakCombo();
   for (let i = 0; i < 120 * 3; i++) step();
   expect(d.surge).toBe(0);

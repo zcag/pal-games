@@ -8,6 +8,7 @@ import type { Drive } from "./drive.ts";
 import { acrossAt, turnOf, type Input } from "./vehicle.ts";
 import { FEEL, trafficTop, CARS } from "./content.ts";
 import { laneX, oncomingX, LANE_W } from "./layout.ts";
+import { NEAR_SPEED } from "./score.ts";
 
 export type Skill = {
   name: string;
@@ -155,7 +156,7 @@ export class Bot {
     // passing close: line up beside the next car it passes in a lane next door, `gap` off its side
     this.hugX = 0;
     const kmh = d.kmh, here = this.slots[this.slot];
-    if (Number.isFinite(k.gap) && kmh > 103) {
+    if (Number.isFinite(k.gap) && kmh > NEAR_SPEED + 3) {
       let pick: (typeof cars)[number] | null = null, soon = 1.1;
       for (const c of cars) {
         const off = c.x - here.x;

@@ -73,56 +73,82 @@ to stop 1.55 m out: floored along the rail, you passed every outer-lane car
 about 0.65 m off without touching, each one a Very close near miss, and runs
 of a ×277 combo paid for the top car.
 
-## Progression
+## The road trip
 
-What keeps you coming back. Traffic Racer's long-term layer is a ladder of 48
-cars priced to make you watch ads, three missions, and locations bought with
-cash; score never pays. Ours keeps what works (cash from driving well, a next
-car always in sight, missions) and adds a layer that rewards playing *better*,
-not only longer. Every number below is a starting point that
-`scripts/economy.ts` tunes against simulated players of four skills.
+The game is a road trip across five regions, and the map is where you play
+it. Free Drive (the four endless modes) is an extra beside it. Everything
+else, the cars, the upgrades and the cash, exists to get you further along
+the map. The first cut of progression (driver levels, missions, a cash
+ladder, paints by level; history in git) gave no goal that ever ended, and
+one strong run bought the top car.
 
-### The loop
+### What you see
 
-A run pays **cash** (for cars and upgrades) and **XP** (for your driver
-level). Both grow with how well you drove, so a better run is visibly worth
-more, and the end of a run counts it up line by line.
+- **The map is home.** The game opens on it: the current region painted
+  edge to edge, a road winding through its nine stops (eight Sprints, then a
+  duel), each stop showing its stars. The stop to play next pulses. Left
+  and right walk the road; the stop's card says what it is, the car you
+  will drive, the times its stars need and your best. Enter drives.
+- **Up and down change region.** A region not yet open shows dimmed, with
+  what opens it ("Beat Ines").
+- **G is the garage, F is Free Drive**, from the map, and Escape comes back.
+  A run's end offers the next stop, another try (R), the map and the garage.
+- **A first launch drops you on the first stop** with one line: Enter to
+  drive. Nothing else is explained until it matters.
 
-- **Cash** comes from distance, every near miss (more for a closer one), the
-  peak of your best combo, time above 150 km/h, time in the oncoming lane, and
-  threading a gap; the place and the mode multiply it. The first run of each
-  day pays double.
-- **XP** is the score divided by 80, plus whatever missions you finish. Level 2
-  takes 300 (a run); after that the curve is fitted to play time in
-  `scripts/economy.ts`: a regular player reaches level 5 in about 20 minutes, 10
-  in 1.5 h, 15 in 4 h and 25 in 16 h. A level pays 150 times its number.
+### A region
 
-### Driver level
+- **One car class each**: Countryside drives City cars, High Noon Sport,
+  Golden Hour Muscle, Grey Day GT, Night Run Super. Each is its own sky and
+  its own traffic, busier region by region.
+- **Eight Sprints, opening as you go.** The first three are open; each one
+  you finish opens the next, so you can skip a hard one but always have a
+  next stop. Their roads vary: four lanes, three, Two-Way, light or packed,
+  2.5 to 6 km, about a minute each.
+- **The duel** opens at 12 of the region's 24 stars: a race against a rival
+  who drives the best line on that road (the search's, slowed to finish
+  between the one- and two-star times). Beat them and you win their car,
+  the next class's first, and the next region opens with it.
+- **The last duel** (Kaz, Night Run) ends the trip; every region stays open
+  to collect its stars.
 
-Levels 1 to 40. Each one pays a little cash and many unlock something, so the
-next reward is always named on screen:
+### Your car and the stars
 
-| Level | Unlocks |
-| --- | --- |
-| 2 | Two-Way |
-| 3 | High Noon |
-| 5 | Time Attack |
-| 6 | Golden Hour |
-| 8 | Grey Day |
-| 10 | Speed Trap |
-| 12 | Night Run |
-| 15, 20, 25 | paint collections (metallic, matte, two-tone) |
+- **You drive your own car**, any you own of the region's class (the
+  garage remembers which, per class). You always have one: you start with
+  the Compact, and each duel gives you the next class's first car.
+- **Stars are set against the class's first car, stock** (the Compact, the
+  Tozzo, the Thunderbolt, the Stinger, the Roadster), as margins over the
+  best time a search finds on that road: +20% (★, a good first try), +9%
+  (★★, the road learned), +3% (★★★, near-perfect). A better car or
+  upgrades make them easier: that is what cash is for. Three stars in the
+  stock first car stays the hardest way to play.
 
-Places unlock by level rather than by cash: cash goes to cars and upgrades,
-which you feel in the driving, and a place is a reward for getting better.
+### Cash, cars, upgrades
 
-### Missions
+- **One currency.** A finish pays a little every time, so you are never
+  stuck; a star pays its bonus the first time you earn it. Both grow
+  region by region, sized so a region's stars pay for most of its cars and
+  some upgrades (`scripts/economy.ts`).
+- **Cars** of a class are for sale once its region is open; the first comes
+  free from the duel before it. Seventeen in all, prices unchanged.
+- **Upgrades**: engine, handling, brakes, five levels each. An engine level
+  is +3% of the car's top speed (+15% full), so upgrading is worth the same
+  in every class. Every colour is free.
 
-Three at a time, each one run away: *pass 12 cars closely in one run*, *reach
-a ×8 combo*, *drive 5 km in one run*, *thread the gap twice*, *30 s in the
-oncoming lane*, *hit 220 km/h*, *score 40,000*. The
-targets grow with your level; a finished mission pays cash and XP and a new
-one takes its place. In a run, progress on them shows briefly as it happens.
+### Speed through the trip
+
+Momentum (below) adds up to 15% on a full chain. From a stock Compact on a
+full chain (about 182 km/h) to a tuned Saba (about 476), each region 30 to
+50 km/h quicker than the one before; a tuned car overlaps the next class's
+stock first car only a little.
+
+### Free Drive
+
+The four modes (Endless, Two-Way, Time Attack, Speed Trap), with any car
+you own, under any open region's sky; each keeps its leaderboard. It pays
+like a finish does, by the minute, so it is a place to play, not the way
+to earn.
 
 ### Momentum
 

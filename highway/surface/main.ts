@@ -12,7 +12,7 @@ import { Chase, VIEWS } from "./camera.ts";
 import { Car } from "./car.ts";
 import { Sound } from "./audio.ts";
 import { ONE_WAY, TWO_WAY, laneX } from "../game/layout.ts";
-import { CARS, LOCATIONS, MODES, UPGRADE_MAX, FEEL, upgradeCost, stats, paintSet, classOf, type Upgrades } from "../game/content.ts";
+import { CARS, LOCATIONS, MODES, UPGRADE_MAX, FEEL, topOf, upgradeCost, stats, paintSet, classOf, type Upgrades } from "../game/content.ts";
 import { load, stored, fresh, carOf, buyCar, buyUpgrade, paint, finish, places, modes, paintsOpen, opensAt, fillMissions, NO_UP, type Save, type Scene, type Result } from "../game/meta.ts";
 import { xpFor, nextUnlock, progressOf, statsOf, MAX_LEVEL } from "../game/progress.ts";
 import type { Miss } from "../game/score.ts";
@@ -670,7 +670,7 @@ function hud() {
   const d = run.drive;
   // the combo, and what it is worth past the top speed
   if (s.combo) { c.querySelector("b")!.innerHTML = `Combo ×${s.combo}${d.surge >= 1 ? ` <small>+${Math.round(kmh(d.surge))} ${unit()}</small>` : ""}`; c.style.setProperty("--left", String(s.comboLeft / 4)); }
-  $("gauge").classList.toggle("surging", k > d.car.top + d.up.speed * 7 + 1);
+  $("gauge").classList.toggle("surging", k > topOf(d.car, d.up) + 1);
   // the mode's own clock or floor
   // Time Attack: the clock and the road left to the next checkpoint, the same size side by side
   const cell = (value: string, label: string, low = false) => `<div><b class="${low ? "low" : ""}">${value}</b><span>${label}</span></div>`;
