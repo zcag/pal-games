@@ -121,7 +121,13 @@
       },
       {
         "file": "2-result.png",
-        "caption": "The result: wpm and accuracy, the test second by second, a new best for ten words"
+        "caption": "The result: wpm and accuracy, the test second by second, a new best for ten words",
+        "cover": [
+          183,
+          219,
+          1001,
+          491
+        ]
       },
       {
         "file": "3-zen.png",

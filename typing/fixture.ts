@@ -75,7 +75,7 @@ try {
     palettes: { test: await palette(timed), ten: await palette(ten), zen: await palette(zen, false), stats: await palette(timed) },
     shots: {
       "1-test": { palette: "test", keys: ["wait:1200", ...typist(mid, [{ word: 3, at: 1, wrong: wrongFor(mid[3][1]), fix: false }]), "wait:300"], caption: "Mid-test: the caret on the next letter, a slip in red, the seconds left above" },
-      "2-result": { palette: "ten", keys: ["wait:1200", ...typist(test, [{ word: 2, at: 1, wrong: wrongFor(test[2][1]), fix: true }, { word: 6, at: 2, wrong: wrongFor(test[6][2]), fix: false }]), "wait:1500"], caption: "The result: wpm and accuracy, the test second by second, a new best for ten words" },
+      "2-result": { cover: [183, 219, 1001, 491], palette: "ten", keys: ["wait:1200", ...typist(test, [{ word: 2, at: 1, wrong: wrongFor(test[2][1]), fix: true }, { word: 6, at: 2, wrong: wrongFor(test[6][2]), fix: false }]), "wait:1500"], caption: "The result: wpm and accuracy, the test second by second, a new best for ten words" },
       "3-zen": { palette: "zen", keys: ["wait:1200", "type:the quiet hour before anyone else is awake is when the words come", "wait:700"], caption: "Zen: no words to follow, the caret after whatever you type; Enter ends it and scores it" },
       "4-stats": { palette: "stats", keys: stats, caption: "Stats: the figures, and the progress chart with its average of ten" },
       "5-history": { palette: "stats", keys: [...stats, "down*4", "wait:900"], caption: "Further down: the personal best at every length, and every test taken, newest first" },
