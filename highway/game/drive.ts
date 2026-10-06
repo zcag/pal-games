@@ -83,6 +83,7 @@ export class Drive {
     const course: Course | undefined = this.sprint ? { seed: this.sprint.seed, density: this.sprint.density, reach: Math.max(320, (this.veh.spec.top ?? 60) * 1.25 * 7) } : undefined;
     this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: trafficTop(car, up) / 3.6, rnd: () => this.rnd(), density: o.density ?? 1, course });
     this.director.spare = { lane: Math.min(1, layout.lanes - 1), until: 150 };
+    this.place();
   }
 
   /** The run as plain data, to carry it over a reload: pal may drop a hidden page, and the page saves this when it hides. */
@@ -155,6 +156,38 @@ export class Drive {
     this.events.end?.(why);
   }
 
+  /** Plan the road ahead and put its new cars on it (every step, and once as the run is made, so a run's opening
+   *  shows its traffic before the first step). */
+  private place() {
+    const v = this.veh;
+    const rows = this.director.plan(v.z, v.u, this.traffic.cars.map((n) => ({ lane: n.lane, z: n.z, oncoming: n.oncoming })));
+    for (const row of rows) {
+      // a course's row draws its cars from its own seed, so the same row always brings the same cars
+      let rs = row.seed ?? 0;
+      const r = row.seed ? () => (rs = (rs * 16807) % 2147483647) / 2147483647 : () => this.rnd();
+      for (const s of row.spawns) {
+        const kind = s.heavy ? this.pickKind(true, r) : this.pickKind(r() < 0.12, r);
+        const size = this.sizeOf(kind.id);
+        if (!size) continue;
+        this.traffic.add({ kind: kind.id, length: size.z, width: size.x, z: row.z + s.dz, v: s.v0, lane: s.lane, v0: s.v0, T: 1.1 + r() * 0.6, a: kind.heavy ? 0.8 : 1.4, b: 2.5, oncoming: s.oncoming, politeness: 0.3 + r() * 0.4,
+          side: (r() * 2 - 1) * SIDE, phase: r() * Math.PI * 2, cooldown: 1.5 + r() * 6 });
+      }
+    }
+    this.position();
+  }
+
+  /** Where each car is across the road: its lane, or between two while it changes, and its own side of the lane. */
+  private position() {
+    const L = this.layout;
+    for (const n of this.traffic.cars) {
+      if (n.hit) continue;
+      const at = (l: number) => (n.oncoming ? oncomingX(L, l) : laneX(L, l));
+      // nobody drives dead centre: each keeps to its own side of its lane and drifts about it, so the line between two
+      // lanes is open between some pairs and shut between others, never a lane of its own
+      n.x = at(n.from) + (at(n.lane) - at(n.from)) * crossing(n) + n.side + DRIFT * Math.sin(this.score.time * 0.35 + n.phase);
+    }
+  }
+
   step(dt: number, input: Input) {
     const v = this.veh, L = this.layout, ev = this.events;
     if (this.over) input = { throttle: 0, brake: 0.3, steer: 0 };
@@ -178,28 +211,10 @@ export class Drive {
 
     // traffic: plan, drive, place
     if (!this.over) this.director.time += dt;
-    const rows = this.director.plan(v.z, v.u, this.traffic.cars.map((n) => ({ lane: n.lane, z: n.z, oncoming: n.oncoming })));
-    for (const row of rows) {
-      // a course's row draws its cars from its own seed, so the same row always brings the same cars
-      let rs = row.seed ?? 0;
-      const r = row.seed ? () => (rs = (rs * 16807) % 2147483647) / 2147483647 : () => this.rnd();
-      for (const s of row.spawns) {
-        const kind = s.heavy ? this.pickKind(true, r) : this.pickKind(r() < 0.12, r);
-        const size = this.sizeOf(kind.id);
-        if (!size) continue;
-        this.traffic.add({ kind: kind.id, length: size.z, width: size.x, z: row.z + s.dz, v: s.v0, lane: s.lane, v0: s.v0, T: 1.1 + r() * 0.6, a: kind.heavy ? 0.8 : 1.4, b: 2.5, oncoming: s.oncoming, politeness: 0.3 + r() * 0.4,
-          side: (r() * 2 - 1) * SIDE, phase: r() * Math.PI * 2, cooldown: 1.5 + r() * 6 });
-      }
-    }
+    this.place();
     const lp = this.lanePos();
     this.traffic.step(dt, { z: v.z, v: v.u, lane: lp.lane, length: this.size.z });
-    for (const n of this.traffic.cars) {
-      if (n.hit) continue;
-      const at = (l: number) => (n.oncoming ? oncomingX(L, l) : laneX(L, l));
-      // nobody drives dead centre: each keeps to its own side of its lane and drifts about it, so the line between two
-      // lanes is open between some pairs and shut between others, never a lane of its own
-      n.x = at(n.from) + (at(n.lane) - at(n.from)) * crossing(n) + n.side + DRIFT * Math.sin(this.score.time * 0.35 + n.phase);
-    }
+    this.position();
 
     // passing: near misses and the whoosh
     const kmh = this.kmh;

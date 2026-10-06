@@ -820,6 +820,7 @@ function opening(dt: number) {
   intro = Math.max(0, intro - dt);
   run!.draw(0, 1);
   const pose = run!.pose, cam = r.camera;
+  world.follow(pose.z); // what is drawn, and the land streamed, follow the camera as it swings round
   chase.update(dt, pose, (world.lo + world.hi) / 2); // where the camera ends up
   const to = cam.position.clone();
   aim.copy(cam.quaternion);
