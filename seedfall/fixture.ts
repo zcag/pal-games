@@ -74,11 +74,11 @@ const host = await Host.bundled({ only: ["seedfall"] });
 try {
   const view = await host.request("view", { extension: "seedfall", palette: "seedfall" });
   const palette = (o: Stage) => ({ title: manifest.title, icon: manifest.icon, view: "view", tree: view, surface: { storage: staged(o), settings: { volume: 0 } } });
-  const shots: Record<string, { palette: string; keys: string[]; caption: string }> = {
+  const shots: Record<string, { palette: string; keys: string[]; caption: string; cover?: number[] }> = {
     "1-crystal": { palette: "crystal", keys: ["wait:1800"], caption: "Down in the crystal caves: the pod's lamp, the ore glinting in the rock, fuel, hull and cargo at a glance" },
     "2-town": { palette: "town", keys: ["wait:1800"], caption: "Gantry at sunset: land on the depot pad and the haul sells, the tank fills and the hull is mended" },
     "3-workshop": { palette: "workshop", keys: ["wait:1500"], caption: "The workshop: every part of the pod, what the next level does in plain numbers, and the one to buy next" },
-    "4-magma": { palette: "magma", keys: ["wait:1800"], caption: "The magma layer: lava lakes light the rock, and the heat climbs while you stay" },
+    "4-magma": { cover: [253, 303, 923, 452], palette: "magma", keys: ["wait:1800"], caption: "The magma layer: lava lakes light the rock, and the heat climbs while you stay" },
     "5-chamber": { palette: "chamber", keys: ["wait:1800"], caption: "The Seed at the bottom of the world: wake it and launch it, and follow it to the next planet" },
     "6-log": { palette: "log", keys: ["wait:1500"], caption: "The collection log: every ore, jackpot and relic you have found, and where" },
   };

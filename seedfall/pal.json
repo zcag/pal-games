@@ -178,7 +178,13 @@
       },
       {
         "file": "4-magma.png",
-        "caption": "The magma layer: lava lakes light the rock, and the heat climbs while you stay"
+        "caption": "The magma layer: lava lakes light the rock, and the heat climbs while you stay",
+        "cover": [
+          253,
+          303,
+          923,
+          452
+        ]
       },
       {
         "file": "5-chamber.png",
