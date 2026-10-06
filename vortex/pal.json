@@ -349,7 +349,13 @@
       },
       {
         "file": "2-undertow.png",
-        "caption": "Undertow: caustics and bubbles under a half-time song, the moment a record falls"
+        "caption": "Undertow: caustics and bubbles under a half-time song, the moment a record falls",
+        "cover": [
+          241,
+          260,
+          958,
+          470
+        ]
       },
       {
         "file": "3-singularity.png",

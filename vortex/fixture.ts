@@ -38,9 +38,9 @@ const host = await Host.bundled({ only: ["vortex"] });
 try {
   const view = await host.request("view", { extension: "vortex", palette: "vortex" });
   const palette = (scene: Scene) => ({ title: manifest.title, icon: manifest.icon, view: "view", tree: view, surface: { storage: { save: lived(), scene }, settings: {} } });
-  const shots: Record<string, { palette: string; keys: string[]; caption: string }> = {
+  const shots: Record<string, { palette: string; keys: string[]; caption: string; cover?: number[] }> = {
     "1-pulse": { palette: "pulse", keys: ["wait:1500"], caption: "Pulse: a neon grid far below, walls that read at a glance, and you, racing a minute against the song" },
-    "2-undertow": { palette: "undertow", keys: ["wait:1500"], caption: "Undertow: caustics and bubbles under a half-time song, the moment a record falls" },
+    "2-undertow": { cover: [241, 260, 958, 470], palette: "undertow", keys: ["wait:1500"], caption: "Undertow: caustics and bubbles under a half-time song, the moment a record falls" },
     "3-singularity": { palette: "singularity", keys: ["wait:1500"], caption: "Singularity in hyper: a black hole at the centre, the last stage, faster" },
     "4-over": { palette: "over", keys: ["wait:1700"], caption: "A death replays slowly with the wall that got you outlined; the card says how close the record and the next rank were" },
     "5-title": { palette: "title", keys: ["wait:1500"], caption: "The stages, each playing itself behind its card: your best, its rank, your medals, practice from a rank you reached" },
