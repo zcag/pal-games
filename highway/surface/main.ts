@@ -126,7 +126,6 @@ const events = {
     slowmo = 1.7;
   },
   scrape() { sound.play("impact_metal", { gain: 0.35 }); },
-  nitro(on: boolean) { if (state === "run" && on) { sound.play("backfire", { gain: 0.5 }); chase.hit(0, 0.25); } },
   checkpoint(added: number) { if (state === "run") { banner(`+${added} s`); sound.play("countdown_go", { gain: 0.5 }); } },
   end(why: End) {
     if (state !== "run" || why === "crash") return;
@@ -211,7 +210,6 @@ function input(): Input {
     throttle: k("arrowup", "w") ? 1 : 0,
     brake: k("arrowdown", "s") ? 1 : 0,
     steer: (k("arrowleft", "a") ? 1 : 0) - (k("arrowright", "d") ? 1 : 0),
-    nitro: k(" ", "shift"),
   };
 }
 
@@ -241,9 +239,9 @@ function onKey(k: string) {
 
 let row = 0;
 let browse = 0; // the car shown, owned or not
-const ROWS = ["car", "paint", "speed", "handling", "brakes", "nitro", "mode", "place", "sprint"] as const;
+const ROWS = ["car", "paint", "speed", "handling", "brakes", "mode", "place", "sprint"] as const;
 /** The garage's lines: on the Sprints, the mode and the Sprint (its car and road are its own). */
-const rows = (): readonly (typeof ROWS)[number][] => (save.sprinting ? ["mode", "sprint"] : ROWS.slice(0, 8));
+const rows = (): readonly (typeof ROWS)[number][] => (save.sprinting ? ["mode", "sprint"] : ROWS.slice(0, 7));
 /** The modes, and the Sprints as one more. */
 const MODE_LIST = [...MODES.map((m) => m.id as string), "sprint"];
 
@@ -274,7 +272,7 @@ function drawGarage() {
   const car = shownCar(), owned = save.owned[car.id], up = owned?.upgrades ?? NO_UP;
   // browsing another car: each bar shows what it gains on yours in yellow, and where yours stands; on an
   // upgrade's row, what its next level adds to this car
-  const k = rows()[row] as keyof Upgrades, next = owned && k in up && k !== "nitro" && up[k] < UPGRADE_MAX;
+  const k = rows()[row] as keyof Upgrades, next = owned && k in up && up[k] < UPGRADE_MAX;
   const st = stats(car, next ? { ...up, [k]: up[k] + 1 } : up);
   const mine = next ? stats(car, up) : car.id === save.car ? null : stats(carOf(save.car), save.owned[save.car]?.upgrades ?? NO_UP);
   const bar = (v: number, was?: number) => `<i class="${was === undefined ? "" : v > was + 0.05 ? "up" : "cmp"}" style="--v:${v.toFixed(2)};--w:${Math.min(v, was ?? v).toFixed(2)};--was:${(was ?? 0).toFixed(2)}"></i>`;
@@ -308,7 +306,6 @@ function drawGarage() {
         ${upRow("speed", "Engine")}
         ${upRow("handling", "Handling")}
         ${upRow("brakes", "Brakes")}
-        ${upRow("nitro", "Nitro")}
         <div class="row${sel("mode")}"><span>Mode</span><div class="val"><span class="arrows">${mode.name}</span>${modeOpen ? "" : lock(opensAt("mode", mode.id))}</div></div>
         <div class="row${sel("place")}"><span>Place</span><div class="val"><span class="arrows">${loc.name}</span>${placeOpen ? "" : lock(opensAt("place", loc.id))}</div></div>
       </div>
@@ -409,7 +406,7 @@ async function garageKey(k: string) {
     let ok = false;
     if (what === "car") { ok = !owned && buyCar(save, car); if (owned) { save.car = car.id; ok = true; } }
     else if (what === "paint" && owned && tint) { ok = paint(save, car, tint); if (ok) tint = ""; }
-    else if ((what === "speed" || what === "handling" || what === "brakes" || what === "nitro") && owned) { ok = buyUpgrade(save, car, what); if (ok && run) run.setPlayer(run.player, car, owned.upgrades); }
+    else if ((what === "speed" || what === "handling" || what === "brakes") && owned) { ok = buyUpgrade(save, car, what); if (ok && run) run.setPlayer(run.player, car, owned.upgrades); }
     sound.play(ok ? "cash" : "ui_error", { gain: 0.6 });
     if (ok) persist();
   } else return;
@@ -460,13 +457,13 @@ async function drive(prep?: () => void) {
     z0 = run!.veh.z;
     banner(sp.name);
     $("modebox").hidden = false;
-    hint(save.sprints[sp.id] ? "" : "Reach the line. Near misses fill the nitro; R tries again");
+    hint(save.sprints[sp.id] ? "" : "Reach the line. Chain near misses to go past your top speed; R tries again");
     return;
   }
   recording = null;
   banner(mode.id === "endless" ? LOCATIONS.find((l) => l.id === save.location)!.name : mode.name);
   $("modebox").hidden = mode.id !== "time" && mode.id !== "trap";
-  hint(save.totals.runs < 3 ? "Arrows to drive. Pass close above 100 km/h for points; Space lights the nitro" : "");
+  hint(save.totals.runs < 3 ? "Arrows to drive. Pass close above 100 km/h; a chain of near misses takes you past your top speed" : "");
 }
 
 function pause() {
@@ -666,12 +663,10 @@ function hud() {
   $("earn").textContent = s.misses ? `${s.misses} near miss${s.misses > 1 ? "es" : ""}` : "";
   const c = $("combo");
   c.hidden = !s.combo;
-  if (s.combo) { c.querySelector("b")!.textContent = `Combo ×${s.combo}`; c.style.setProperty("--left", String(s.comboLeft / 4)); }
-  // nitro: the bar, lit while it burns, and a nudge once it can be lit
-  const d = run.drive, nb = $("nitro");
-  nb.style.setProperty("--v", String(d.nitro));
-  nb.classList.toggle("lit", d.boosting);
-  nb.classList.toggle("ready", !d.boosting && d.nitro >= 0.25);
+  const d = run.drive;
+  // the combo, and what it is worth past the top speed
+  if (s.combo) { c.querySelector("b")!.innerHTML = `Combo ×${s.combo}${d.surge >= 1 ? ` <small>+${Math.round(kmh(d.surge))} ${unit()}</small>` : ""}`; c.style.setProperty("--left", String(s.comboLeft / 4)); }
+  $("gauge").classList.toggle("surging", k > d.car.top + d.up.speed * 7 + 1);
   // the mode's own clock or floor
   // Time Attack: the clock and the road left to the next checkpoint, the same size side by side
   const cell = (value: string, label: string, low = false) => `<div><b class="${low ? "low" : ""}">${value}</b><span>${label}</span></div>`;

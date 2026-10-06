@@ -1,7 +1,7 @@
 {
   "name": "highway",
   "title": "Highway",
-  "description": "Weave through highway traffic at speed: pass close for near misses and combos, light the nitro, and earn your way up a garage of seventeen cars with four upgrades each. Driver levels open new modes, places and paints, and three missions always give the next run a goal. Four modes, five places under photographed skies.",
+  "description": "Weave through highway traffic at speed: pass close for near misses, chain them into combos that carry you past your top speed, and earn your way up a garage of seventeen cars with three upgrades each. Driver levels open new modes, places and paints, and three missions always give the next run a goal. Four modes, five places under photographed skies.",
   "version": "1.0.0",
   "icon": {
     "tile": {
@@ -43,8 +43,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -57,8 +56,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -71,8 +69,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -85,8 +82,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -99,8 +95,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -113,8 +108,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -127,8 +121,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -141,8 +134,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -155,8 +147,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -169,8 +160,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -183,8 +173,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -197,8 +186,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -211,8 +199,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -225,8 +212,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -239,8 +225,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -253,8 +238,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -267,8 +251,7 @@
                   "fields": {
                     "speed": "max",
                     "handling": "max",
-                    "brakes": "max",
-                    "nitro": "max"
+                    "brakes": "max"
                   }
                 },
                 "paint": "latest",
@@ -389,13 +372,8 @@
     "actions": [
       {
         "title": "Drive",
-        "description": "Up is the gas, down the brake, left and right steer; WASD too.",
+        "description": "Up is the gas, down the brake, left and right steer; WASD too. That's the whole control.",
         "keys": "up, down, left, right"
-      },
-      {
-        "title": "Light the nitro",
-        "description": "Near misses fill the bar; Space or Shift burns it for speed and double points.",
-        "keys": "space"
       },
       {
         "title": "Change the view",
@@ -425,11 +403,11 @@
       "Handling built for feel: the car goes where your thumb says and stops where you let go, leaning and diving on its springs; a better car or a handling upgrade turns quicker and switches direction sooner",
       "Traffic with drivers: they keep their distance, brake, signal and change lanes when it's safe, placed so a lane is always open",
       "Pass close above 100 km/h for a near miss, graded by the gap you left; near misses within four seconds build a combo, and threading a gap between two cars pays a bonus",
-      "Nitro: near misses fill it, Space burns it for speed past your top and double points",
+      "Momentum: every near miss in a combo pushes you past your top speed, more for a closer one; break the chain and it fades",
       "Four modes: Endless, Two-Way (the oncoming side pays three times), Time Attack against the clock, and Speed Trap above a rising speed",
       "Sprints: short runs to a finish line on a road that is the same every try, three stars each for the time, and your best run beside you as a ghost",
       "Driver levels from 1 to 40 that open modes, places and paint collections, and three missions at a time that grow with you",
-      "Seventeen cars in five classes, City to Super, each quicker and sharper than the last with its own engine note; engine, handling, brake and nitro upgrades, and the garage shows what each one adds before you pay",
+      "Seventeen cars in five classes, City to Super, each quicker and sharper than the last with its own engine note; engine, handling and brake upgrades, and the garage shows what each one adds before you pay",
       "Five places under photographed skies, from a cloudy countryside to a night run with headlights; close pal mid-run and it waits where you left it",
       "A leaderboard for each mode; signed in, your cash, cars, level and records follow you to your other machines and play.cagdas.io"
     ],
@@ -471,10 +449,6 @@
         {
           "keys": "up",
           "title": "Drive (arrows or WASD)"
-        },
-        {
-          "keys": "space",
-          "title": "Light the nitro"
         },
         {
           "keys": "c",

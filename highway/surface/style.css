@@ -135,13 +135,6 @@ button[data-key]:hover { background: rgba(255, 255, 255, 0.12); }
 .row .val em.lock { color: rgba(255,255,255,0.5); font-weight: 600; }
 
 /* ---- nitro and the modes' clocks in the HUD ---- */
-#nitro { position: absolute; left: 16px; bottom: 16px; display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--dim); }
-#nitro i { width: 110px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.16); overflow: hidden; }
-#nitro i::after { content: ""; display: block; height: 100%; width: calc(var(--v, 0) * 100%); background: linear-gradient(90deg, #4fb3ff, #a8e1ff); transition: width 120ms linear; }
-#nitro kbd { opacity: 0; transition: opacity 200ms; }
-#nitro.ready kbd { opacity: 1; }
-#nitro.ready span { color: var(--white); }
-#nitro.lit i::after { background: linear-gradient(90deg, #ff9f1c, #fff1a8); box-shadow: 0 0 10px rgba(255, 180, 60, 0.8); }
 #modebox { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); text-align: center; display: flex; gap: 22px; }
 #modebox > div { min-width: 92px; }
 #modebox b { display: block; font-size: 30px; font-weight: 800; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -185,3 +178,5 @@ button[data-key]:hover { background: rgba(255, 255, 255, 0.12); }
 #rate em.behind { color: #ff8a7a; }
 .missions .stars i { display: inline; height: auto; margin: 0; background: none; overflow: visible; }
 .missions .stars i::after { content: none; }
+#combo b small { font-size: 0.8em; color: rgba(26, 26, 20, 0.7); margin-left: 4px; }
+#gauge.surging #speed { color: var(--yellow); text-shadow: 0 0 12px rgba(255, 190, 60, 0.7); }

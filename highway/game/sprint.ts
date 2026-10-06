@@ -1,7 +1,7 @@
 // Sprints: short runs to a finish line on a fixed road (DESIGN.md, "Sprints").
 // The road is the same every try (game/director.ts, a course), so it can be
-// learned; near misses fill the nitro (game/score.ts, GRADES), so the close
-// line is the fast line. Stars are margins over the best time
+// learned; near misses in a combo push the car past its top speed
+// (game/drive.ts, `surge`), so the close line is the fast line. Stars are margins over the best time
 // scripts/sprint.ts finds on that road: a search that sees the road the way
 // someone who has learned it does, and acts only as often as a player can.
 import type { Layout } from "./layout.ts";
@@ -15,24 +15,24 @@ export type Sprint = {
   length: number; // m on the dial
   density: number; // 0..1, the traffic from the first metre
   seed: number;
-  best: number; // s: the best time scripts/sprint.ts found (beam 40, 2026-10-06)
+  best: number; // s: the best time scripts/sprint.ts found (beam 150, 2026-10-06)
 };
 
-const STOCK: Upgrades = { speed: 0, handling: 0, brakes: 0, nitro: 0 };
+const STOCK: Upgrades = { speed: 0, handling: 0, brakes: 0 };
 
 export const SPRINTS: Sprint[] = [
-  { id: "first-light", name: "First Light", about: "Four lanes, light traffic. Learn the road.", car: "compact-07", up: STOCK, location: "countryside", layout: { lanes: 4, oncoming: 0, median: 0 }, length: 3000, density: 0.35, seed: 1101, best: 59.13 },
-  { id: "commuters", name: "Commuters", about: "Four lanes, busy. Every gap counts.", car: "kiri-10", up: STOCK, location: "midday", layout: { lanes: 4, oncoming: 0, median: 0 }, length: 3500, density: 0.8, seed: 2202, best: 64.02 },
-  { id: "three-lanes", name: "Three Lanes", about: "One lane fewer, and trucks in two of them.", car: "milano-95", up: STOCK, location: "overcast", layout: { lanes: 3, oncoming: 0, median: 0 }, length: 3000, density: 0.6, seed: 3303, best: 51.68 },
-  { id: "old-road", name: "The Old Road", about: "Two lanes each way. Touch the oncoming side and it's over.", car: "tozzo-98", up: STOCK, location: "dusk", layout: { lanes: 2, oncoming: 2, median: 0.4 }, length: 3500, density: 0.55, seed: 4404, best: 54.42 },
-  { id: "after-dark", name: "After Dark", about: "Night, heavy traffic, a fast car. The hard one.", car: "asti-stradale-89", up: STOCK, location: "night", layout: { lanes: 4, oncoming: 0, median: 0 }, length: 4500, density: 0.95, seed: 5505, best: 61.49 },
+  { id: "first-light", name: "First Light", about: "Four lanes, light traffic. Learn the road.", car: "compact-07", up: STOCK, location: "countryside", layout: { lanes: 4, oncoming: 0, median: 0 }, length: 3000, density: 0.35, seed: 1101, best: 56.57 },
+  { id: "commuters", name: "Commuters", about: "Four lanes, busy. Every gap counts.", car: "kiri-10", up: STOCK, location: "midday", layout: { lanes: 4, oncoming: 0, median: 0 }, length: 3500, density: 0.8, seed: 2202, best: 61.35 },
+  { id: "three-lanes", name: "Three Lanes", about: "One lane fewer, and trucks in two of them.", car: "milano-95", up: STOCK, location: "overcast", layout: { lanes: 3, oncoming: 0, median: 0 }, length: 3000, density: 0.6, seed: 3303, best: 49.78 },
+  { id: "old-road", name: "The Old Road", about: "Two lanes each way. Touch the oncoming side and it's over.", car: "tozzo-98", up: STOCK, location: "dusk", layout: { lanes: 2, oncoming: 2, median: 0.4 }, length: 3500, density: 0.55, seed: 4404, best: 52.53 },
+  { id: "after-dark", name: "After Dark", about: "Night, heavy traffic, a fast car. The hard one.", car: "asti-stradale-89", up: STOCK, location: "night", layout: { lanes: 4, oncoming: 0, median: 0 }, length: 4500, density: 0.95, seed: 5505, best: 59.31 },
 ];
 
 export const sprintOf = (id: string) => SPRINTS.find((s) => s.id === id);
 
 /** How much slower than the best time each star allows: one for a clean finish, two once the road is learned,
  *  three for a near-perfect run. */
-export const STAR_MARGIN = [0.3, 0.12, 0.04] as const;
+export const STAR_MARGIN = [0.2, 0.09, 0.03] as const;
 /** The times for one, two and three stars, s (to the tenth, rounded down so the shown time is enough). */
 export const starTimes = (s: Sprint) => STAR_MARGIN.map((m) => Math.floor(s.best * (1 + m) * 10) / 10);
 /** Stars a time earns: 0 to 3. */

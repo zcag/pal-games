@@ -50,10 +50,10 @@ export function gainXp(level: number, xp: number, add: number) {
 // ---------------------------------------------------------------- missions
 
 /** What a run did that a mission can ask about. */
-export type RunStats = { misses: number; paint: number; bestCombo: number; distance: number; doubles: number; oncomingTime: number; topSpeed: number; points: number; nitroUses: number; mode: string };
+export type RunStats = { misses: number; paint: number; bestCombo: number; distance: number; doubles: number; oncomingTime: number; topSpeed: number; points: number; mode: string };
 export const statsOf = (s: Score, mode: string): RunStats => ({
   misses: s.misses, paint: s.graded["Paint trader"], bestCombo: s.bestCombo, distance: s.distance, doubles: s.doubles,
-  oncomingTime: s.oncomingTime, topSpeed: s.topSpeed, points: s.points, nitroUses: s.nitroUses, mode,
+  oncomingTime: s.oncomingTime, topSpeed: s.topSpeed, points: s.points, mode,
 });
 
 type Template = { kind: string; text: (n: number) => string; target: (tier: number, top: number) => number; value: (r: RunStats) => number; mode?: string; minLevel?: number };
@@ -65,7 +65,6 @@ const TEMPLATES: Template[] = [
   { kind: "doubles", text: (n) => (n === 1 ? "Thread a gap between two cars" : `Thread the gap ${n} times in one run`), target: (t) => 1 + Math.floor(t / 2), value: (r) => r.doubles, minLevel: 2 },
   { kind: "speed", text: (n) => `Reach ${n} km/h`, target: (t, top) => Math.min(Math.round(top * 0.98 / 5) * 5, 150 + 15 * t), value: (r) => r.topSpeed },
   { kind: "points", text: (n) => `Score ${n.toLocaleString("en-US")} in one run`, target: (t) => Math.round((15000 * Math.pow(1.6, t)) / 1000) * 1000, value: (r) => r.points },
-  { kind: "nitro", text: (n) => (n === 1 ? "Light the nitro in a run" : `Light the nitro ${n} times in one run`), target: (t) => 1 + t, value: (r) => r.nitroUses },
   { kind: "oncoming", text: (n) => `${n} s in the oncoming lane in one Two-Way run`, target: (t) => 10 + 8 * t, value: (r) => (r.mode === "twoway" ? r.oncomingTime : 0), minLevel: 2 },
 ];
 
@@ -83,6 +82,9 @@ export function newMission(level: number, topSpeed: number, held: Mission[], rnd
   const scale = 1 + tier * 0.6;
   return { kind: t.kind, text: t.text(target), target, reward: { cash: Math.round((400 * scale) / 50) * 50, xp: Math.round((150 * scale) / 50) * 50 } };
 }
+
+/** Whether a mission is one the game still sets (a save can hold one that was dropped, such as the nitro's). */
+export const isMission = (m: Mission) => TEMPLATES.some((t) => t.kind === m.kind);
 
 /** How far a run took a mission (0..1); 1 is done. */
 export function progressOf(m: Mission, r: RunStats) {

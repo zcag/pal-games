@@ -6,9 +6,9 @@
 import { Vehicle, type Input } from "./vehicle.ts";
 import { Traffic, crossing, heading, type Npc } from "./traffic.ts";
 import { Director, type Course } from "./director.ts";
-import { Score, type Miss } from "./score.ts";
+import { Score, DOUBLE_SURGE, type Miss } from "./score.ts";
 import { collide, resolve, type Pt, type Rigid } from "./crash.ts";
-import { TRAFFIC, FEEL, spec, nitroOf, trafficTop, type ModeId, type PlayerCar, type Upgrades } from "./content.ts";
+import { TRAFFIC, FEEL, spec, trafficTop, type ModeId, type PlayerCar, type Upgrades } from "./content.ts";
 import { laneX, oncomingX, edges, LANE_W, RAIL, type Layout } from "./layout.ts";
 
 /** Closing speed that ends a run (km/h on the dial), as in the original; any touch of an oncoming car does too. */
@@ -21,7 +21,6 @@ export type DriveEvents = {
   bump?(impulse: number, side: number): void;
   crash?(info: Crash): void;
   scrape?(): void;
-  nitro?(on: boolean): void;
   checkpoint?(added: number): void;
   end?(why: End): void;
 };
@@ -40,6 +39,9 @@ export type Size = { x: number; z: number; hull?: Pt[] };
 /** How far inside what is drawn a car collides, m: across and along. A gap the eye sees is a miss, and a
  *  scrape a hair under it is forgiven too (the screen's last pixel of paint is never the reason a run ends). */
 export const INSET = 0.08, INSET_END = 0.1;
+/** Momentum: the combo pushes at most this share past the top speed, with this much acceleration (m/s², on the dial),
+ *  and once it breaks the push fades this many km/h a second. */
+const SURGE_MAX = 0.25, SURGE_PUSH = 6, SURGE_FADE = 20;
 /** Time Attack's checkpoints are this far apart on the dial, m. */
 const CHECKPOINT_M = 2500;
 
@@ -55,8 +57,8 @@ export class Drive {
   scraping = 0;
   ended: End | null = null;
   ghost = false; // nothing touches: a staged scene for the store's pictures
-  // nitro: a bar near misses fill, burnt while it lasts
-  nitro = 0; boosting = false; private wanted = false;
+  /** Momentum: km/h past the top speed the combo is worth; it holds while the combo lives and fades once it breaks. */
+  surge = 0;
   // Time Attack: the clock and the next checkpoint (m on the dial); Speed Trap: the floor and time under it
   clock = 60; checkpoints = 0; floor = 0; under = 0;
   /** The body on its springs (squat, dive, lean), for the car and the camera. */
@@ -75,7 +77,7 @@ export class Drive {
     this.veh.x = laneX(layout, Math.min(1, layout.lanes - 1));
     this.veh.launch((100 / 3.6) * FEEL.pace);
     this.traffic = new Traffic(layout.lanes, layout.oncoming);
-    // a Sprint plans its rows as far ahead as the car can see at full nitro, so every speed meets the same road
+    // a Sprint plans its rows as far ahead as the car can see at its fastest, so every speed meets the same road
     const course: Course | undefined = this.sprint ? { seed: this.sprint.seed, density: this.sprint.density, reach: Math.max(320, (this.veh.spec.top ?? 60) * 1.25 * 7) } : undefined;
     this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: trafficTop(car, up) / 3.6, rnd: () => this.rnd(), density: o.density ?? 1, course });
     this.director.spare = { lane: Math.min(1, layout.lanes - 1), until: 150 };
@@ -112,6 +114,9 @@ export class Drive {
     this.pace = FEEL.pace;
   }
 
+  /** The most a combo can push past the top speed, km/h: a quarter of it. */
+  get surgeMax() { return (this.car.top + this.up.speed * 7) * SURGE_MAX; }
+
   /** A Sprint's metres left to the line. */
   get toLine() { return this.sprint ? Math.max(0, this.sprint.length - this.score.distance) : 0; }
 
@@ -145,23 +150,16 @@ export class Drive {
     if (this.over) return;
     this.over = true;
     this.ended = why;
-    this.boosting = false;
     this.events.end?.(why);
   }
 
   step(dt: number, input: Input) {
     const v = this.veh, L = this.layout, ev = this.events;
     if (this.over) input = { throttle: 0, brake: 0.3, steer: 0 };
-    // nitro: lit on a press with a quarter of a bar or more, out when the bar is empty or on the brakes
-    const n2 = nitroOf(this.up);
-    if (input.nitro && !this.wanted && !this.boosting && this.nitro >= 0.25 && !this.over) { this.boosting = true; this.score.nitroUses++; ev.nitro?.(true); }
-    this.wanted = !!input.nitro;
-    if (this.boosting) {
-      this.nitro = Math.max(0, this.nitro - dt / n2.burn);
-      if (this.nitro <= 0 || input.brake > 0.2) { this.boosting = false; ev.nitro?.(false); }
-    }
-    v.boost = this.boosting ? n2.push * FEEL.pace : 0;
-    this.score.boosting = this.boosting;
+    // momentum: the combo's surge pushes the car on past its top speed; a broken combo lets it fade
+    if (!this.score.combo || this.over) this.surge = Math.max(0, this.surge - SURGE_FADE * dt);
+    v.over = (this.surge / 3.6) * FEEL.pace;
+    v.boost = this.surge > 0 ? SURGE_PUSH * FEEL.pace : 0;
     v.step(dt, input);
 
     // the guardrails
@@ -210,7 +208,7 @@ export class Drive {
       if (this.over) continue;
       const m = this.score.pass(gap, kmh, n.oncoming || lp.oncoming);
       if (m) {
-        this.nitro = Math.min(1, this.nitro + (m.double ? 0.4 : m.grade.nitro) * n2.fill);
+        this.surge = Math.min(this.surgeMax, this.surge + m.grade.surge + (m.double ? DOUBLE_SURGE : 0));
         ev.miss?.(m, n, side);
       }
     }

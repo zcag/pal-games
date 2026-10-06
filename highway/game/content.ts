@@ -75,7 +75,7 @@ export const PAINT_SETS: { id: string; name: string; colors: string[]; price: nu
 export const PAINTS = PAINT_SETS.flatMap((p) => p.colors);
 export const paintSet = (color: string) => PAINT_SETS.find((p) => p.colors.includes(color)) ?? PAINT_SETS[0];
 
-export type Upgrades = { speed: number; handling: number; brakes: number; nitro: number }; // 0..5 each
+export type Upgrades = { speed: number; handling: number; brakes: number }; // 0..5 each
 export const UPGRADE_MAX = 5;
 /** What a level of an upgrade costs: 6% of the car's price, at least 800 as in the original (a first run buys two or three, not
  *  a whole set), half again each level; tuned by scripts/economy.ts. */
@@ -107,8 +107,6 @@ export function spec(car: PlayerCar, up: Upgrades, wheelbase: number): Spec & { 
   };
 }
 
-/** The nitro a car carries with its upgrade: how long a full bar burns and how hard it pushes. */
-export const nitroOf = (up: Upgrades) => ({ burn: 2.5 + up.nitro * 0.5, push: 6 + up.nitro * 1.2, fill: 1 + up.nitro * 0.15 });
 
 /** The garage's bars, 1..10, from a car and its upgrades. */
 export function stats(car: PlayerCar, up: Upgrades): Stats {

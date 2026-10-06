@@ -22,16 +22,15 @@ export type Skill = {
   lapseFor: number; // ... for this long: nothing it sees changes, nothing it does changes
   oncoming: number; // 0..1: how much it likes the oncoming side (Two-Way), 0 never goes there
   signals: boolean; // reads indicators: a car signalling is already in the lane it wants
-  nitro: number; // lights the nitro at this much bar (over 1: never)
   nerve: number; // km/h: how much faster than the traffic it dares to go in the first car; a car that changes lanes quicker earns it more
 };
 
 /** Four players. "new" keeps to the lanes' middles, slowly, and crashes in a few minutes; "ace" lives on the paint. */
 export const SKILLS: Record<string, Skill> = {
-  new: { name: "new", nerve: 70, react: 0.5, look: 1.8, brakeAt: 0.6, speed: 0.8, gap: Infinity, aim: 0.4, wander: 0.35, lapse: 5, lapseFor: 1.4, oncoming: 0, signals: false, nitro: 2 },
-  regular: { name: "regular", nerve: 100, react: 0.36, look: 1.4, brakeAt: 0.45, speed: 0.9, gap: 0.75, aim: 0.3, wander: 0.22, lapse: 3, lapseFor: 1.2, oncoming: 0.15, signals: false, nitro: 0.9 },
-  good: { name: "good", nerve: 140, react: 0.24, look: 1.1, brakeAt: 0.35, speed: 0.97, gap: 0.45, aim: 0.18, wander: 0.12, lapse: 1.6, lapseFor: 1.0, oncoming: 0.5, signals: true, nitro: 0.6 },
-  ace: { name: "ace", nerve: 200, react: 0.16, look: 0.9, brakeAt: 0.25, speed: 1, gap: 0.25, aim: 0.1, wander: 0.06, lapse: 0.6, lapseFor: 0.9, oncoming: 0.8, signals: true, nitro: 0.4 },
+  new: { name: "new", nerve: 70, react: 0.5, look: 1.8, brakeAt: 0.6, speed: 0.8, gap: Infinity, aim: 0.4, wander: 0.35, lapse: 5, lapseFor: 1.4, oncoming: 0, signals: false },
+  regular: { name: "regular", nerve: 100, react: 0.36, look: 1.4, brakeAt: 0.45, speed: 0.9, gap: 0.75, aim: 0.3, wander: 0.22, lapse: 3, lapseFor: 1.2, oncoming: 0.15, signals: false },
+  good: { name: "good", nerve: 140, react: 0.24, look: 1.1, brakeAt: 0.35, speed: 0.97, gap: 0.45, aim: 0.18, wander: 0.12, lapse: 1.6, lapseFor: 1.0, oncoming: 0.5, signals: true },
+  ace: { name: "ace", nerve: 200, react: 0.16, look: 0.9, brakeAt: 0.25, speed: 1, gap: 0.25, aim: 0.1, wander: 0.06, lapse: 0.6, lapseFor: 0.9, oncoming: 0.8, signals: true },
 };
 
 type Seen = { id: number; x: number; z: number; v: number; w: number; l: number; oncoming: boolean; signal: number };
@@ -92,7 +91,7 @@ export class Bot {
     // are judged by the first and the brakes by the second.
     const snap = this.seen[0], age = this.t - snap.t;
     const me = { x: v.x, z: v.z, u: v.u, w: d.size.x, l: d.size.z };
-    const dd = d as { floor?: number; mode?: string; nitro?: number; boosting?: boolean };
+    const dd = d as { floor?: number; mode?: string };
     // as fast as it dares: a player settles at a speed over the traffic they can still dodge at, more in a car
     // that changes lanes quicker; a Speed Trap's floor overrules it
     const tt = trafficTop(d.car, d.up), traffic = ((9 + tt / 5.7) + (51.5 + tt / 5.5)) / 2;
@@ -173,15 +172,14 @@ export class Bot {
     }
 
     // speed: its share of the top (over a Speed Trap's floor); off the gas when the lane it is in or
-    // going to is closing, brakes when that is about to be too late; nitro on an open road
+    // going to is closing, brakes when that is about to be too late
     // brakes when the lane it is going to will not let it stop in time, or the lane it is leaving reaches it
     // before it is out (its car's width clear of that lane's line)
     const cur = this.slots[this.nearest(me.x)];
     const out = cur === here ? Infinity : cur.now - Math.max(0, me.w + 0.3 - Math.abs(cur.x - me.x)) / across - 0.15;
     const danger = Math.min(here.stop, out + k.brakeAt);
     const boxed = danger < k.brakeAt, lift = danger < k.brakeAt + 0.4;
-    const nitro = typeof dd.nitro === "number" && !dd.boosting && dd.nitro >= k.nitro && here.plan >= CAP && kmh > 100;
-    this.out = { throttle: !boxed && !lift && kmh < target ? 1 : 0, brake: boxed ? 1 : 0, steer: this.out.steer, nitro };
+    this.out = { throttle: !boxed && !lift && kmh < target ? 1 : 0, brake: boxed ? 1 : 0, steer: this.out.steer };
     this.drift += (-this.drift * PLAN) / 0.8 + k.wander * Math.sqrt((2 * PLAN) / 0.8) * this.gauss();
     this.steerTo(dt);
     return this.out;

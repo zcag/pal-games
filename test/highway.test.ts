@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { Vehicle } from "../highway/game/vehicle.ts";
 import { Director } from "../highway/game/director.ts";
 import { Score } from "../highway/game/score.ts";
-import { CARS, FEEL, MODES, spec } from "../highway/game/content.ts";
+import { CARS, FEEL, MODES, spec, upgradeCost } from "../highway/game/content.ts";
 import { Drive } from "../highway/game/drive.ts";
 import { ONE_WAY, edges, laneX, RAIL } from "../highway/game/layout.ts";
 import { SPRINTS, starTimes, starsFor, ghostTimeAt, ghostAt, GHOST_DT } from "../highway/game/sprint.ts";
@@ -10,7 +10,7 @@ import { fresh, buyCar, buyUpgrade, load, stored, xpTotal, type Save } from "../
 import { gainXp, xpFor } from "../highway/game/progress.ts";
 import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
 
-const NO_UP = { speed: 0, handling: 0, brakes: 0, nitro: 0 };
+const NO_UP = { speed: 0, handling: 0, brakes: 0 };
 
 test("every car reaches about its top speed, and brakes from 100 km/h to a crawl in about a second", () => {
   for (const car of [CARS[0], CARS[CARS.length - 1]]) {
@@ -212,4 +212,40 @@ test("the guardrail is no lane: a car against it still meets the outer lane's tr
   expect(d.veh.x - size.x / 2).toBeCloseTo(lo - RAIL, 1);
   // a narrow car in the outer lane, on its line: the two overlap
   expect(Math.abs(d.veh.x - laneX(ONE_WAY, 0))).toBeLessThan((size.x + 1.6) / 2 - 0.3);
+});
+
+test("momentum: a combo's surge takes the car past its top speed, and fades once the combo breaks", () => {
+  const size = { x: 1.9, z: 4.5 }, sizeOf = () => size, car = CARS[0];
+  const d = new Drive(ONE_WAY, car, NO_UP, size, 2.6, sizeOf, {}, { seed: 2 });
+  d.ghost = true; // nothing touches
+  d.surge = 99;
+  const step = () => { d.traffic.cars.length = 0; d.step(1 / 120, { throttle: 1, brake: 0, steer: 0 }); }; // an empty road: no pass restarts the combo
+  for (let i = 0; i < 120 * 40; i++) { d.score.combo = 5; d.score.comboLeft = 4; step(); }
+  d.surge = Math.min(d.surge, d.surgeMax);
+  expect(d.surgeMax).toBeCloseTo(car.top * 0.25, 6);
+  expect(d.kmh).toBeGreaterThan(car.top * 1.2);
+  d.score.breakCombo();
+  for (let i = 0; i < 120 * 3; i++) step();
+  expect(d.surge).toBe(0);
+});
+
+test("a near miss adds to the surge by how close it was, up to a quarter of the top speed", () => {
+  const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
+  const d = new Drive(ONE_WAY, CARS[0], NO_UP, size, 2.6, sizeOf, {}, { seed: 2 });
+  d.veh.launch((150 / 3.6) * 1.4);
+  d.traffic.add({ kind: "x", length: 4.5, width: 1.9, z: d.veh.z + 3, v: 20, lane: 2, v0: 20, T: 1.2, a: 1, b: 2, oncoming: false, politeness: 0.5 });
+  d.veh.x = laneX(ONE_WAY, 2) - 1.9 - 0.2; // beside its lane, 20 cm off: a Paint trader as it drops behind
+  for (let i = 0; i < 60; i++) d.step(1 / 120, { throttle: 1, brake: 0, steer: 0 });
+  expect(d.score.graded["Paint trader"]).toBe(1);
+  expect(d.surge).toBeGreaterThan(7);
+});
+
+test("a save from before momentum pays its nitro levels back and drops a nitro mission", () => {
+  const old = { v: 2, cash: 100, car: CARS[2].id, owned: { [CARS[2].id]: { upgrades: { speed: 1, handling: 0, brakes: 0, nitro: 2 }, paint: "#fff", paints: ["#fff"] } },
+    missions: [{ kind: "nitro", text: "Light the nitro 3 times in one run", target: 3, reward: { cash: 400, xp: 150 } }] };
+  const s = load(old);
+  expect(s.owned[CARS[2].id].upgrades).toEqual({ speed: 1, handling: 0, brakes: 0 });
+  expect(s.cash).toBe(100 + upgradeCost(CARS[2], 0) + upgradeCost(CARS[2], 1));
+  expect(s.missions).toEqual([]);
+  expect(load(stored(s)).cash).toBe(s.cash); // once
 });

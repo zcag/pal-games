@@ -3,16 +3,20 @@
 // so speed is the dial; a close pass above 100 km/h is a near miss, and near
 // misses inside 4 s of each other build a combo. Ours grades the gap you
 // actually left and shows the combo's clock; the oncoming lane pays three
-// times; two passes at once (threading a door) pay a bonus; nitro doubles
-// everything while it burns. It also keeps what missions ask about.
+// times; two passes at once (threading a door) pay a bonus. A combo is also
+// momentum: each pass in it pushes the car past its top speed (`surge`,
+// game/drive.ts). It also keeps what missions ask about.
 
 export const NEAR_SPEED = 100; // km/h: below this nothing counts as a near miss, and a combo dies
 export const COMBO_TIME = 4; // s
+/** `surge`: km/h a pass of the grade adds to the combo's push past the top speed. */
 export const GRADES = [
-  { gap: 0.3, name: "Paint trader", mult: 2.5, cash: 60, nitro: 0.3 },
-  { gap: 0.6, name: "Very close", mult: 1.6, cash: 35, nitro: 0.18 },
-  { gap: 1.0, name: "Close", mult: 1, cash: 20, nitro: 0.12 },
+  { gap: 0.3, name: "Paint trader", mult: 2.5, cash: 60, surge: 8 },
+  { gap: 0.6, name: "Very close", mult: 1.6, cash: 35, surge: 5 },
+  { gap: 1.0, name: "Close", mult: 1, cash: 20, surge: 3 },
 ] as const;
+/** km/h threading a gap adds on top of its two passes. */
+export const DOUBLE_SURGE = 6;
 export type Grade = (typeof GRADES)[number];
 
 export type Miss = { points: number; grade: Grade; combo: number; oncoming: boolean; double: boolean };
@@ -39,15 +43,13 @@ export class Score {
   fastTime = 0; // s above 150 km/h
   oncomingTime = 0; // s in the oncoming lane
   topSpeed = 0; // km/h
-  nitroUses = 0;
-  boosting = false; // nitro lit: everything counts double
   time = 0;
   private lastMiss = -1;
 
   /** Every step: drive at a speed, maybe in the oncoming lane. */
   tick(dt: number, kmh: number, oncomingLane: boolean) {
     this.time += dt;
-    this.points += rate(kmh, oncomingLane) * dt * (this.boosting ? 2 : 1);
+    this.points += rate(kmh, oncomingLane) * dt;
     this.distance += (kmh / 3.6) * dt;
     if (kmh >= 150) this.fastTime += dt;
     if (oncomingLane && kmh > 60) this.oncomingTime += dt;
@@ -73,7 +75,6 @@ export class Score {
     if (oncoming) base *= 3;
     const double = this.time - this.lastMiss < 0.15;
     if (double) { base += 2500; this.doubles++; }
-    if (this.boosting) base *= 2;
     this.lastMiss = this.time;
     // faster pays more (a near miss at 300 is worth twice one at 150), so a quicker car earns its price back;
     // the oncoming side pays in points (×3), not cash: it would out-earn everything else

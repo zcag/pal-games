@@ -120,17 +120,23 @@ which you feel in the driving, and a place is a reward for getting better.
 
 Three at a time, each one run away: *pass 12 cars closely in one run*, *reach
 a ×8 combo*, *drive 5 km in one run*, *thread the gap twice*, *30 s in the
-oncoming lane*, *hit 220 km/h*, *score 40,000*, *use nitro 3 times*. The
+oncoming lane*, *hit 220 km/h*, *score 40,000*. The
 targets grow with your level; a finished mission pays cash and XP and a new
 one takes its place. In a run, progress on them shows briefly as it happens.
 
-### Nitro
+### Momentum
 
-The one ability. Near misses fill the bar (more for a closer one, most for
-threading a gap), and Space spends it: a burst of speed past the car's top
-and double points while it lasts. It turns the near-miss game into a loop
-(risk earns the boost, the boost earns more points at more risk) and gives
-the fourth upgrade something to grow.
+A combo is speed. Every near miss in it pushes the car on past its top speed
+(`surge`, `game/drive.ts`): 3 km/h for a Close pass, 5 for Very close, 8 for
+a Paint trader, 6 more for threading a gap, up to a quarter of the top speed.
+It holds while the combo lives (a pass every 4 s) and fades 20 km/h a second
+once it breaks. The HUD's combo says what it is worth, and the speed glows
+while you are past your top.
+
+It replaced nitro, a bar near misses filled and Space burnt. Nitro made the
+same loop (risk earns speed, speed raises the risk) but asked for a second
+key, pressed again and again; momentum is the loop with the arrows alone. A
+save from before pays its nitro upgrades back.
 
 ### Cars and upgrades
 
@@ -146,7 +152,7 @@ before, and the big jumps are between classes (measured, `game/vehicle.ts`):
 | A flick turned back | 0.21 s | 0.16 s | 0.13 s |
 | Braking 160 to 100 | 1.02 s | 0.92 s | 0.81 s |
 
-Four upgrades per car (engine, handling, brakes, nitro), five levels each: a
+Three upgrades per car (engine, handling, brakes), five levels each: a
 full set takes a car about half a class up. The garage shows the gain before
 you pay: browsing another car, each bar marks yours and shows what it adds in
 yellow; on an upgrade's row, what its next level adds.
@@ -209,18 +215,20 @@ to a finish line, each on a fixed road with its own car (`game/sprint.ts`).
   before, not the live traffic, so how fast you drive never changes what
   comes next (`test/highway.test.ts`). It can be learned, which is what
   makes a hard one fair.
-- **The time is the clock.** Near misses help by filling the nitro, so the
+- **The time is the clock.** Near misses help through momentum, so the
   close line is the fast one. Taking time off for them was tried and
   dropped: a search that sits on the line between two lanes takes a Paint
   trader off nearly every car (137 near misses in 3 km, 31 s of credit on a
   60 s clock), so the stars would have measured a skill no person has.
 - **Stars are margins over a searched best.** `scripts/sprint.ts` plays a
   beam of runs headless, choosing every 0.25 s where across the road to
-  steer for (half-lane steps), gas or brake, and nitro, and keeps the best
+  steer for (half-lane steps) and gas, lift or brake, colliding as the
+  game's outlines (`scripts/hulls.json`), and keeps the best
   of each kind of place to be; it knows the road as someone who has learned
-  it does. One star is +30% on its time (a clean finish), two +12% (the road
-  learned), three +4% (near-perfect). The margins are a starting point for
-  playing them, not yet a measured fit to people.
+  it does. One star is +20% on its time (a good first try), two +9% (the
+  road learned), three +3% (near-perfect). Its best runs keep one combo the
+  whole way, about two near misses a second. The first margins (+30%, +12%,
+  +4%, over a weaker search with nitro) gave two stars on a first try.
 - **Trying again is instant.** R, from the run, the pause or the end; your
   best run drives beside you as a ghost, and the clock shows how far ahead
   or behind it you are at that point of the road.

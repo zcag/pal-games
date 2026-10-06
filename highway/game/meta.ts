@@ -5,14 +5,14 @@
 // paints `union`. `finish` turns a run into everything the end of a run
 // counts up.
 import { CARS, LOCATIONS, MODES, PAINT_SETS, UPGRADE_MAX, paintSet, upgradeCost, type ModeId, type PlayerCar, type Upgrades } from "./content.ts";
-import { MAX_LEVEL, gainXp, levelCash, newMission, progressOf, statsOf, unlocked, xpFor, xpOfPoints, type Mission, type Unlock } from "./progress.ts";
+import { MAX_LEVEL, gainXp, isMission, levelCash, newMission, progressOf, statsOf, unlocked, xpFor, xpOfPoints, type Mission, type Unlock } from "./progress.ts";
 import type { PayLine, Score } from "./score.ts";
 import { SPRINTS, sprintOf } from "./sprint.ts";
 
 export type Owned = { upgrades: Upgrades; paint: string; paints: string[] };
 export type Best = { score: number; distance: number; combo: number; topSpeed: number };
 export type Save = {
-  v: 2;
+  v: 3; // 3: the nitro upgrade is gone, paid back
   cash: number;
   car: string; // the one you drive
   owned: Record<string, Owned>;
@@ -33,12 +33,12 @@ export type Save = {
 /** A staged moment for the store's pictures (the fixture stores it as "scene"): nothing is saved while one plays. */
 export type Scene = { show: "garage" | "run" | "results"; location?: string; mode?: ModeId; car?: string; paint?: string; speed?: number; warm?: number; crash?: { you: number; them: number; kind: string; oncoming: boolean } };
 
-export const NO_UP: Upgrades = { speed: 0, handling: 0, brakes: 0, nitro: 0 };
+export const NO_UP: Upgrades = { speed: 0, handling: 0, brakes: 0 };
 
 export function fresh(): Save {
   const first = CARS[0];
   return {
-    v: 2, cash: 0, car: first.id,
+    v: 3, cash: 0, car: first.id,
     owned: { [first.id]: { upgrades: { ...NO_UP }, paint: first.paint, paints: [first.paint] } },
     location: LOCATIONS[0].id, mode: "endless", level: 1, xp: 0, missions: [], day: "",
     best: {}, sprinting: false, sprint: SPRINTS[0].id, sprints: {}, totals: { runs: 0, distance: 0, misses: 0, cash: 0 },
@@ -61,12 +61,19 @@ export function load(raw: unknown): Save {
   if (!raw || typeof raw !== "object") return s;
   const r = raw as Partial<Save> & { locations?: string[]; xpTotal?: number };
   if (typeof r.cash === "number") s.cash = Math.max(0, Math.floor(r.cash));
-  if (r.owned) for (const [id, o] of Object.entries(r.owned)) if (CARS.some((c) => c.id === id)) s.owned[id] = { ...o, upgrades: { ...NO_UP, ...o.upgrades } };
+  if (r.owned) for (const [id, o] of Object.entries(r.owned)) {
+    const car = CARS.find((c) => c.id === id);
+    if (!car) continue;
+    const { nitro = 0, ...up } = o.upgrades as Upgrades & { nitro?: number };
+    s.owned[id] = { ...o, upgrades: { ...NO_UP, ...up } };
+    // a save from before momentum: the nitro levels bought are paid back, once
+    if ((r.v ?? 2) < 3) for (let l = 0; l < nitro; l++) s.cash += upgradeCost(car, l);
+  }
   if (r.car && s.owned[r.car]) s.car = r.car;
   if (typeof r.level === "number") s.level = Math.max(1, Math.min(MAX_LEVEL, Math.floor(r.level)));
   if (typeof r.xp === "number") s.xp = Math.max(0, r.xp);
   if (typeof r.xpTotal === "number") ({ level: s.level, xp: s.xp } = gainXp(1, 0, Math.max(0, r.xpTotal)));
-  if (Array.isArray(r.missions)) s.missions = r.missions.slice(0, 3);
+  if (Array.isArray(r.missions)) s.missions = r.missions.filter(isMission).slice(0, 3);
   if (typeof r.day === "string") s.day = r.day;
   if (r.location && places(s).some((l) => l.id === r.location)) s.location = r.location;
   if (r.mode && modes(s).some((m) => m.id === r.mode)) s.mode = r.mode;

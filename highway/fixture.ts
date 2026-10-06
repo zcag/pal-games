@@ -13,7 +13,7 @@ import manifest from "./pal.json" with { type: "json" };
 function lived(): Save {
   const s = fresh();
   s.cash = 18400;
-  const own = (id: string, paint: string, speed = 0, handling = 0, brakes = 0, nitro = 0) => { s.owned[id] = { upgrades: { speed, handling, brakes, nitro }, paint, paints: [paint] }; };
+  const own = (id: string, paint: string, speed = 0, handling = 0, brakes = 0) => { s.owned[id] = { upgrades: { speed, handling, brakes }, paint, paints: [paint] }; };
   own("compact-07", "#e8e6e0", 2, 1, 1);
   own("milano-95", "#c81d25", 3, 2, 2);
   own("thunderbolt-96", "#1b3f8f", 2, 3, 1);
