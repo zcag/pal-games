@@ -190,13 +190,17 @@ export class Bot {
   /** How fast full steering crosses the road now (game/vehicle.ts's arcade control), m/s. */
   private across() { return acrossAt(this.d.veh.spec, this.d.veh.u); }
 
-  /** Steer toward the lane's line: a sideways speed that shrinks as the line comes near, so it settles without weaving. */
-  private steerTo(_dt: number) {
-    const v = this.d.veh, x = this.slots[this.slot].x + this.hugX + this.drift;
-    const across = this.across(), lat = v.u * Math.sin(v.yaw) + v.v * Math.cos(v.yaw);
-    const dx = x - v.x;
-    const stop = turnOf(v.spec) * 1.9 * 0.6; // how hard it can check the slide, with room to spare
-    const want = Math.sign(dx) * Math.min(across, Math.sqrt(2 * stop * Math.abs(dx)), 5 * Math.abs(dx));
-    this.out.steer = Math.max(-1, Math.min(1, (want + (want - lat) * 0.6) / across));
-  }
+  /** Steer toward the lane's line. */
+  private steerTo(_dt: number) { this.out.steer = steerToward(this.d, this.slots[this.slot].x + this.hugX + this.drift); }
+}
+
+/** The steering that takes a Drive's car to a line `x` across the road: a sideways speed that shrinks as the
+ *  line comes near, so it settles without weaving (the bot's, and scripts/sprint.ts's). */
+export function steerToward(d: Drive, x: number) {
+  const v = d.veh;
+  const across = acrossAt(v.spec, v.u), lat = v.u * Math.sin(v.yaw) + v.v * Math.cos(v.yaw);
+  const dx = x - v.x;
+  const stop = turnOf(v.spec) * 1.9 * 0.6; // how hard it can check the slide, with room to spare
+  const want = Math.sign(dx) * Math.min(across, Math.sqrt(2 * stop * Math.abs(dx)), 5 * Math.abs(dx));
+  return Math.max(-1, Math.min(1, (want + (want - lat) * 0.6) / across));
 }

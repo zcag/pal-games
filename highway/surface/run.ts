@@ -6,7 +6,7 @@ import * as THREE from "./vendor/three.js";
 import { Car } from "./car.ts";
 import type { World } from "./world.ts";
 import type { Input } from "../game/vehicle.ts";
-import { Drive, type DriveEvents, type Size } from "../game/drive.ts";
+import { Drive, type DriveEvents, type Size, type SprintRoad } from "../game/drive.ts";
 import { heading } from "../game/traffic.ts";
 import { TRAFFIC, FEEL, type ModeId, type PlayerCar, type Upgrades } from "../game/content.ts";
 import { laneX, oncomingX, type Layout } from "../game/layout.ts";
@@ -66,8 +66,8 @@ export class Run {
   pose = { x: 0, z: 0, yaw: 0, u: 0, ax: 0, delta: 0 };
   private prev = { x: 0, z: 0, yaw: 0 };
 
-  constructor(public world: World, public layout: Layout, public player: Car, car: PlayerCar, up: Upgrades, events: DriveEvents, density = 1, mode: ModeId = "endless") {
-    this.drive = new Drive(layout, car, up, player.footprint, player.wheelbase, (id) => sizes.get(id), events, { density, mode });
+  constructor(public world: World, public layout: Layout, public player: Car, car: PlayerCar, up: Upgrades, events: DriveEvents, density = 1, mode: ModeId = "endless", sprint?: SprintRoad) {
+    this.drive = new Drive(layout, car, up, player.footprint, player.wheelbase, (id) => sizes.get(id), events, { density, mode, sprint });
     world.scene.add(player.root);
     this.headlights();
     this.settle();

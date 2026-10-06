@@ -1,6 +1,9 @@
 // The road's lanes, as the rules and the drawing both need them: +x is the driver's left.
 export const LANE_W = 3.6;
-export const SHOULDER = 2.6;
+export const SHOULDER = 1.4;
+/** How far past the outer lane's line a car's side can go before it meets the guardrail, m. Less than the
+ *  room a car in the outer lane leaves (about 0.9), so the rail is never a lane of its own beside them. */
+export const RAIL = 0.3;
 
 export type Layout = {
   lanes: number; // lanes our way

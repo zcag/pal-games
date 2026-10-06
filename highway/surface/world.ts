@@ -4,7 +4,7 @@
 import * as THREE from "./vendor/three.js";
 import { applySky, surface, worldUV, prop, type Sky, type Part } from "./env.ts";
 import { Road } from "./road.ts";
-import { edges, type Layout } from "../game/layout.ts";
+import { edges, RAIL, type Layout } from "../game/layout.ts";
 import { Land, CHUNK, SEG, zoneAt, forestEdge, bridgeNear, hash, fbm, type Put } from "./terrain.ts";
 import { bake, fuller, grassClump } from "./foliage.ts";
 import { overpass, barrierPanel, lampPool, halo, signFace } from "./structures.ts";
@@ -122,7 +122,7 @@ function railsFor(lo: number, hi: number) {
   const postGeo = new THREE.BoxGeometry(0.1, 0.8, 0.15);
   const postMat = new THREE.MeshStandardMaterial({ color: 0x8a8d90, metalness: 0.6, roughness: 0.5 });
   for (const side of [1, -1]) {
-    const x = side > 0 ? hi + 1.9 : lo - 1.9;
+    const x = side > 0 ? hi + RAIL + 0.35 : lo - RAIL - 0.35; // where game/drive.ts stops a car's side, and the rail's depth
     const m = new THREE.Mesh(rail, railMat);
     m.scale.x = side; m.position.x = x;
     m.castShadow = true; m.receiveShadow = true;
@@ -137,7 +137,7 @@ function railsFor(lo: number, hi: number) {
   const n = 20;
   const posts = new THREE.InstancedMesh(post, new THREE.MeshStandardMaterial({ color: 0xf2f2ee, roughness: 0.6 }), n * 2);
   const bands = new THREE.InstancedMesh(band, new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0xff9a30, emissiveIntensity: 0.4, roughness: 0.3 }), n * 2);
-  for (let i = 0; i < n; i++) for (const [k, x] of [[0, hi + 2.6], [1, lo - 2.6]] as const) {
+  for (let i = 0; i < n; i++) for (const [k, x] of [[0, hi + RAIL + 1], [1, lo - RAIL - 1]] as const) {
     const mt = new THREE.Matrix4().makeTranslation(x, 0, -100 + i * 50);
     posts.setMatrixAt(i * 2 + k, mt);
     bands.setMatrixAt(i * 2 + k, mt);

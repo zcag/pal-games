@@ -4,7 +4,8 @@ import { Director } from "../highway/game/director.ts";
 import { Score } from "../highway/game/score.ts";
 import { CARS, FEEL, MODES, spec } from "../highway/game/content.ts";
 import { Drive } from "../highway/game/drive.ts";
-import { ONE_WAY } from "../highway/game/layout.ts";
+import { ONE_WAY, edges, laneX, RAIL } from "../highway/game/layout.ts";
+import { SPRINTS, starTimes, starsFor, ghostTimeAt, ghostAt, GHOST_DT } from "../highway/game/sprint.ts";
 import { fresh, buyCar, buyUpgrade, load, stored, xpTotal, type Save } from "../highway/game/meta.ts";
 import { gainXp, xpFor } from "../highway/game/progress.ts";
 import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
@@ -155,4 +156,60 @@ test("a run packed and unpacked carries on exactly as it would have", () => {
   expect(b.score.points).toBe(a.score.points);
   expect(b.traffic.cars.map((n) => n.z)).toEqual(a.traffic.cars.map((n) => n.z));
   expect(b.clock).toBe(a.clock);
+});
+
+describe("Sprints", () => {
+  const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
+  const sp = SPRINTS[1];
+  const road = { seed: sp.seed, length: sp.length, density: sp.density };
+
+  test("the road is the same whatever the speed: every row, its cars and their drivers", () => {
+    const met = (throttle: number) => {
+      const d = new Drive(sp.layout, CARS[1], NO_UP, size, 2.6, sizeOf, {}, { sprint: road });
+      d.ghost = true; // nothing touches, so both drive the whole 30 s
+      const seen = new Map<number, string>();
+      for (let i = 0; i < 120 * 30 && !d.over; i++) {
+        d.step(1 / 120, { throttle, brake: 0, steer: 0 });
+        for (const n of d.traffic.cars) if (!seen.has(n.id)) seen.set(n.id, `${n.kind} ${n.lane} ${n.v0.toFixed(3)} ${n.T.toFixed(3)}`);
+      }
+      return [...seen.values()];
+    };
+    const fast = met(1), slow = met(0.35);
+    expect(slow.length).toBeGreaterThan(30);
+    expect(fast.slice(0, slow.length)).toEqual(slow);
+  });
+
+  test("it ends at the line, on the clock", () => {
+    const d = new Drive(sp.layout, CARS[1], NO_UP, size, 2.6, sizeOf, {}, { sprint: { ...road, length: 300 } });
+    d.ghost = true; // nothing touches: only the line ends it
+    for (let i = 0; i < 120 * 30 && !d.over; i++) d.step(1 / 120, { throttle: 1, brake: 0, steer: 0 });
+    expect(d.ended).toBe("line");
+    expect(d.toLine).toBe(0);
+    expect(d.score.time).toBeGreaterThan(5);
+  });
+
+  test("stars are margins over the best time, and a ghost says its time at any point of the road", () => {
+    const [one, two, three] = starTimes(sp);
+    expect(one > two && two > three && three > sp.best).toBe(true);
+    expect([starsFor(sp, three), starsFor(sp, two), starsFor(sp, one), starsFor(sp, one + 0.1)]).toEqual([3, 2, 1, 0]);
+    const g = { x: [0, 1, 2], z: [0, 10, 30], yaw: [0, 0, 0], time: 2 * GHOST_DT };
+    expect(ghostTimeAt(g, 20)).toBeCloseTo(GHOST_DT * 1.5, 6);
+    expect(ghostTimeAt(g, 40)).toBeNull();
+    expect(ghostAt(g, GHOST_DT / 2)).toMatchObject({ x: 0.5, z: 5 });
+  });
+
+  test("a best time is kept per Sprint; an unknown one is dropped", () => {
+    const s = load({ ...stored(fresh()), sprinting: true, sprint: sp.id, sprints: { [sp.id]: 71.5, nope: 3 } });
+    expect([s.sprinting, s.sprint, s.sprints]).toEqual([true, sp.id, { [sp.id]: 71.5 }]);
+  });
+});
+
+test("the guardrail is no lane: a car against it still meets the outer lane's traffic", () => {
+  const size = { x: 1.8, z: 4.4 }, sizeOf = () => size;
+  const d = new Drive(ONE_WAY, CARS[3], NO_UP, size, 2.6, sizeOf, {}, { seed: 5 });
+  for (let i = 0; i < 120 * 3; i++) d.step(1 / 120, { throttle: 0.5, brake: 0, steer: -1 });
+  const [lo] = edges(ONE_WAY);
+  expect(d.veh.x - size.x / 2).toBeCloseTo(lo - RAIL, 1);
+  // a narrow car in the outer lane, on its line: the two overlap
+  expect(Math.abs(d.veh.x - laneX(ONE_WAY, 0))).toBeLessThan((size.x + 1.6) / 2 - 0.3);
 });

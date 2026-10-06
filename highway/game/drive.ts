@@ -5,11 +5,11 @@
 // what happened through events.
 import { Vehicle, type Input } from "./vehicle.ts";
 import { Traffic, crossing, heading, type Npc } from "./traffic.ts";
-import { Director } from "./director.ts";
+import { Director, type Course } from "./director.ts";
 import { Score, type Miss } from "./score.ts";
 import { collide, resolve, type Pt, type Rigid } from "./crash.ts";
 import { TRAFFIC, FEEL, spec, nitroOf, trafficTop, type ModeId, type PlayerCar, type Upgrades } from "./content.ts";
-import { laneX, oncomingX, edges, LANE_W, type Layout } from "./layout.ts";
+import { laneX, oncomingX, edges, LANE_W, RAIL, type Layout } from "./layout.ts";
 
 /** Closing speed that ends a run (km/h on the dial), as in the original; any touch of an oncoming car does too. */
 export const FATAL_KMH = 35;
@@ -25,8 +25,10 @@ export type DriveEvents = {
   checkpoint?(added: number): void;
   end?(why: End): void;
 };
-/** Why a run ended: a crash, the clock (Time Attack), too slow for too long (Speed Trap). */
-export type End = "crash" | "time" | "slow";
+/** Why a run ended: a crash, the clock (Time Attack), too slow for too long (Speed Trap), the finish line (a Sprint). */
+export type End = "crash" | "time" | "slow" | "line";
+/** A Sprint: a fixed road (game/director.ts) `length` m long on the dial, its traffic `density` (0..1) from the start. */
+export type SprintRoad = { seed: number; length: number; density: number };
 
 /** A run packed for storage (`Drive.pack`). */
 export type Packed = { car: string; up: Upgrades; mode: ModeId; drive: object; veh: object; traffic: object; director: object; score: object };
@@ -59,18 +61,23 @@ export class Drive {
   clock = 60; checkpoints = 0; floor = 0; under = 0;
   /** The body on its springs (squat, dive, lean), for the car and the camera. */
   spring = { pitch: 0, pitchV: 0, roll: 0, rollV: 0 };
+  /** A Sprint's road, else the open road. */
+  sprint: SprintRoad | null;
   private seed: number;
   private pace = FEEL.pace; // the pace the car's physics were made at
 
   constructor(public layout: Layout, public car: PlayerCar, public up: Upgrades, public size: Size, wheelbase: number,
-    private sizeOf: (id: string) => Size | undefined, public events: DriveEvents = {}, o: { density?: number; seed?: number; mode?: ModeId } = {}) {
+    private sizeOf: (id: string) => Size | undefined, public events: DriveEvents = {}, o: { density?: number; seed?: number; mode?: ModeId; sprint?: SprintRoad } = {}) {
     this.mode = o.mode ?? "endless";
+    this.sprint = o.sprint ?? null;
     this.seed = o.seed ?? Math.floor(Math.random() * 2147483646) + 1;
     this.veh = new Vehicle(spec(car, up, wheelbase));
     this.veh.x = laneX(layout, Math.min(1, layout.lanes - 1));
     this.veh.launch((100 / 3.6) * FEEL.pace);
     this.traffic = new Traffic(layout.lanes, layout.oncoming);
-    this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: trafficTop(car, up) / 3.6, rnd: () => this.rnd(), density: o.density ?? 1 });
+    // a Sprint plans its rows as far ahead as the car can see at full nitro, so every speed meets the same road
+    const course: Course | undefined = this.sprint ? { seed: this.sprint.seed, density: this.sprint.density, reach: Math.max(320, (this.veh.spec.top ?? 60) * 1.25 * 7) } : undefined;
+    this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: trafficTop(car, up) / 3.6, rnd: () => this.rnd(), density: o.density ?? 1, course });
     this.director.spare = { lane: Math.min(1, layout.lanes - 1), until: 150 };
   }
 
@@ -105,7 +112,9 @@ export class Drive {
     this.pace = FEEL.pace;
   }
 
-  /** The dial's speed. */
+  /** A Sprint's metres left to the line. */
+  get toLine() { return this.sprint ? Math.max(0, this.sprint.length - this.score.distance) : 0; }
+
   /** What a car collides as: its outline (`Size.hull`, inset already), else its box pulled in by the insets. */
   private outline(s: Size): { w: number; l: number; hull?: Pt[] } {
     return s.hull ? { w: s.x, l: s.z, hull: s.hull } : { w: s.x - 2 * INSET, l: s.z - 2 * INSET_END };
@@ -124,9 +133,9 @@ export class Drive {
     return { lane: clamp(lane, 0, this.layout.lanes - 1), oncoming: this.layout.oncoming > 0 && this.veh.x > 0 };
   }
 
-  private pickKind(heavy: boolean) {
+  private pickKind(heavy: boolean, rnd: () => number) {
     const list = TRAFFIC.filter((t) => !!t.heavy === heavy);
-    let r = this.rnd() * list.reduce((a, t) => a + t.weight, 0);
+    let r = rnd() * list.reduce((a, t) => a + t.weight, 0);
     for (const t of list) if ((r -= t.weight) <= 0) return t;
     return list[0];
   }
@@ -157,7 +166,7 @@ export class Drive {
 
     // the guardrails
     const [lo, hi] = edges(L);
-    const lim = (hi - lo) / 2 + 1.55 - this.size.x / 2, mid = (hi + lo) / 2;
+    const lim = (hi - lo) / 2 + RAIL - this.size.x / 2, mid = (hi + lo) / 2;
     if (Math.abs(v.x - mid) > lim) {
       v.x = mid + Math.sign(v.x - mid) * lim;
       v.v *= -0.3; v.yaw *= 0.5; v.r *= 0.5; v.u *= 1 - 1.2 * dt;
@@ -170,11 +179,16 @@ export class Drive {
     // traffic: plan, drive, place
     if (!this.over) this.director.time += dt;
     const rows = this.director.plan(v.z, v.u, this.traffic.cars.map((n) => ({ lane: n.lane, z: n.z, oncoming: n.oncoming })));
-    for (const row of rows) for (const s of row.spawns) {
-      const kind = s.heavy ? this.pickKind(true) : this.pickKind(this.rnd() < 0.12);
-      const size = this.sizeOf(kind.id);
-      if (!size) continue;
-      this.traffic.add({ kind: kind.id, length: size.z, width: size.x, z: row.z + s.dz, v: s.v0, lane: s.lane, v0: s.v0, T: 1.1 + this.rnd() * 0.6, a: kind.heavy ? 0.8 : 1.4, b: 2.5, oncoming: s.oncoming, politeness: 0.3 + this.rnd() * 0.4 });
+    for (const row of rows) {
+      // a course's row draws its cars from its own seed, so the same row always brings the same cars
+      let rs = row.seed ?? 0;
+      const r = row.seed ? () => (rs = (rs * 16807) % 2147483647) / 2147483647 : () => this.rnd();
+      for (const s of row.spawns) {
+        const kind = s.heavy ? this.pickKind(true, r) : this.pickKind(r() < 0.12, r);
+        const size = this.sizeOf(kind.id);
+        if (!size) continue;
+        this.traffic.add({ kind: kind.id, length: size.z, width: size.x, z: row.z + s.dz, v: s.v0, lane: s.lane, v0: s.v0, T: 1.1 + r() * 0.6, a: kind.heavy ? 0.8 : 1.4, b: 2.5, oncoming: s.oncoming, politeness: 0.3 + r() * 0.4 });
+      }
     }
     const lp = this.lanePos();
     this.traffic.step(dt, { z: v.z, v: v.u, lane: lp.lane, length: this.size.z });
@@ -242,7 +256,9 @@ export class Drive {
     this.score.tick(dt, kmh, lp.oncoming);
 
     // the modes' own rules
-    if (this.mode === "time") {
+    if (this.sprint) {
+      if (this.score.distance >= this.sprint.length) this.finish("line");
+    } else if (this.mode === "time") {
       this.clock -= dt;
       if (this.toCheckpoint <= 0) {
         const added = this.bonus;

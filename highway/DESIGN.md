@@ -66,6 +66,13 @@ around each model, whose corners stick out 6 to 35 cm past a tapered nose or
 tail (20 cm typically), so cutting past a car's tail with a gap on screen
 still ended the run (`game/crash.ts`, `test/highway-crash.test.ts`).
 
+The guardrail is no lane. A car's side can go 30 cm past the outer lane's
+line (`RAIL`, `game/layout.ts`), less than the 0.9 m a car in that lane
+leaves, so a car against the rail overlaps the outer lane's traffic. It used
+to stop 1.55 m out: floored along the rail, you passed every outer-lane car
+about 0.65 m off without touching, each one a Very close near miss, and runs
+of a ×277 combo paid for the top car.
+
 ## Progression
 
 What keeps you coming back. Traffic Racer's long-term layer is a ladder of 48
@@ -190,3 +197,30 @@ falls behind a faster car, and near misses that pay with speed fixed that.
 | Two-Way | level 2 | the oncoming side pays three times, touching it ends the run |
 | Time Attack | level 5 | a clock from 60 s; every 2.5 km adds time, a little less each time; the clock and the road left to the next checkpoint sit side by side at one size |
 | Speed Trap | level 10 | stay above a speed that rises every 10 s; 3 s below it ends the run |
+
+## Sprints
+
+A prototype of levels, tried before a map is built on them: five short runs
+to a finish line, each on a fixed road with its own car (`game/sprint.ts`).
+
+- **The same road every try.** A Sprint's traffic is a course
+  (`game/director.ts`): each row draws from its own seed by its number, rows
+  are planned a fixed distance ahead and checked against the rows planned
+  before, not the live traffic, so how fast you drive never changes what
+  comes next (`test/highway.test.ts`). It can be learned, which is what
+  makes a hard one fair.
+- **The time is the clock.** Near misses help by filling the nitro, so the
+  close line is the fast one. Taking time off for them was tried and
+  dropped: a search that sits on the line between two lanes takes a Paint
+  trader off nearly every car (137 near misses in 3 km, 31 s of credit on a
+  60 s clock), so the stars would have measured a skill no person has.
+- **Stars are margins over a searched best.** `scripts/sprint.ts` plays a
+  beam of runs headless, choosing every 0.25 s where across the road to
+  steer for (half-lane steps), gas or brake, and nitro, and keeps the best
+  of each kind of place to be; it knows the road as someone who has learned
+  it does. One star is +30% on its time (a clean finish), two +12% (the road
+  learned), three +4% (near-perfect). The margins are a starting point for
+  playing them, not yet a measured fit to people.
+- **Trying again is instant.** R, from the run, the pause or the end; your
+  best run drives beside you as a ghost, and the clock shows how far ahead
+  or behind it you are at that point of the road.

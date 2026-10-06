@@ -18,6 +18,7 @@ import { xpFor, nextUnlock, progressOf, statsOf, MAX_LEVEL } from "../game/progr
 import type { Miss } from "../game/score.ts";
 import type { End, Packed } from "../game/drive.ts";
 import { acrossAt, type Input } from "../game/vehicle.ts";
+import { SPRINTS, sprintOf, starTimes, starsFor, clock, GHOST_DT, ghostAt, ghostTimeAt, type Ghost, type Sprint } from "../game/sprint.ts";
 
 declare const pal: SurfaceKit;
 const $ = (id: string) => document.getElementById(id)!;
@@ -43,6 +44,11 @@ const persist = () => { if (!scene && !trial) pal.storage.set("save", stored(sav
 let signedIn = true;
 const account = () => pal.account().then((a) => { signedIn = a?.signedIn !== false; }, () => {});
 const layoutOf = (mode: string) => (MODES.find((m) => m.id === mode)?.twoWay ? TWO_WAY : ONE_WAY);
+/** The Sprint the garage is on, if it is on the Sprints. */
+const sprintNow = (): Sprint | null => (save.sprinting ? sprintOf(save.sprint) ?? null : null);
+const placeNow = () => LOCATIONS.find((l) => l.id === (sprintNow()?.location ?? save.location))!;
+const layoutNow = () => sprintNow()?.layout ?? layoutOf(save.mode);
+const stars = (n: number) => `<span class="stars">${[1, 2, 3].map((i) => `<i class="${i <= n ? "f" : ""}">★</i>`).join("")}</span>`;
 const money = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const kmh = (v: number) => (save.settings.units === "mph" ? v * 0.6214 : v);
 const unit = () => (save.settings.units === "mph" ? "mph" : "km/h");
@@ -52,9 +58,9 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 /** Put a car on the road (building the place first if it changed); `ready` runs once it is placed, before any frame of it is shown. */
 async function road(demo: boolean, ready?: () => void) {
-  const loc = LOCATIONS.find((l) => l.id === save.location)!;
-  const layout = layoutOf(save.mode);
-  const key = `${loc.id}/${save.mode}`;
+  const loc = placeNow(), sp = sprintNow();
+  const layout = layoutNow();
+  const key = `${loc.id}/${layout.lanes}/${layout.oncoming}`;
   if (builtFor !== key) {
     veil(true, `Driving to ${loc.name}`);
     run?.dispose();
@@ -63,12 +69,14 @@ async function road(demo: boolean, ready?: () => void) {
     builtFor = key;
   }
   run?.dispose();
-  const car = demo ? CARS[browse] : carOf(save.car);
+  const car = sp ? carOf(sp.car) : demo ? CARS[browse] : carOf(save.car);
   const owned = save.owned[car.id];
   const player = await Car.load(car.id, owned?.paint ?? car.paint);
-  run = new Run(world, layout, player, car, owned?.upgrades ?? NO_UP, events, loc.density, demo ? "endless" : save.mode);
+  run = new Run(world, layout, player, car, sp ? sp.up : owned?.upgrades ?? NO_UP, events, loc.density, demo || sp ? "endless" : save.mode,
+    sp && !demo ? { seed: sp.seed, length: sp.length, density: sp.density } : undefined);
   if (demo) run.veh.launch((105 / 3.6) * FEEL.pace);
   run.settle();
+  await sprintProps(sp && !demo ? sp : null);
   if (warmedFor !== key) { await warmTraffic(world, (sc) => r.warm(sc)); warmedFor = key; }
   chase.reset(run.pose);
   ready?.();
@@ -124,12 +132,55 @@ const events = {
     if (state !== "run" || why === "crash") return;
     ended = why;
     state = "over";
-    sound.play(why === "time" ? "countdown_beep" : "ui_error", { gain: 0.6 });
-    banner(why === "time" ? "Time's up" : "Too slow");
+    sound.play(why === "line" ? "cash" : why === "time" ? "countdown_beep" : "ui_error", { gain: 0.6 });
+    banner(why === "line" ? clock(run!.score.time) : why === "time" ? "Time's up" : "Too slow");
     slowmo = 1.2;
   },
 };
 let ended: End | null = null;
+
+// ---------------------------------------------------------------- a Sprint's finish line and ghost
+
+let ghosts: Record<string, Ghost> = {}; // each Sprint's best run, this machine's
+let recording: Ghost | null = null; // the Sprint being driven, as it goes
+let z0 = 0; // where it started
+let ghostCar: Car | null = null, ghostFor = "";
+const finishLine = (() => {
+  // a chequered band across the road, 2 m deep
+  const c = document.createElement("canvas");
+  c.width = 64; c.height = 8;
+  const g = c.getContext("2d")!;
+  for (let x = 0; x < 16; x++) for (let y = 0; y < 2; y++) { g.fillStyle = (x + y) % 2 ? "#111" : "#f4f4f0"; g.fillRect(x * 4, y * 4, 4, 4); }
+  const tex = new THREE.CanvasTexture(c);
+  tex.magFilter = THREE.NearestFilter;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 2), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.8 }));
+  m.rotation.x = -Math.PI / 2;
+  m.position.y = 0.02;
+  m.receiveShadow = true;
+  return m;
+})();
+const ghostMat = new THREE.MeshStandardMaterial({ color: 0xbfe3ff, transparent: true, opacity: 0.32, depthWrite: false, roughness: 0.4, metalness: 0.2 });
+
+/** Put a Sprint's finish line and its ghost car in the world, or take them out. */
+async function sprintProps(sp: Sprint | null) {
+  finishLine.removeFromParent();
+  if (ghostCar && (!sp || ghostFor !== sp.car)) { ghostCar.dispose(); ghostCar = null; }
+  if (!sp || !run) return;
+  const w = world.hi - world.lo;
+  finishLine.scale.x = w;
+  (finishLine.material.map as THREE.Texture).repeat.set(w / 2, 1);
+  finishLine.position.set((world.lo + world.hi) / 2, 0.02, run.veh.z + sp.length * FEEL.pace);
+  world.scene.add(finishLine);
+  if (!ghostCar) {
+    ghostCar = await Car.load(sp.car, "#ffffff", { shadow: false });
+    ghostFor = sp.car;
+    ghostCar.root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.material = ghostMat; m.castShadow = false; m.receiveShadow = false; } });
+  }
+  ghostCar.root.visible = false;
+  world.scene.add(ghostCar.root);
+}
 
 // ---------------------------------------------------------------- input
 
@@ -167,6 +218,8 @@ function input(): Input {
 function onKey(k: string) {
   if (k === "m") { muted = !muted; sound.setVolume(muted ? 0 : save.settings.sound); return; }
   if (state === "garage") { garageKey(k); return; }
+  // a Sprint is tried again at once, from anywhere in it
+  if (k === "r" && run?.drive.sprint && (state === "run" || state === "paused" || state === "over" || state === "results")) { if (!tallying) drive(); return; }
   if (state === "run") {
     if (k === "c") { chase.view = (chase.view + 1) % VIEWS.length; save.settings.view = VIEWS[chase.view].name; persist(); hint(`${VIEWS[chase.view].name} view`); }
     if (k === "p" || k === "enter") pause();
@@ -179,7 +232,7 @@ function onKey(k: string) {
   }
   if (state === "results") {
     if (tallying) { skipTally(); return; } // a key while it counts shows it all at once
-    if (k === "enter" || k === " ") drive();
+    if (k === "enter" || (k === " " && !run?.drive.sprint)) drive();
     if (k === "backspace" || k === "g") garage();
   }
 }
@@ -188,17 +241,22 @@ function onKey(k: string) {
 
 let row = 0;
 let browse = 0; // the car shown, owned or not
-const ROWS = ["car", "paint", "speed", "handling", "brakes", "nitro", "mode", "place"] as const;
+const ROWS = ["car", "paint", "speed", "handling", "brakes", "nitro", "mode", "place", "sprint"] as const;
+/** The garage's lines: on the Sprints, the mode and the Sprint (its car and road are its own). */
+const rows = (): readonly (typeof ROWS)[number][] => (save.sprinting ? ["mode", "sprint"] : ROWS.slice(0, 8));
+/** The modes, and the Sprints as one more. */
+const MODE_LIST = [...MODES.map((m) => m.id as string), "sprint"];
 
 async function garage() {
   state = "garage";
   $("card").hidden = true;
   $("hud").hidden = true;
   browse = CARS.findIndex((c) => c.id === save.car);
+  row = Math.min(row, rows().length - 1);
   fillMissions(save);
   persist();
   await road(true);
-  sound.setEngine(CARS[browse].engine);
+  sound.setEngine(sprintNow() ? carOf(sprintNow()!.car).engine : CARS[browse].engine);
   drawGarage();
   $("garage").hidden = false;
   $("side").hidden = false;
@@ -211,17 +269,19 @@ const pips = (n: number) => Array.from({ length: UPGRADE_MAX }, (_, i) => `<i cl
 let tint = ""; // a colour being looked at, not yet bought
 
 function drawGarage() {
+  const sp = sprintNow();
+  if (sp) { drawSprints(sp); return; }
   const car = shownCar(), owned = save.owned[car.id], up = owned?.upgrades ?? NO_UP;
   // browsing another car: each bar shows what it gains on yours in yellow, and where yours stands; on an
   // upgrade's row, what its next level adds to this car
-  const k = ROWS[row] as keyof Upgrades, next = owned && k in up && k !== "nitro" && up[k] < UPGRADE_MAX;
+  const k = rows()[row] as keyof Upgrades, next = owned && k in up && k !== "nitro" && up[k] < UPGRADE_MAX;
   const st = stats(car, next ? { ...up, [k]: up[k] + 1 } : up);
   const mine = next ? stats(car, up) : car.id === save.car ? null : stats(carOf(save.car), save.owned[save.car]?.upgrades ?? NO_UP);
   const bar = (v: number, was?: number) => `<i class="${was === undefined ? "" : v > was + 0.05 ? "up" : "cmp"}" style="--v:${v.toFixed(2)};--w:${Math.min(v, was ?? v).toFixed(2)};--was:${(was ?? 0).toFixed(2)}"></i>`;
   const loc = LOCATIONS.find((l) => l.id === save.location)!;
   const mode = MODES.find((m) => m.id === save.mode)!;
   const best = save.best[save.mode];
-  const sel = (k: string) => `${ROWS[row] === k ? " on" : ""}" data-row="${ROWS.indexOf(k as (typeof ROWS)[number])}`;
+  const sel = (k: string) => `${rows()[row] === k ? " on" : ""}" data-row="${rows().indexOf(k as (typeof ROWS)[number])}`;
   const upRow = (k: keyof Upgrades, label: string) => {
     const lv = up[k], max = lv >= UPGRADE_MAX;
     const price = !owned ? "" : max ? "<em>Full</em>" : tag(upgradeCost(car, lv));
@@ -259,6 +319,32 @@ function drawGarage() {
     </div>`;
   drawSide();
 }
+/** The garage on the Sprints: the mode, the Sprint, its car and road, the times its stars need, your best. */
+function drawSprints(sp: Sprint) {
+  const sel = (k: string) => `${rows()[row] === k ? " on" : ""}" data-row="${rows().indexOf(k as (typeof ROWS)[number])}`;
+  const best = save.sprints[sp.id], car = carOf(sp.car), loc = placeNow();
+  const lanes = sp.layout.oncoming ? `${sp.layout.lanes} lanes each way` : `${sp.layout.lanes} lanes`;
+  $("garage").innerHTML = `
+    <div class="sign">
+      <div class="head"><b>Highway</b><span>${money(save.cash)}</span></div>
+      <div class="rows">
+        <div class="row${sel("mode")}"><span>Mode</span><div class="val"><span class="arrows">Sprints</span></div></div>
+        <div class="row${sel("sprint")}"><span>Sprint ${SPRINTS.indexOf(sp) + 1}</span><div class="val"><span class="arrows">${sp.name}</span>${stars(best ? starsFor(sp, best) : 0)}</div></div>
+        <div class="about">${sp.about}</div>
+        <div class="facts"><span>${car.name}</span><span>${loc.name}, ${lanes}</span><span>${(sp.length / 1000).toFixed(1)} km</span></div>
+        <div class="targets">${starTimes(sp).map((t, i) => `<div class="${best && best <= t ? "got" : ""}">${stars(i + 1)}<b>${clock(t)}</b></div>`).join("")}</div>
+      </div>
+      <div class="drive">
+        <div><div class="go">Drive</div><div class="best">${best ? `Your best ${clock(best)}` : "Reach the line. R tries again."}</div></div>
+        <div class="keys"><button data-key=" "><kbd>space</kbd> drive</button></div>
+      </div>
+    </div>`;
+  const total = SPRINTS.reduce((a, s) => a + (save.sprints[s.id] ? starsFor(s, save.sprints[s.id]) : 0), 0);
+  $("side").innerHTML = `
+    <div class="driver"><b>Sprints</b><span>${total} of ${SPRINTS.length * 3} stars</span><i style="--v:${total / (SPRINTS.length * 3)}"></i></div>
+    <div class="missions sprints">${SPRINTS.map((s) => `<div class="${s === sp ? "on" : ""}"><span>${s.name}</span>${stars(save.sprints[s.id] ? starsFor(s, save.sprints[s.id]) : 0)}<em>${save.sprints[s.id] ? clock(save.sprints[s.id]) : "Not finished"}</em></div>`).join("")}</div>`;
+}
+
 const opensAtPaint = (id: string) => { for (let l = 1; l <= MAX_LEVEL; l++) if (paintsOpen({ ...save, level: l }).some((p) => p.id === id)) return l; return 1; };
 
 /** The driver's level and the missions, on the right. */
@@ -274,10 +360,13 @@ function drawSide() {
 
 async function garageKey(k: string) {
   const car = shownCar(), owned = save.owned[car.id];
-  const what = ROWS[row];
+  const what = rows()[row];
   if (k === "arrowup" || k === "w" || k === "arrowdown" || k === "s") {
     if (tint && owned) { tint = ""; run?.player.setColor(owned.paint); }
-    row = (row + (k === "arrowup" || k === "w" ? ROWS.length - 1 : 1)) % ROWS.length;
+    row = (row + (k === "arrowup" || k === "w" ? rows().length - 1 : 1)) % rows().length;
+  } else if (k === " " && save.sprinting) {
+    drive();
+    return;
   } else if (k === " ") {
     const loc = LOCATIONS.find((l) => l.id === save.location)!, mode = MODES.find((m) => m.id === save.mode)!;
     if (!owned || !places(save).includes(loc) || !modes(save).includes(mode)) { sound.play("ui_error", { gain: 0.5 }); return; }
@@ -296,7 +385,24 @@ async function garageKey(k: string) {
       if (owned.paints.includes(tint)) { owned.paint = tint; tint = ""; persist(); }
       run?.player.setColor(tint || owned.paint);
     }
-    else if (what === "mode") { const i = MODES.findIndex((m) => m.id === save.mode); save.mode = MODES[(i + d + MODES.length) % MODES.length].id; if (modes(save).some((m) => m.id === save.mode)) persist(); await road(true); }
+    else if (what === "mode") {
+      const i = MODE_LIST.indexOf(save.sprinting ? "sprint" : save.mode), next = MODE_LIST[(i + d + MODE_LIST.length) % MODE_LIST.length];
+      save.sprinting = next === "sprint";
+      if (!save.sprinting) save.mode = next as typeof save.mode;
+      row = rows().indexOf("mode");
+      if (save.sprinting || modes(save).some((m) => m.id === save.mode)) persist();
+      if (!save.sprinting) browse = CARS.findIndex((c) => c.id === save.car);
+      await road(true);
+      sound.setEngine(sprintNow() ? carOf(sprintNow()!.car).engine : CARS[browse].engine);
+    }
+    else if (what === "sprint") {
+      const i = SPRINTS.findIndex((x) => x.id === save.sprint);
+      save.sprint = SPRINTS[(i + d + SPRINTS.length) % SPRINTS.length].id;
+      persist();
+      sound.play("ui_select", { gain: 0.5 });
+      await road(true);
+      sound.setEngine(carOf(sprintNow()!.car).engine);
+    }
     else if (what === "place") { const i = LOCATIONS.findIndex((l) => l.id === save.location); save.location = LOCATIONS[(i + d + LOCATIONS.length) % LOCATIONS.length].id; if (places(save).some((l) => l.id === save.location)) persist(); await road(true); }
     else return;
   } else if (k === "enter") {
@@ -326,8 +432,9 @@ let musicOn = false;
 /** Start a run. The garage's last frame stays up (its sign too) until the run is ready, then it cuts to it; `prep` runs
  *  on the new run before its first frame (a kept run unpacked into it). */
 async function drive(prep?: () => void) {
-  const car = carOf(save.car);
-  browse = CARS.indexOf(car);
+  const sp = sprintNow();
+  const car = sp ? carOf(sp.car) : carOf(save.car);
+  if (!sp) browse = CARS.indexOf(car);
   state = "loading"; // nothing drawn while the car is swapped: the last frame holds
   crashInfo = null;
   ended = null;
@@ -348,6 +455,15 @@ async function drive(prep?: () => void) {
   if (!musicOn) { musicOn = true; sound.playMusic(); }
   $("unit").textContent = unit();
   const mode = MODES.find((m) => m.id === save.mode)!;
+  if (sp) {
+    recording = { x: [], z: [], yaw: [], time: 0 };
+    z0 = run!.veh.z;
+    banner(sp.name);
+    $("modebox").hidden = false;
+    hint(save.sprints[sp.id] ? "" : "Reach the line. Near misses fill the nitro; R tries again");
+    return;
+  }
+  recording = null;
   banner(mode.id === "endless" ? LOCATIONS.find((l) => l.id === save.location)!.name : mode.name);
   $("modebox").hidden = mode.id !== "time" && mode.id !== "trap";
   hint(save.totals.runs < 3 ? "Arrows to drive. Pass close above 100 km/h for points; Space lights the nitro" : "");
@@ -356,16 +472,18 @@ async function drive(prep?: () => void) {
 function pause() {
   state = "paused";
   sound.suspend();
-  card(`<h2>Paused</h2><div class="why">${run ? `${Math.round(run.score.points).toLocaleString("en-US")} points so far` : ""}</div>
-    <div class="keys" style="margin-top:12px"><button data-key="enter"><kbd>enter</kbd> carry on</button><button data-key="q"><kbd>q</kbd> give up the run</button></div>`);
+  const sp = run?.drive.sprint;
+  card(`<h2>Paused</h2><div class="why">${!run ? "" : sp ? `${clock(run.score.time)}, ${(run.drive.toLine / 1000).toFixed(1)} km to go` : `${Math.round(run.score.points).toLocaleString("en-US")} points so far`}</div>
+    <div class="keys" style="margin-top:12px"><button data-key="enter"><kbd>enter</kbd> carry on</button>${sp ? `<button data-key="r"><kbd>r</kbd> try again</button>` : ""}<button data-key="q"><kbd>q</kbd> ${sp ? "back to the garage" : "give up the run"}</button></div>`);
 }
 function resume() { state = "run"; $("card").hidden = true; sound.start(); last = performance.now(); }
-function giveUp() { if (run) { crashInfo = null; results(); } }
+function giveUp() { if (run?.drive.sprint) garage(); else if (run) { crashInfo = null; results(); } }
 
 let tallying = false, skipTally = () => {};
 
 function results() {
   if (!run) return;
+  if (run.drive.sprint) { sprintResults(); return; }
   state = "results";
   keepRun(); // a finished run is not carried over
   $("hud").hidden = true;
@@ -390,6 +508,33 @@ function results() {
     </div>
     <div class="keys"><button data-key="enter"><kbd>enter</kbd> drive again</button><button data-key="g"><kbd>g</kbd> garage</button></div>`);
   tally(res);
+}
+
+/** The end of a Sprint: the time and its stars, a new best kept with its ghost; or how far it got. */
+function sprintResults() {
+  const sp = sprintNow()!, d = run!.drive;
+  state = "results";
+  $("hud").hidden = true;
+  const what = crashInfo ? names.get(crashInfo.kind) ?? "car" : "";
+  const keys = `<div class="keys"><button data-key="r"><kbd>r</kbd> try again</button><button data-key="g"><kbd>g</kbd> garage</button></div>`;
+  if (d.ended !== "line") {
+    card(`<div class="sprint-end"><h2>${crashInfo ? "Crashed" : "Stopped"}</h2>
+      <div class="why crash">${crashInfo ? (crashInfo.oncoming ? `Head-on with ${article(what)} ${what}` : `Into ${article(what)} ${what}`) + `, ${((sp.length - d.toLine) / 1000).toFixed(1)} of ${(sp.length / 1000).toFixed(1)} km` : ""}</div>
+      <div class="targets">${starTimes(sp).map((t, i) => `<div>${stars(i + 1)}<b>${clock(t)}</b></div>`).join("")}</div></div>${keys}`);
+    return;
+  }
+  const time = d.score.time, before = save.sprints[sp.id], record = !before || time < before;
+  const got = starsFor(sp, time), had = before ? starsFor(sp, before) : 0;
+  if (record && !scene && !trial) {
+    save.sprints[sp.id] = time;
+    persist();
+    if (recording) { recording.time = time; ghosts[sp.id] = recording; pal.storage.set("ghosts", ghosts).catch((e: unknown) => console.error("highway: ghost", e)); }
+  }
+  const next = starTimes(sp).find((t) => time > t);
+  card(`<div class="sprint-end"><div class="headline"><h2>${clock(time)}</h2>${record && before ? `<span class="plate">New best, ${(before - time).toFixed(2)} s faster</span>` : record ? `<span class="plate">First finish</span>` : ""}</div>
+    <div class="big">${stars(got)}</div>
+    <div class="why">${got > had ? `${got - had === 1 ? "A new star" : `${got - had} new stars`}` : next ? `${(time - next).toFixed(2)} s from the next star` : "Every star"}${!record ? `. Your best is ${clock(before!)}` : ""}</div>
+    <div class="targets">${starTimes(sp).map((t, i) => `<div class="${time <= t ? "got" : ""}">${stars(i + 1)}<b>${clock(t)}</b></div>`).join("")}</div></div>${keys}`);
 }
 
 /** The run to its mode's board; once it answers, where it stands under the points (and, signed out after a best, the offer to keep it). */
@@ -503,9 +648,17 @@ function veil(on: boolean, msg?: string) {
 const rateOf = (k: number) => (k ** 3 * 1e-6 + (k >= 100 ? (k * k) / 3000 : 0)) * 25;
 function hud() {
   if (!run) return;
-  const s = run.score, v = run.veh, k = v.kmh / FEEL.pace;
-  $("score").querySelector("b")!.textContent = Math.round(s.points).toLocaleString("en-US");
-  $("rate").textContent = k >= 60 ? `+${Math.round(rateOf(k))} a second` : "Faster for points";
+  const s = run.score, v = run.veh, k = v.kmh / FEEL.pace, sp = run.drive.sprint ? sprintNow() : null;
+  if (sp) {
+    // the clock, and against your best run where it was at this point of the road
+    $("score").querySelector("b")!.textContent = clock(s.time);
+    const g = ghosts[sp.id], at = g ? ghostTimeAt(g, run.veh.z - z0) : null;
+    const split = at === null ? null : s.time - at;
+    $("rate").innerHTML = split === null ? "" : `<em class="${split <= 0 ? "ahead" : "behind"}">${split <= 0 ? "−" : "+"}${Math.abs(split).toFixed(2)}</em> on your best`;
+  } else {
+    $("score").querySelector("b")!.textContent = Math.round(s.points).toLocaleString("en-US");
+    $("rate").textContent = k >= 60 ? `+${Math.round(rateOf(k))} a second` : "Faster for points";
+  }
   $("speed").textContent = String(Math.round(kmh(k)));
   $("gear").textContent = v.shifting > 0 ? "·" : String(v.gear);
   ($("rpm") as HTMLElement).style.setProperty("--rpm", String(v.rpm / v.spec.redline));
@@ -526,6 +679,12 @@ function hud() {
     const left = Math.max(0, d.toCheckpoint);
     $("modebox").innerHTML = cell(d.clock.toFixed(1), "seconds", d.clock < 10)
       + cell(left >= 1000 ? `${(left / 1000).toFixed(1)}<small>km</small>` : `${Math.ceil(left / 10) * 10}<small>m</small>`, `to the next +${d.bonus} s`);
+  }
+  if (sp) {
+    const left = d.toLine, want = starTimes(sp).slice().reverse().find((t) => t > s.time) ?? null, n = want === null ? 0 : starTimes(sp).indexOf(want) + 1;
+    $("modebox").innerHTML = cell(left >= 1000 ? `${(left / 1000).toFixed(1)}<small>km</small>` : `${Math.ceil(left / 10) * 10}<small>m</small>`, "to the line")
+      + cell(want === null ? "–" : clock(want), n ? `for ${"★".repeat(n)}` : "no stars left", want !== null && want - s.time < 5);
+    return;
   }
   if (d.mode === "trap") $("modebox").innerHTML = cell(String(Math.round(kmh(d.floor))), d.under > 0 ? `Speed up: ${(3 - d.under).toFixed(1)} s` : `Stay above, ${unit()}`, d.under > 0);
   // a mission finished mid-run says so at once
@@ -581,7 +740,18 @@ function frame() {
   acc += dt;
   const inp = state === "garage" ? autopilot() : state === "run" || state === "over" ? (scene ? autopilot(scene.speed ?? 170, true) : input()) : { throttle: 0, brake: 0.2, steer: 0 };
   const t0 = performance.now();
-  while (acc >= STEP) { run.step(STEP, inp); acc -= STEP; }
+  while (acc >= STEP) {
+    run.step(STEP, inp);
+    acc -= STEP;
+    // a Sprint's run, kept as a line through time: the ghost of a new best
+    if (recording && state === "run" && run.score.time >= recording.z.length * GHOST_DT) { const v = run.veh; recording.x.push(+v.x.toFixed(2)); recording.z.push(+(v.z - z0).toFixed(2)); recording.yaw.push(+v.yaw.toFixed(3)); }
+  }
+  // your best run's ghost, beside you
+  if (ghostCar) {
+    const g = run.drive.sprint && sprintNow() ? ghosts[sprintNow()!.id] : null;
+    ghostCar.root.visible = !!g && (state === "run" || state === "over") && run.score.time < g.time + 1;
+    if (g && ghostCar.root.visible) { const p = ghostAt(g, run.score.time + (acc / STEP) * STEP); ghostCar.root.position.set(p.x, 0, z0 + p.z); ghostCar.root.rotation.y = p.yaw * FEEL.yaw; }
+  }
   const t1 = performance.now();
   run.draw(dt, acc / STEP);
   const v = run.veh, pose = run.pose;
@@ -637,7 +807,7 @@ async function startOver() {
 type Kept = Packed & { location: string; done: number[] };
 function keepRun() {
   if (scene || trial) return;
-  const live = run && (state === "run" || state === "paused") && !run.over;
+  const live = run && (state === "run" || state === "paused") && !run.over && !run.drive.sprint;
   const kept: Kept | null = live ? { ...run!.drive.pack(), location: save.location, done: [...done].map((m) => save.missions.indexOf(m as never)) } : null;
   pal.storage.set("run", kept).catch((e: unknown) => console.error("highway: keep", e));
 }
@@ -654,6 +824,7 @@ async function carryOn(k: Kept) {
 pal.onShown(() => { if (state !== "paused") sound.start(); last = performance.now(); account(); });
 // A save sync merged with another machine's: take it, so the next change writes onto it rather than over it.
 pal.storage.onChange((k, v) => {
+  if (k === "ghosts" && v && typeof v === "object") { ghosts = v as Record<string, Ghost>; return; }
   if (k !== "save" || scene || trial) return;
   const vol = save.settings.sound;
   save = load(v);
@@ -693,6 +864,7 @@ async function stage(sc: Scene) {
   pal.ready(); // the loading sign is ours to show: reveal the page at once
   scene = ((await pal.storage.get("scene").catch(() => null)) as Scene | null) ?? null;
   save = load(await pal.storage.get("save").catch(() => null));
+  ghosts = ((await pal.storage.get("ghosts").catch(() => null)) as Record<string, Ghost> | null) ?? {};
   account();
   let kept = scene ? null : ((await pal.storage.get("run").catch(() => null)) as Kept | null);
   if (kept && save.owned[kept.car] && modes(save).some((m) => m.id === kept!.mode) && places(save).some((l) => l.id === kept!.location)) {
@@ -713,10 +885,10 @@ async function stage(sc: Scene) {
   names = new Map((await fetch("./cars/cars.json").then((x) => x.json())).map((c: { id: string; name: string }) => [c.id, c.name]));
   browse = CARS.findIndex((c) => c.id === save.car);
   fillMissions(save);
-  const loc = LOCATIONS.find((l) => l.id === save.location)!;
+  const loc = placeNow(), layout = layoutNow();
   veil(true, `Driving to ${loc.name}`);
-  await world.build(loc.sky, loc.asphalt, layoutOf(save.mode));
-  builtFor = `${loc.id}/${save.mode}`;
+  await world.build(loc.sky, loc.asphalt, layout);
+  builtFor = `${loc.id}/${layout.lanes}/${layout.oncoming}`;
   await preloadTraffic((f) => (($("loading").querySelector("em") as HTMLElement).style.width = `${Math.round(f * 100)}%`));
   chase.view = viewOf(save);
   frame(); // the loop runs behind the sign, so it lifts over a drawn road

@@ -7,6 +7,7 @@
 import { CARS, LOCATIONS, MODES, PAINT_SETS, UPGRADE_MAX, paintSet, upgradeCost, type ModeId, type PlayerCar, type Upgrades } from "./content.ts";
 import { MAX_LEVEL, gainXp, levelCash, newMission, progressOf, statsOf, unlocked, xpFor, xpOfPoints, type Mission, type Unlock } from "./progress.ts";
 import type { PayLine, Score } from "./score.ts";
+import { SPRINTS, sprintOf } from "./sprint.ts";
 
 export type Owned = { upgrades: Upgrades; paint: string; paints: string[] };
 export type Best = { score: number; distance: number; combo: number; topSpeed: number };
@@ -22,6 +23,9 @@ export type Save = {
   missions: Mission[];
   day: string; // the last day a run paid the day's double (YYYY-MM-DD)
   best: Record<string, Best>; // by mode
+  sprinting: boolean; // the garage is on the Sprints, not a mode
+  sprint: string; // the Sprint picked
+  sprints: Record<string, number>; // each Sprint's best time, s
   totals: { runs: number; distance: number; misses: number; cash: number };
   settings: { view: string; music: number; sound: number; units: "kmh" | "mph" };
 };
@@ -37,7 +41,7 @@ export function fresh(): Save {
     v: 2, cash: 0, car: first.id,
     owned: { [first.id]: { upgrades: { ...NO_UP }, paint: first.paint, paints: [first.paint] } },
     location: LOCATIONS[0].id, mode: "endless", level: 1, xp: 0, missions: [], day: "",
-    best: {}, totals: { runs: 0, distance: 0, misses: 0, cash: 0 },
+    best: {}, sprinting: false, sprint: SPRINTS[0].id, sprints: {}, totals: { runs: 0, distance: 0, misses: 0, cash: 0 },
     settings: { view: "Low", music: 0.6, sound: 1, units: "kmh" },
   };
 }
@@ -67,6 +71,9 @@ export function load(raw: unknown): Save {
   if (r.location && places(s).some((l) => l.id === r.location)) s.location = r.location;
   if (r.mode && modes(s).some((m) => m.id === r.mode)) s.mode = r.mode;
   if (r.best) s.best = r.best;
+  if (typeof r.sprinting === "boolean") s.sprinting = r.sprinting;
+  if (r.sprint && sprintOf(r.sprint)) s.sprint = r.sprint;
+  if (r.sprints) for (const [id, t] of Object.entries(r.sprints)) if (sprintOf(id) && typeof t === "number" && t > 0) s.sprints[id] = t;
   if (r.totals) s.totals = { ...s.totals, ...r.totals };
   if (r.settings) {
     const { camera, ...rest } = r.settings as Save["settings"] & { camera?: number };
