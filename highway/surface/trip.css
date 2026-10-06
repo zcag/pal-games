@@ -1,0 +1,186 @@
+/*
+ * The road trip's map (trip.ts): the region's painting, the road over it as
+ * SVG, the stops as round badges, the region on a road sign top-left, cash
+ * top-right, the stop's card as a sign on the right. Sized in em off the
+ * root, which grows with the page from pal's 720 by 390 panel.
+ */
+.trip-map {
+  position: fixed; inset: 0; z-index: 20; overflow: hidden; background: #0d0f12;
+  font-size: clamp(12px, min(1.8vw, 3.35vh), 21px);
+  transition: opacity 380ms ease, visibility 0s;
+}
+.trip-map.gone { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 300ms ease, visibility 0s 300ms; }
+.trip-map button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.trip-map svg { display: block; fill: currentColor; }
+
+/* ---- the regions, side by side; the one shown at 0 ---- */
+.trip-map .world { position: absolute; inset: 0; }
+.trip-map .layer { position: absolute; inset: 0; overflow: hidden; transform: translateX(calc(var(--off, 0) * 100%)); transition: transform 760ms cubic-bezier(.7, 0, .25, 1); }
+.trip-map .layer:not(.here) { pointer-events: none; }
+.trip-map .art { position: absolute; inset: 0; background: #1b2a24 center / cover no-repeat; transition: filter 600ms ease, transform 760ms cubic-bezier(.7, 0, .25, 1); transform: scale(1.04); }
+.trip-map .layer.here .art { transform: scale(1); }
+.trip-map .layer.closed .art { filter: grayscale(0.85) brightness(0.48) contrast(0.9); }
+.trip-map .layer.closed .road, .trip-map .layer.closed .stops { opacity: 0.22; filter: grayscale(1); }
+.trip-map .shade { position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 75% 70% at 45% 52%, transparent 55%, rgba(6, 8, 10, 0.5) 100%),
+    linear-gradient(180deg, rgba(6, 8, 10, 0.35), transparent 22%, transparent 80%, rgba(6, 8, 10, 0.45)); }
+
+/* ---- the road ---- */
+.trip-map .road { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.trip-map .road path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.trip-map .road .shadow { stroke: rgba(0, 0, 0, 0.38); stroke-width: 2.4em; transform: translateY(0.3em); filter: blur(3px); }
+.trip-map .road .edge { stroke: #ece6d6; stroke-width: 1.85em; }
+.trip-map .road .tar { stroke: #34373c; stroke-width: 1.5em; }
+.trip-map .road .dash { stroke: #f1e3b5; stroke-width: 0.13em; stroke-dasharray: 0.55em 0.65em; opacity: 0.9; animation: dashes 2.4s linear infinite; }
+@keyframes dashes { to { stroke-dashoffset: -1.2em; } }
+
+/* ---- the stops ---- */
+.trip-map .stops { position: absolute; inset: 0; transition: opacity 600ms ease; }
+.trip-map .stop { position: absolute; width: 0; height: 0; animation: stop-in 520ms cubic-bezier(.2, 1.6, .4, 1) backwards; animation-delay: calc(120ms + var(--k, 0) * 45ms); }
+@keyframes stop-in { 0% { opacity: 0; transform: translateY(-0.8em) scale(0.4); } 100% { opacity: 1; transform: none; } }
+.trip-map .disc {
+  --d: 2.25em; position: absolute; left: calc(var(--d) / -2); top: calc(var(--d) / -2); width: var(--d); height: var(--d); border-radius: 50%;
+  display: grid; place-items: center; font-weight: 800; font-size: 1em; line-height: 1;
+  transition: transform 260ms cubic-bezier(.2, 1.6, .4, 1), background 300ms, box-shadow 300ms;
+}
+.trip-map .disc b { font-size: 1.12em; letter-spacing: -0.03em; transform: translateY(0.07em); }
+.trip-map .disc svg { width: 1.05em; height: 1.05em; }
+.trip-map .stop:hover .disc { transform: scale(1.08); }
+.trip-map .fresh .disc { background: var(--white); color: var(--sign); box-shadow: inset 0 0 0 0.15em var(--white), inset 0 0 0 0.27em var(--sign), 0 0.3em 0.7em rgba(0, 0, 0, 0.45); }
+.trip-map .played .disc { background: var(--sign); color: var(--white); box-shadow: inset 0 0 0 0.15em var(--sign), inset 0 0 0 0.27em var(--white), 0 0.3em 0.7em rgba(0, 0, 0, 0.45); }
+.trip-map .gold .disc { box-shadow: inset 0 0 0 0.15em var(--sign), inset 0 0 0 0.3em var(--yellow), 0 0.3em 0.7em rgba(0, 0, 0, 0.45), 0 0 0.9em rgba(244, 196, 48, 0.35); }
+.trip-map .closed .disc { background: #2b2e34; color: rgba(243, 245, 241, 0.62); box-shadow: inset 0 0 0 0.15em #2b2e34, inset 0 0 0 0.25em rgba(243, 245, 241, 0.3), 0 0.3em 0.7em rgba(0, 0, 0, 0.4); }
+.trip-map .closed .disc svg { width: 0.95em; height: 0.95em; }
+.trip-map .stop.closed:not(.sel) { opacity: 0.82; }
+/* the duel: larger, brake-light red */
+.trip-map .duel .disc { --d: 3.15em; }
+.trip-map .duel .disc b { font-size: 0.86em; letter-spacing: 0; }
+.trip-map .duel.played .disc, .trip-map .duel.fresh .disc { background: var(--red); color: var(--white); box-shadow: inset 0 0 0 0.17em var(--red), inset 0 0 0 0.32em var(--white), 0 0.35em 0.9em rgba(0, 0, 0, 0.5), 0 0 1.2em rgba(226, 55, 46, 0.45); }
+.trip-map .duel.gold .disc { background: var(--sign); box-shadow: inset 0 0 0 0.17em var(--sign), inset 0 0 0 0.34em var(--yellow), 0 0.35em 0.9em rgba(0, 0, 0, 0.5); }
+.trip-map .duel.gold .disc svg { width: 1.5em; height: 1.5em; }
+.trip-map .duel.closed .disc svg { width: 1.25em; height: 1.25em; }
+/* the one picked: ringed, a ring breathing out of it */
+.trip-map .sel .disc { transform: scale(1.14); }
+.trip-map .sel .disc::before, .trip-map .sel .disc::after { content: ""; position: absolute; inset: -0.26em; border-radius: 50%; pointer-events: none; }
+.trip-map .sel .disc::before { box-shadow: 0 0 0 0.16em var(--yellow), 0 0 0.8em rgba(244, 196, 48, 0.6); }
+.trip-map .sel .disc::after { border: 0.14em solid var(--yellow); animation: ring 1.8s ease-out infinite; }
+@keyframes ring { 0% { transform: scale(1); opacity: 0.9; } 100% { transform: scale(1.75); opacity: 0; } }
+.trip-map .sel.closed .disc::before { box-shadow: 0 0 0 0.16em rgba(243, 245, 241, 0.8); }
+.trip-map .sel.closed .disc::after { border-color: rgba(243, 245, 241, 0.7); }
+/* its three stars, on a dark tab under the disc */
+.trip-map .stop > .st { position: absolute; left: 0; top: 0.95em; transform: translateX(-50%); display: flex; gap: 0.04em; padding: 0.13em 0.22em 0.11em; border-radius: 0.6em; background: rgba(12, 14, 17, 0.78); }
+.trip-map .duel > .st { top: 1.38em; }
+.trip-map .sel > .st { top: 1.1em; }
+.trip-map .duel.sel > .st { top: 1.6em; }
+.trip-map .st i { display: block; width: 0.66em; height: 0.66em; }
+.trip-map .st svg { width: 100%; height: 100%; fill: rgba(243, 245, 241, 0.25); }
+.trip-map .st i.f svg { fill: var(--yellow); filter: drop-shadow(0 0 0.15em rgba(244, 196, 48, 0.6)); }
+.trip-map .st i.new { animation: star-pop 700ms cubic-bezier(.2, 1.8, .4, 1) backwards; animation-delay: calc(350ms + var(--n) * 160ms); }
+@keyframes star-pop { 0% { transform: scale(3) rotate(-40deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
+
+/* ---- the marker: a tag with the stop's name, driven along the road ---- */
+.trip-map .marker { position: absolute; left: 0; top: 0; z-index: 5; pointer-events: none; transition: opacity 200ms; }
+.trip-map .marker.off { opacity: 0; }
+.trip-map .marker .tag {
+  position: absolute; left: var(--nudge, 0px); bottom: 1.75em; transform: translateX(-50%); white-space: nowrap;
+  display: flex; align-items: center; gap: 0.3em; padding: 0.22em 0.55em 0.16em 0.4em; border-radius: 0.45em;
+  background: var(--white); color: #16181c; font-weight: 800; font-size: 0.92em; box-shadow: 0 0.35em 0.9em rgba(0, 0, 0, 0.45);
+  animation: bob 1.8s ease-in-out infinite;
+}
+.trip-map .marker.duel .tag { bottom: 2.35em; }
+.trip-map .marker .tag::after { content: ""; position: absolute; left: calc(50% - var(--nudge, 0px)); bottom: -0.32em; margin-left: -0.34em; border: 0.34em solid transparent; border-bottom: 0; border-top-color: var(--white); }
+.trip-map .marker .tag svg { width: 1.15em; height: 1.15em; color: var(--sign); }
+.trip-map .marker .tag b { transform: translateY(0.06em); }
+.trip-map .marker.moving .tag { animation: none; }
+@keyframes bob { 50% { transform: translate(-50%, -0.22em); } }
+
+/* ---- the region, on a road sign ---- */
+.trip-map .region { position: absolute; left: 0.85em; top: 0.85em; min-width: 11em; max-width: 19em; padding: 0.55em 0.85em 0.6em; }
+.trip-map .region.in > * { animation: head-in 420ms cubic-bezier(.2, 1, .3, 1) backwards; }
+.trip-map .region.in > :nth-child(2) { animation-delay: 60ms; }
+.trip-map .region.in > :nth-child(3) { animation-delay: 110ms; }
+@keyframes head-in { 0% { opacity: 0; transform: translateY(0.4em); } }
+.trip-map .region h1 { margin: 0.05em 0 0; font-size: 1.55em; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+.trip-map .region .count { font-size: 0.95em; color: var(--dim); font-weight: 600; }
+.trip-map .region .count b { color: var(--white); font-size: 1.15em; font-weight: 800; }
+.trip-map .region .count .s { color: var(--yellow); }
+.trip-map .region .blurb { display: block; font-size: 0.92em; line-height: 1.25; }
+.trip-map .region .need { display: flex; align-items: center; gap: 0.35em; margin-top: 0.3em; font-size: 0.82em; color: var(--white); background: rgba(0, 0, 0, 0.22); border-radius: 0.4em; padding: 0.22em 0.45em 0.15em; }
+.trip-map .region .need svg { flex: none; width: 1em; height: 1em; opacity: 0.8; }
+.trip-map .nav { display: flex; align-items: center; gap: 0.35em; }
+.trip-map .nav button { width: 1.3em; height: 1.3em; border-radius: 0.35em; line-height: 1.25em; font-size: 1em; font-weight: 800; color: var(--white); background: rgba(255, 255, 255, 0.12); }
+.trip-map .nav button:hover { background: rgba(255, 255, 255, 0.25); }
+.trip-map .nav button:disabled { opacity: 0.3; cursor: default; background: rgba(255, 255, 255, 0.06); }
+.trip-map .dots { display: flex; gap: 0.25em; }
+.trip-map .dots i { width: 0.5em; height: 0.32em; border-radius: 0.2em; background: rgba(255, 255, 255, 0.22); transition: width 300ms, background 300ms; }
+.trip-map .dots i.open { background: rgba(255, 255, 255, 0.55); }
+.trip-map .dots i.on { width: 1.3em; background: var(--yellow); }
+
+/* ---- cash ---- */
+.trip-map .purse { position: absolute; right: 0.85em; top: 0.85em; display: flex; align-items: center; gap: 0.7em; padding: 0.4em 0.75em 0.3em; border-radius: 0.6em; background: var(--asphalt); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 0.4em 1.2em rgba(0, 0, 0, 0.3); }
+.trip-map .purse .tally { display: flex; align-items: center; gap: 0.25em; font-weight: 800; }
+.trip-map .purse .tally svg { width: 0.95em; height: 0.95em; fill: var(--yellow); transform: translateY(-0.06em); }
+.trip-map .purse .cash { font-size: 1.2em; font-weight: 800; color: var(--yellow); letter-spacing: -0.02em; transition: transform 200ms; }
+.trip-map .purse .cash.up { transform: scale(1.08); }
+
+/* ---- the stop's card ---- */
+.trip-map .card-slot { position: absolute; right: 0.85em; top: 3.4em; bottom: 2.7em; display: flex; align-items: center; pointer-events: none; }
+.trip-map.closed-region .card-slot { display: none; }
+.trip-map .card { width: 16.2em; padding: 0.75em 0.95em 0.7em; pointer-events: auto; max-height: 100%; }
+.trip-map .card.rise { animation: card-rise 460ms cubic-bezier(.2, 1, .3, 1) backwards; }
+.trip-map .card.swap > * { animation: card-swap 300ms cubic-bezier(.2, 1, .3, 1) backwards; }
+@keyframes card-rise { 0% { opacity: 0; transform: translateX(2em); } }
+@keyframes card-swap { 0% { opacity: 0; transform: translateX(0.6em); } }
+.trip-map .card .eyebrow { font-size: 0.74em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); }
+.trip-map .card .title { display: flex; align-items: center; justify-content: space-between; gap: 0.5em; }
+.trip-map .card h2 { margin: 0; font-size: 1.4em; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; }
+.trip-map .card .title .st { display: flex; gap: 0.08em; flex: none; }
+.trip-map .card .title .st i { width: 0.95em; height: 0.95em; }
+.trip-map .card .blurb { margin: 0.15em 0 0; font-size: 0.85em; line-height: 1.3; color: var(--dim); }
+.trip-map .card .spec { margin-top: 0.3em; font-size: 0.82em; font-weight: 700; }
+.trip-map .card .you { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5em; margin-top: 0.45em; padding-top: 0.45em; border-top: 1px solid rgba(255, 255, 255, 0.2); font-size: 0.8em; color: var(--dim); }
+.trip-map .card .you > span:first-child { display: flex; align-items: center; gap: 0.3em; }
+.trip-map .card .you svg { width: 1.2em; height: 1.2em; color: var(--white); opacity: 0.8; }
+.trip-map .card .you b { color: var(--white); }
+.trip-map .card .times { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.3em; margin-top: 0.45em; }
+.trip-map .card .times > div { text-align: center; padding: 0.28em 0.2em 0.2em; border-radius: 0.45em; background: rgba(0, 0, 0, 0.2); }
+.trip-map .card .times span { display: block; font-size: 0.68em; color: rgba(243, 245, 241, 0.32); letter-spacing: 0.05em; line-height: 1.2; }
+.trip-map .card .times b { display: block; font-size: 0.95em; font-weight: 800; color: var(--dim); }
+.trip-map .card .times .got { box-shadow: inset 0 0 0 1px var(--yellow); }
+.trip-map .card .times .got span { color: var(--yellow); }
+.trip-map .card .times .got b { color: var(--white); }
+.trip-map .card .duelbox { display: grid; grid-template-columns: auto 1fr; gap: 0.3em; margin-top: 0.45em; }
+.trip-map .card .duelbox > div { padding: 0.28em 0.45em 0.2em; border-radius: 0.45em; background: rgba(0, 0, 0, 0.2); }
+.trip-map .card .duelbox span { display: block; font-size: 0.66em; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; }
+.trip-map .card .duelbox b { display: block; font-size: 0.92em; font-weight: 800; white-space: nowrap; }
+.trip-map .card .duelbox > div:nth-child(2) b { color: var(--yellow); }
+.trip-map .card .duelbox > div:nth-child(3) { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 0.5em; }
+.trip-map .card .duelbox > div:nth-child(3) span { display: inline; }
+.trip-map .card .pay { margin-top: 0.45em; font-size: 0.74em; line-height: 1.35; color: var(--dim); }
+.trip-map .card .pay b { font-weight: 600; }
+.trip-map .card .pay .paid { text-decoration: line-through; opacity: 0.55; }
+.trip-map .card .sep { display: inline-block; width: 0.26em; height: 0.26em; margin: 0 0.15em; border-radius: 50%; background: currentColor; opacity: 0.6; vertical-align: 0.22em; }
+.trip-map .card span, .trip-map .card b { white-space: nowrap; }
+.trip-map .card .blurb, .trip-map .card .why span { white-space: normal; }
+.trip-map .card .go { display: flex; align-items: center; justify-content: center; gap: 0.5em; width: 100%; margin-top: 0.55em; padding: 0.38em 0 0.3em; border-radius: 0.5em; background: var(--white); color: var(--sign); font-weight: 800; font-size: 1em; transition: transform 150ms, background 150ms; }
+.trip-map .card .go:hover { background: #fff; transform: translateY(-1px); }
+.trip-map .card .go kbd { background: var(--sign); color: var(--white); box-shadow: none; font-size: 0.72em; }
+.trip-map .card.is-duel .go { background: var(--yellow); color: #1a1a14; }
+.trip-map .card.is-duel .go kbd { background: #1a1a14; }
+.trip-map .card .why { display: flex; align-items: center; gap: 0.45em; margin-top: 0.55em; padding: 0.38em 0.6em 0.3em; border-radius: 0.5em; background: rgba(0, 0, 0, 0.28); font-size: 0.85em; font-weight: 700; }
+.trip-map .card .why svg { flex: none; width: 1.05em; height: 1.05em; opacity: 0.75; }
+
+/* ---- a region not open yet ---- */
+.trip-map .shut { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.trip-map .shut:empty { display: none; }
+.trip-map .shut .sign { display: flex; flex-direction: column; align-items: center; gap: 0.2em; padding: 1em 1.6em 0.9em; text-align: center; font-size: 1em; animation: card-rise 500ms 250ms cubic-bezier(.2, 1, .3, 1) backwards; }
+.trip-map .shut svg { width: 1.5em; height: 1.5em; opacity: 0.85; }
+.trip-map .shut b { font-size: 1.5em; font-weight: 800; letter-spacing: -0.03em; }
+.trip-map .shut span { color: var(--dim); font-weight: 600; }
+
+/* ---- the keys ---- */
+.trip-map .hints { position: absolute; left: 50%; bottom: 0.6em; transform: translateX(-50%); display: flex; gap: 1em; padding: 0.3em 0.85em 0.25em; border-radius: 0.6em; background: rgba(12, 14, 17, 0.62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); font-size: 0.82em; color: var(--dim); white-space: nowrap; }
+.trip-map .hints button { display: flex; align-items: center; gap: 0.35em; border-radius: 0.35em; }
+.trip-map .hints button:hover { color: var(--white); }
+.trip-map .hints kbd { font-size: 0.85em; min-width: 1.6em; }
