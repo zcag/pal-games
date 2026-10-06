@@ -71,7 +71,7 @@ try {
   writeFixture("yahtzee", {
     palettes: { roll: await palette(fours), choose: await palette(house), joker: await palette(joker), over: await palette(over) },
     shots: {
-      "1-roll": { palette: "roll", keys: ["wait:1500"], caption: "Mid-round: three fours kept, each open box showing what it would score" },
+      "1-roll": { cover: [332, 196, 787, 386], palette: "roll", keys: ["wait:1500"], caption: "Mid-round: three fours kept, each open box showing what it would score" },
       "2-choose": { palette: "choose", keys: ["wait:1500"], caption: "Out of throws: the cursor on the card, the dice it counts ringed, the total showing what it adds" },
       "3-yahtzee": { palette: "joker", keys: ["wait:1200", ...(joker.rolls < ROLLS ? ["down", "wait:500"] : [])], caption: "A second Yahtzee: 100 more, and as a Joker it fills a straight" },
       "4-over": { palette: "over", keys: ["wait:1500"], caption: "Game over: the final score with the best and the average" },

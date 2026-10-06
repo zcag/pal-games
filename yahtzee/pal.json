@@ -61,7 +61,13 @@
     "screenshots": [
       {
         "file": "1-roll.png",
-        "caption": "Mid-round: three fours kept, each open box showing what it would score"
+        "caption": "Mid-round: three fours kept, each open box showing what it would score",
+        "cover": [
+          332,
+          196,
+          787,
+          386
+        ]
       },
       {
         "file": "2-choose.png",
