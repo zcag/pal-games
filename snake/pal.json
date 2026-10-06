@@ -87,7 +87,13 @@
     "screenshots": [
       {
         "file": "1-play.png",
-        "caption": "Level 5, a bonus creature up with its countdown at the top right; unlit, as the phone keeps its backlight in play"
+        "caption": "Level 5, a bonus creature up with its countdown at the top right; unlit, as the phone keeps its backlight in play",
+        "cover": [
+          401,
+          277,
+          638,
+          313
+        ]
       },
       {
         "file": "2-menu.png",

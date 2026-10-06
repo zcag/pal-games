@@ -84,7 +84,7 @@ try {
   writeFixture("snake", {
     palettes: { bonus: palette(bonus), maze: palette(maze) },
     shots: {
-      "1-play": { palette: "bonus", keys: [...menu, "enter", "wait:800"], caption: "Level 5, a bonus creature up with its countdown at the top right; unlit, as the phone keeps its backlight in play" },
+      "1-play": { cover: [401, 277, 638, 313], palette: "bonus", keys: [...menu, "enter", "wait:800"], caption: "Level 5, a bonus creature up with its countdown at the top right; unlit, as the phone keeps its backlight in play" },
       "2-menu": { palette: "bonus", keys: [...menu, "wait:300"], caption: "The Snake II menu, lit, as the phone draws it: Continue for the game left paused" },
       "3-maze": { palette: "maze", keys: [...menu, "enter", "wait:800"], caption: "Maze 2 at level 5: the bulges of the food swallowed ride down the body" },
       "4-topscore": { palette: "bonus", keys: [...menu, "down*4", "wait:300", "enter", "wait:4600"], caption: "The Top score screen, its coins fallen into the cup" },
