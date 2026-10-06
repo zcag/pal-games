@@ -48,6 +48,10 @@ const G = 9.81, RHO = 1.2, CRR = 0.012, SHIFT_TIME = 0.16;
 // in about two thirds of a second, where a real car would take one and a half. The motion keeps a
 // real car's shape (it yaws in, leans, settles); it is the speed of it that is a game's.
 const SIDE_GRIP = 1.6;
+/** A combo's pull past the top: in proportion to the top speed (so every class gains its surge alike, half of it in
+ *  2 to 2.7 s on the gas), firm most of the way and gone at the limit, so the speed settles at 83 to 86% of it.
+ *  Swept in a script against the Compact, the Thunderbolt and the Saba (2026-10-07). */
+const SURGE_K = 0.38, SURGE_SHAPE = 6;
 
 /** Handling, 0 (the first car) up: agility over 0.95, a unit of agility a unit of it (the Saba, the sharpest, 0.75). */
 export const handlingOf = (s: Spec) => Math.max(0, Math.min(1, ((s.agility ?? 1.2) - 0.95) / 1.0));
@@ -72,8 +76,8 @@ export class Vehicle {
   wheelSpin = 0; // rad, for the wheels on screen
   steer = 0; // the driver's input, eased in as a thumb on a key does
   knocked = 0; // seconds of the tyre model taking over after a hit
-  boost = 0; // a combo's push past the top speed, m/s^2 ...
-  over = 0; // ... up to this much past it, m/s
+  boost = 0; // a combo's pull past the top speed, m/s^2 at the top, none at the limit ...
+  over = 0; // ... which is this much past it, m/s
   constructor(public spec: Spec) { this.rpm = spec.idle; }
 
   get kmh() { return this.u * 3.6; }
@@ -181,8 +185,10 @@ export class Vehicle {
       const want = this.steer * across, reverse = (want - lat) * lat < 0;
       const aMax = turnOf(s) * (reverse ? 1.9 : 1);
       const next = lat + Math.max(-aMax * dt, Math.min(aMax * dt, want - lat));
-      // a combo's surge pushes on past the top speed, as far as it is worth
-      const du = Flong / s.mass + (this.boost && this.u < (s.top ?? 99) + this.over ? this.boost : 0);
+      // a combo's surge raises the limit past the top speed and pulls the car on toward it, gently, weaker the nearer
+      // it gets: below the top the engine alone does the work, past it the climb takes a chain kept going
+      const top = s.top ?? 99, past = this.u - top;
+      const du = Flong / s.mass + (this.boost && past > 0 && past < this.over ? this.boost * SURGE_K * (top / 46.7) * (1 - (past / this.over) ** SURGE_SHAPE) : 0);
       const crawl = (FEEL.crawl / 3.6) * FEEL.pace;
       this.u = Math.max(Math.min(this.u, crawl), this.u + du * dt); // the brakes slow you to a crawl, never a stop
       const yaw = Math.asin(Math.max(-0.6, Math.min(0.6, next / Math.max(this.u, 1))));

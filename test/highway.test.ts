@@ -251,7 +251,7 @@ test("momentum: a combo's surge takes the car past its top speed, and fades once
   for (let i = 0; i < 120 * 40; i++) { d.score.combo = 5; d.score.comboLeft = 4; step(); }
   d.surge = Math.min(d.surge, d.surgeMax);
   expect(d.surgeMax).toBeCloseTo(car.top * 0.15, 6);
-  expect(d.kmh).toBeGreaterThan(car.top * 1.12);
+  expect(d.kmh).toBeGreaterThan(car.top * 1.1); // past its top, short of the full 15%: the pull fades near the limit
   d.score.breakCombo();
   for (let i = 0; i < 120 * 3; i++) step();
   expect(d.surge).toBe(0);
@@ -343,4 +343,19 @@ test("a run's clone carries on exactly as the run does, and apart from it", () =
   for (let i = 0; i < 120; i++) b.step(1 / 120, { throttle: 0, brake: 1, steer: 1 });
   expect(JSON.stringify([a.veh, a.traffic.cars, a.score, a.director.planned])).toBe(was);
   expect(b.veh.z).not.toBe(a.veh.z);
+});
+
+test("momentum pushes only on the gas: lift with a full surge and the car slows; brake and the surge bleeds away", () => {
+  const size = { x: 1.9, z: 4.5 }, sizeOf = () => size, car = CARS[0];
+  const d = new Drive(ONE_WAY, car, size, 2.6, sizeOf, {}, { seed: 2 });
+  d.ghost = true;
+  const step = (input: { throttle: number; brake: number; steer: number }) => { d.traffic.cars.length = 0; d.score.combo = 5; d.score.comboLeft = 4; d.step(1 / 120, input); };
+  d.surge = d.surgeMax;
+  for (let i = 0; i < 120 * 30; i++) step({ throttle: 1, brake: 0, steer: 0 });
+  const fast = d.kmh;
+  expect(fast).toBeGreaterThan(car.top * 1.1);
+  for (let i = 0; i < 120 * 4; i++) step({ throttle: 0, brake: 0, steer: 0 });
+  expect(d.kmh).toBeLessThan(fast - 10); // lifted: it slows, the combo still alive
+  for (let i = 0; i < 120; i++) step({ throttle: 0, brake: 1, steer: 0 });
+  expect(d.surge).toBe(0);
 });

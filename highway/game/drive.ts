@@ -39,9 +39,10 @@ export type Size = { x: number; z: number; hull?: Pt[] };
 /** How far inside what is drawn a car collides, m: across and along. A gap the eye sees is a miss, and a
  *  scrape a hair under it is forgiven too (the screen's last pixel of paint is never the reason a run ends). */
 export const INSET = 0.08, INSET_END = 0.1;
-/** Momentum: the combo pushes at most this share past the top speed, with this much acceleration (m/s², on the dial),
- *  and once it breaks the push fades this many km/h a second. */
-const SURGE_MAX = 0.15, SURGE_PUSH = 6, SURGE_FADE = 20;
+/** Momentum: the combo raises the limit at most this share past the top speed and pulls toward it with this much
+ *  acceleration at the top (m/s² on the dial, none at the limit), on the gas only; once it breaks it fades this many
+ *  km/h a second, and on the brakes this many more. */
+const SURGE_MAX = 0.15, SURGE_PUSH = 3, SURGE_FADE = 20, SURGE_BRAKE = 40;
 /** The speed every run starts at, km/h on the dial, and how long its rolling start lasts, s. */
 const START_KMH = 100;
 export const ROLLING_START = 2.5;
@@ -213,9 +214,12 @@ export class Drive {
     const rolling = this.intro > 0;
     if (rolling) { this.intro = Math.max(0, this.intro - dt); input = { throttle: this.kmh < START_KMH ? 1 : 0, brake: 0, steer: 0 }; }
     // momentum: the combo's surge pushes the car on past its top speed; a broken combo lets it fade
+    // it pulls only while you are on the gas, and only past the top (game/vehicle.ts): lift and you slow as any car
+    // does, brake and it bleeds away fast
     if (!this.score.combo || this.over) this.surge = Math.max(0, this.surge - SURGE_FADE * dt);
+    if (input.brake > 0.2) this.surge = Math.max(0, this.surge - SURGE_BRAKE * dt);
     v.over = (this.surge / 3.6) * FEEL.pace;
-    v.boost = this.surge > 0 ? SURGE_PUSH * FEEL.pace : 0;
+    v.boost = this.surge > 0 && input.throttle > 0 && input.brake <= 0.2 ? SURGE_PUSH * FEEL.pace : 0;
     v.step(dt, input);
 
     // the guardrails

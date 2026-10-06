@@ -167,12 +167,17 @@ you have, under any open region's sky; each keeps its leaderboard.
 
 ### Momentum
 
-A combo is speed. Every near miss in it pushes the car on past its top speed
-(`surge`, `game/drive.ts`): 3 km/h for a Close pass, 5 for Very close, 8 for
-a Paint trader, 6 more for threading a gap, up to 15% of the top speed.
-It holds while the combo lives (a pass every 4 s) and fades 20 km/h a second
-once it breaks. The HUD's combo says what it is worth, and the speed glows
-while you are past your top.
+A combo is speed. Every near miss in it raises the car's limit past its top
+speed (`surge`, `game/drive.ts`): 3 km/h for a Close pass, 5 for Very close,
+8 for a Paint trader, 6 more for threading a gap, up to 15% of the top. The
+engine does not get you there by itself: past the top, a gentle pull on the
+gas takes the car on toward the new limit, firm most of the way and gone at
+it (`game/vehicle.ts`), half of it in 2 to 2.7 s in every class, settling at
+83 to 86% of it. So speed past the top is earned back over a few seconds of
+chain, never a given: lift and you slow as any car does, brake and the surge
+bleeds away. It holds while the combo lives (a pass every 4 s) and fades
+20 km/h a second once it breaks. (The first cut pushed the car whether you
+were on the gas or not, so a run never left its top speed.)
 
 It replaced nitro, a bar near misses filled and Space burnt. Nitro made the
 same loop (risk earns speed, speed raises the risk) but asked for a second
