@@ -103,8 +103,12 @@ const BEST: Record<string, number> = {
   "heat-haze": 62.02,
   "dry-run": 61.67,
   "old-road": 61.27,
+  "noon-rush": 61.72,
+  "long-straight": 79.24,
   "white-lines": 53.07,
   "overtaker": 61.32,
+  "duel-ines": 65.17,
+  "duel-mika": 70.65,
 };
 const RIVALS: Record<string, { rival: string; car: string }> = {
   "duel-ines": { rival: "Ines", car: "tozzo-98" }, "duel-mika": { rival: "Mika", car: "thunderbolt-96" },
