@@ -88,7 +88,7 @@ writeFixture("sudoku", {
   shots: {
     "1-solving": { palette: "play", keys: ["wait:1500", "left", "wait:500"], caption: "Today's medium, half solved: the digit in focus and its notes lit across the board, the pad's bars" },
     "2-hint": { palette: "play", keys: ["wait:1500", "i", "wait:700", "enter", "wait:900"], caption: "A hint: where to look first, then why, and the move on Enter" },
-    "3-solved": { palette: "last", keys: ["wait:1500", String(digit), "wait:3200"], caption: "Solved: the time, the streak, Flawless, and today's next daily on Enter" },
+    "3-solved": { cover: [172, 272, 844, 414], palette: "last", keys: ["wait:1500", String(digit), "wait:3200"], caption: "Solved: the time, the streak, Flawless, and today's next daily on Enter" },
     "4-new": { palette: "play", keys: ["wait:1500", "cmd+n", "wait:900"], caption: "⌘N: today's puzzle or a new one, per difficulty" },
     "5-stats": { palette: "play", keys: ["wait:1500", "cmd+s", "wait:1200"], caption: "Stats per difficulty: the best, the average, the streak and every solve" },
   },

@@ -117,7 +117,13 @@
       },
       {
         "file": "3-solved.png",
-        "caption": "Solved: the time, the streak, Flawless, and today's next daily on Enter"
+        "caption": "Solved: the time, the streak, Flawless, and today's next daily on Enter",
+        "cover": [
+          172,
+          272,
+          844,
+          414
+        ]
       },
       {
         "file": "4-new.png",
