@@ -1,7 +1,7 @@
 {
   "name": "highway",
   "title": "Highway",
-  "description": "Weave through highway traffic on a road trip across five regions: short Sprints on fixed roads with three stars each, a rival to beat at the end of every region for their car, and a garage of seventeen cars that turn sharper and brake harder class by class. Near misses chain into combos that carry you past your top speed. Free Drive has four endless modes with leaderboards.",
+  "description": "Weave through highway traffic on a road trip across five regions: short Sprints on fixed roads with three stars each, a rival to beat at the end of every region for their car, and seventeen cars that open as you earn stars, each sharper than the last. Near misses chain into combos that carry you past your top speed. Free Drive has four endless modes with leaderboards.",
   "version": "1.0.0",
   "icon": {
     "tile": {
@@ -37,214 +37,8 @@
     "save": {
       "fields": {
         "v": "max",
-        "cash": "sum",
-        "owned": {
-          "fields": {
-            "compact-07": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "kiri-10": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "milano-95": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "tozzo-98": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "sigil-07": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "tiara-gt-83": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "asti-stradale-89": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "thunderbolt-96": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "jdm-sport-99": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "exterminator-00": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "phoenix-455-71": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "stinger-96": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "hazer-turbo-81": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "libeccio-v6-91": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "roadster-00": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "cheetah-84": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            },
-            "saba-v12-95": {
-              "fields": {
-                "upgrades": {
-                  "fields": {
-                    "speed": "max",
-                    "handling": "max",
-                    "brakes": "max"
-                  }
-                },
-                "paint": "latest"
-              }
-            }
-          }
+        "paint": {
+          "each": "latest"
         },
         "pick": "latest",
         "car": "latest",
@@ -295,8 +89,7 @@
           "fields": {
             "runs": "sum",
             "distance": "sum",
-            "misses": "sum",
-            "cash": "sum"
+            "misses": "sum"
           }
         },
         "settings": {
@@ -760,9 +553,9 @@
       "Handling built for feel: the car goes where your thumb says and stops where you let go, leaning and diving on its springs; every class turns in sharper, settles sooner and brakes harder",
       "Traffic with drivers: they keep their distance, brake, signal and change lanes when it's safe, placed so a lane is always open",
       "Near misses graded by the gap you left; near misses within four seconds build a combo, and a combo carries you past your top speed",
-      "A garage of seventeen cars in five classes with their own engine notes: buy them as their regions open, upgrade the engine, handling and brakes, paint them any colour",
+      "A garage of seventeen cars in five classes with their own engine notes: each duel wins you the next class's first, a region's stars open its others, and each new car gets a showcase; paint them any colour",
       "Free Drive: Endless, Two-Way, Time Attack and Speed Trap with any car you own, each with its leaderboard",
-      "Signed in, your cash, cars and best times follow you to your other machines and play.cagdas.io"
+      "Signed in, your stars, cars and best times follow you to your other machines and play.cagdas.io"
     ],
     "screenshots": [
       {
@@ -781,7 +574,7 @@
       },
       {
         "file": "3-garage.png",
-        "caption": "The garage: your cars in their bays, the ones for sale and the ones still covered, with what opens them"
+        "caption": "The garage: your cars in their bays and the ones still under covers, each with what opens it"
       },
       {
         "file": "4-night.png",
@@ -789,7 +582,7 @@
       },
       {
         "file": "5-results.png",
-        "caption": "The end of a Free Drive run: the points, where they stand on the board, and what the minutes on the road paid"
+        "caption": "The end of a Free Drive run: the points and where they stand on the board"
       }
     ]
   },

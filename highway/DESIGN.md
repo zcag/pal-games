@@ -77,8 +77,8 @@ of a ×277 combo paid for the top car.
 
 The game is a road trip across five regions, and the map is where you play
 it. Free Drive (the four endless modes) is an extra beside it. Everything
-else, the cars, the upgrades and the cash, exists to get you further along
-the map. The first cut of progression (driver levels, missions, a cash
+else, the cars and their showcases, exists to get you further along the
+map. The first cut of progression (driver levels, missions, a cash
 ladder, paints by level; history in git) gave no goal that ever ended, and
 one strong run bought the top car.
 
@@ -114,27 +114,32 @@ one strong run bought the top car.
 
 ### Your car and the stars
 
-- **You drive your own car**, any you own of the region's class (the
-  garage remembers which, per class). You always have one: you start with
-  the Compact, and each duel gives you the next class's first car.
-- **Stars are set against the class's first car, stock** (the Compact, the
-  Tozzo, the Thunderbolt, the Stinger, the Roadster), as margins over the
-  best time a search finds on that road: +20% (★, a good first try), +9%
-  (★★, the road learned), +3% (★★★, near-perfect). A better car or
-  upgrades make them easier: that is what cash is for. Three stars in the
-  stock first car stays the hardest way to play.
+- **You drive your own car**, any you have of the region's class (the garage
+  remembers which, per class; a car new to you takes over).
+- **Stars are set against the class's first car** (the Compact, the Tozzo,
+  the Thunderbolt, the Stinger, the Roadster), as margins over the best time
+  a search finds on that road: +20% (★, a good first try), +9% (★★, the road
+  learned), +3% (★★★, near-perfect). A better car makes them easier. Three
+  stars in the first car stays the hardest way to play.
 
-### Cash, cars, upgrades
+### Cars come with the trip
 
-- **One currency.** A finish pays a little every time, so you are never
-  stuck; a star pays its bonus the first time you earn it. Both grow
-  region by region, sized so a region's stars pay for most of its cars and
-  some upgrades (`scripts/economy.ts`).
-- **Cars** of a class are for sale once its region is open; the first comes
-  free from the duel before it. Seventeen in all, prices unchanged.
-- **Upgrades**: engine, handling, brakes, five levels each. An engine level
-  is mostly pickup (+10% power, +1.5% top speed), handling and brakes are
-  what make a hard Sprint possible. Every colour is free.
+No money, no prices, no upgrades: the trip is linear, so a second economy
+on top of it only blurred it (cash, prices and upgrades were cut on
+2026-10-07). Stars are the one thing earned, and they open everything:
+
+- **A class's first car comes with its region**: the Compact from the
+  start, the others from the duel before (Ines's Tozzo opens High Noon).
+- **Its other cars open by the region's stars**: the second at 8, the third
+  at 16, the fourth at 24 (`CAR_STARS`, `game/trip.ts`). So stars open
+  better cars, a better car makes the region's other stars easier, and those
+  open the next car.
+- **A car new to you gets the garage's showcase**: the room dims, the camera
+  flies round it, its cover comes off, its title shows; Enter on a duel's
+  results goes straight to it.
+- **Nothing is stored about it**: what you have is worked out from your best
+  times, so two machines never disagree. Each car keeps its paint; every
+  colour is free.
 
 ### Speed through the trip
 
@@ -158,9 +163,7 @@ speed after a squeeze sooner. Momentum adds up to 15% on a full chain.
 ### Free Drive
 
 The four modes (Endless, Two-Way, Time Attack, Speed Trap), with any car
-you own, under any open region's sky; each keeps its leaderboard. It pays
-like a finish does, by the minute, so it is a place to play, not the way
-to earn.
+you have, under any open region's sky; each keeps its leaderboard.
 
 ### Momentum
 
@@ -174,19 +177,17 @@ while you are past your top.
 It replaced nitro, a bar near misses filled and Space burnt. Nitro made the
 same loop (risk earns speed, speed raises the risk) but asked for a second
 key, pressed again and again; momentum is the loop with the arrows alone. A
-save from before pays its nitro upgrades back.
+save from before paid its nitro upgrades back (when there was money).
 
-### Cars and upgrades
+### The cars
 
 Seventeen cars in five classes, each with its own engine note: City (120 to
 135 km/h), Sport (145 to 160), Muscle (165 to 180), GT (185 to 200) and Super
 (205 to 225). Every car is sharper and better on the brakes than the one
 before (agility 0.96 to 1.70, `handlingOf` in `game/vehicle.ts`), the big
-steps between classes; prices run $2,500 to $56,000, and the first of each
-class after the City comes free from a duel. Upgrades cost 5% of the car's
-price (at least $400), half again a level. The garage shows the gain before
-you pay: browsing a car, each bar marks the one that drives its region and
-what this one adds in yellow; on an upgrade's row, what its next level adds.
+steps between classes, and each class pulls harder than the last. Their
+values are fixed. Browsing the garage, each bar marks the car that drives
+its region and what this one adds in yellow.
 
 Traffic follows only half of your climb in top speed (Traffic Racer scales it
 with yours, so every car meets the same road): a faster car truly outruns it.

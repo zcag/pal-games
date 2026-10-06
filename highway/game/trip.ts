@@ -1,16 +1,16 @@
 // The road trip's rules (DESIGN.md, "The road trip"): which regions and stops
-// are open, what a finished Sprint earns, and what a duel won gives. Pure: it
-// reads a save's best times and writes nothing but what `finishSprint` pays.
+// are open, which cars you have, and what a finished Sprint or a duel won
+// gives. Pure: everything comes from a save's best times, so nothing open or
+// owned is ever stored and two machines can never disagree.
 import { CARS, CLASSES, type PlayerCar } from "./content.ts";
 import { REGIONS, BOSS_STARS, SPRINTS, sprintsOf, starsFor, rivalTime, type Sprint } from "./sprint.ts";
 
 /** What the trip needs from a save: the best time of each Sprint, s. */
 export type Times = Record<string, number>;
 
-/** Cash a finish pays every time, by region, and what each star pays the first time it is earned (★ once this, ★★
- *  twice, ★★★ three times): a region's stars pay for most of its class's cars. Tuned in scripts/trip.ts. */
-export const FINISH_PAY = [150, 300, 500, 700, 900];
-export const STAR_PAY = [250, 600, 1200, 1500, 2000];
+/** Stars in its region that open a class's k-th car (the first comes with the region: the Compact from the start,
+ *  the others from the duel before): the second at 8, the third at 16, the fourth at 24. */
+export const CAR_STARS = 8;
 
 export const bossOf = (region: number) => SPRINTS.find((s) => s.region === region && s.boss)!;
 /** The stars a time earns on a Sprint; none before its best time is known. */
@@ -29,6 +29,18 @@ export const regionOfCar = (car: PlayerCar) => {
   const at = CARS.indexOf(car);
   return [...CLASSES].map((c, i) => [c, i] as const).reverse().find(([c]) => at >= CARS.findIndex((x) => x.id === c.from))![1];
 };
+/** A car's place in its class: 0 for the first. */
+const placeInClass = (car: PlayerCar) => CARS.indexOf(car) - CARS.findIndex((c) => c.id === classOfRegion(regionOfCar(car)).from);
+/** The stars its region needs for a car (0 for a class's first, which comes with the region). */
+export const starsForCar = (car: PlayerCar) => placeInClass(car) * CAR_STARS;
+/** Whether you have a car: its region is open and its stars there are in. */
+export const hasCar = (car: PlayerCar, times: Times) => regionOpen(regionOfCar(car), times) && starsIn(regionOfCar(car), times) >= starsForCar(car);
+export const carsHad = (times: Times) => CARS.filter((c) => hasCar(c, times));
+/** What a car you do not have yet needs, in words. */
+export function carNeeds(car: PlayerCar): string {
+  const r = regionOfCar(car), duel = SPRINTS.find((s) => s.boss?.car === car.id);
+  return duel ? `Beat ${duel.boss!.rival} in ${REGIONS[duel.region].name}` : `${starsForCar(car)} stars in ${REGIONS[r].name}`;
+}
 
 /** Why a stop is closed (null when it is open): its region, the Sprints before it, or the duel's stars. The first
  *  three Sprints of a region are open, each finished opens the next, so a hard one can be left for later. */
@@ -51,33 +63,22 @@ export function nextStop(times: Times) {
   return sprintsOf(0)[0];
 }
 
-export type SprintPay = {
-  lines: { label: string; amount: number }[];
-  cash: number;
+export type SprintResult = {
   stars: number; before: number; // stars now and before this run
   record: boolean;
-  duel?: { won: boolean; car?: PlayerCar; opened?: string }; // a duel: won, the rival's car if it is new to you, the region it opened
+  cars: PlayerCar[]; // cars this run gave you: a duel's, or a class's next for the stars it brought
+  duel?: { won: boolean; opened?: string }; // a duel: won, and the region it opened
 };
 
-/** What a finished Sprint earns against the best times before it (`times` is updated). */
-export function finishSprint(s: Sprint, time: number, times: Times, owned: (id: string) => boolean): SprintPay {
-  const before = starsOf(s, times), wasWon = s.boss ? won(s.region, times) : false;
+/** What a finished Sprint gives against the best times before it (`times` is updated). */
+export function finishSprint(s: Sprint, time: number, times: Times): SprintResult {
+  const before = starsOf(s, times), had = carsHad(times), wasWon = s.boss ? won(s.region, times) : false;
   const record = !times[s.id] || time < times[s.id];
   if (record) times[s.id] = time;
-  const stars = starsOf(s, times);
-  const lines = [{ label: "Finished", amount: FINISH_PAY[s.region] }];
-  for (let n = before + 1; n <= stars; n++) lines.push({ label: `${"★".repeat(n)} for the first time`, amount: STAR_PAY[s.region] * n });
-  const pay: SprintPay = { lines, cash: 0, stars, before, record };
+  const res: SprintResult = { stars: starsOf(s, times), before, record, cars: carsHad(times).filter((c) => !had.includes(c)) };
   if (s.boss) {
-    const nowWon = won(s.region, times);
-    pay.duel = { won: nowWon && time < rivalTime(s) };
-    if (nowWon && !wasWon) {
-      const car = CARS.find((c) => c.id === s.boss!.car)!;
-      if (!owned(car.id)) pay.duel.car = car;
-      else lines.push({ label: `${car.name}, already yours: half its price`, amount: Math.round(car.price / 2) });
-      if (s.region + 1 < REGIONS.length) pay.duel.opened = REGIONS[s.region + 1].name;
-    }
+    res.duel = { won: time < rivalTime(s) };
+    if (won(s.region, times) && !wasWon && s.region + 1 < REGIONS.length) res.duel.opened = REGIONS[s.region + 1].name;
   }
-  pay.cash = lines.reduce((a, l) => a + l.amount, 0);
-  return pay;
+  return res;
 }

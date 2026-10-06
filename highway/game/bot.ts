@@ -95,7 +95,7 @@ export class Bot {
     const dd = d as { floor?: number; mode?: string };
     // as fast as it dares: a player settles at a speed over the traffic they can still dodge at, more in a car
     // that changes lanes quicker; a Speed Trap's floor overrules it
-    const tt = trafficTop(d.car, d.up), traffic = ((9 + tt / 5.7) + (51.5 + tt / 5.5)) / 2;
+    const tt = trafficTop(d.car), traffic = ((9 + tt / 5.7) + (51.5 + tt / 5.5)) / 2;
     const dare = traffic + k.nerve * (acrossAt(v.spec, v.u) / acrossAt(this.first, v.u));
     const target = Math.max(Math.min(this.top() * k.speed, dare), dd.mode === "trap" && dd.floor ? dd.floor + 6 : 0);
     const decel = v.spec.brake * 9.81 * FEEL.brake * FEEL.pace; // what full brakes do (game/vehicle.ts)

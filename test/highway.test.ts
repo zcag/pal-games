@@ -2,23 +2,22 @@ import { describe, expect, test } from "bun:test";
 import { Vehicle } from "../highway/game/vehicle.ts";
 import { Director } from "../highway/game/director.ts";
 import { Score } from "../highway/game/score.ts";
-import { CARS, FEEL, MODES, spec, upgradeCost } from "../highway/game/content.ts";
+import { CARS, FEEL, MODES, spec } from "../highway/game/content.ts";
 import { Drive, ROLLING_START } from "../highway/game/drive.ts";
 import { ONE_WAY, edges, laneX, RAIL } from "../highway/game/layout.ts";
 import { SPRINTS, starTimes, starsFor, ghostTimeAt, ghostAt, GHOST_DT } from "../highway/game/sprint.ts";
-import { fresh, buyCar, buyUpgrade, load, stored, pickFor, finishSprintRun, finishFree, type Save } from "../highway/game/meta.ts";
+import { fresh, load, stored, has, pickFor, finishSprintRun, type Save } from "../highway/game/meta.ts";
 import { REGIONS, BOSS_STARS, sprintsOf, rivalTime } from "../highway/game/sprint.ts";
-import { closed, regionOpen, starsIn, bossOf, FINISH_PAY, STAR_PAY, nextStop } from "../highway/game/trip.ts";
+import { closed, regionOpen, starsIn, bossOf, nextStop, carNeeds, CAR_STARS } from "../highway/game/trip.ts";
 import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
 
-const NO_UP = { speed: 0, handling: 0, brakes: 0 };
 
 test("every car reaches about its top speed, and brakes from 100 km/h to a crawl in about a second", () => {
   for (const car of [CARS[0], CARS[CARS.length - 1]]) {
-    const v = new Vehicle(spec(car, NO_UP, 2.6));
+    const v = new Vehicle(spec(car, 2.6));
     for (let i = 0; i < 120 * 70; i++) v.step(1 / 120, { throttle: 1, brake: 0, steer: 0 });
     expect(Math.abs(v.kmh / FEEL.pace - car.top) / car.top).toBeLessThan(0.08);
-    const b = new Vehicle(spec(car, NO_UP, 2.6));
+    const b = new Vehicle(spec(car, 2.6));
     b.launch((100 / 3.6) * FEEL.pace);
     let t = 0;
     while (b.kmh / FEEL.pace > FEEL.crawl + 1 && t < 5) { b.step(1 / 120, { throttle: 0, brake: 1, steer: 0 }); t += 1 / 120; }
@@ -29,7 +28,7 @@ test("every car reaches about its top speed, and brakes from 100 km/h to a crawl
 });
 
 test("a tap of the steering moves the car across and lets it straighten, without a spin", () => {
-  const v = new Vehicle(spec(CARS[6], NO_UP, 2.6));
+  const v = new Vehicle(spec(CARS[6], 2.6));
   v.launch(220 / 3.6);
   for (let i = 0; i < 120 * 4; i++) v.step(1 / 120, { throttle: 0.5, brake: 0, steer: i < 60 ? 1 : 0 });
   expect(v.x).toBeGreaterThan(1);
@@ -67,17 +66,17 @@ test("a near miss counts only fast and close, and builds a combo", () => {
 for (const sp of SPRINTS) sp.best ||= 60;
 const timed = (time: number) => Object.assign(new Score(), { time, distance: 3000 });
 
-test("buying needs the cash and the car's region open, and a save survives a round trip", () => {
-  const s = fresh();
-  expect(buyCar(s, CARS[1])).toBe(false);
-  s.cash = 100000;
-  expect(buyCar(s, CARS[1])).toBe(true);
-  expect(buyCar(s, CARS[3])).toBe(false); // a Sport car: High Noon is not open
-  expect(buyUpgrade(s, CARS[1], "speed")).toBe(true);
-  const back = load(JSON.parse(JSON.stringify(stored(s))));
-  expect(back.owned[CARS[1].id].upgrades.speed).toBe(1);
+test("cars come with the trip: a region's first with it, its others by its stars, and a save survives a round trip", () => {
+  const s = fresh(), [compact, kiri, milano] = CARS;
+  expect([has(s, compact), has(s, kiri), has(s, milano), has(s, CARS[3])]).toEqual([true, false, false, false]);
+  expect(carNeeds(kiri)).toBe(`${CAR_STARS} stars in Countryside`);
+  expect(carNeeds(CARS[3])).toBe("Beat Ines in Countryside");
+  for (const sp of sprintsOf(0).slice(0, 4)) s.sprints[sp.id] = starTimes(sp)[1]; // eight stars
+  expect([has(s, kiri), has(s, milano)]).toEqual([true, false]);
+  expect(pickFor(s, 0)).toBe(kiri); // the best you have drives the region
+  s.pick.city = compact.id;
+  expect(pickFor(load(JSON.parse(JSON.stringify(stored(s)))), 0)).toBe(compact);
 });
-
 describe("the road trip", () => {
   test("a region's first three stops are open, each finish opens one more, the duel opens at its stars", () => {
     const times: Record<string, number> = {}, list = sprintsOf(0);
@@ -92,26 +91,22 @@ describe("the road trip", () => {
     expect(regionOpen(1, times)).toBe(false);
   });
 
-  test("a finish pays every time, a star only the first time; winning the duel gives the rival's car and opens the next region", () => {
-    const s = fresh(), sp = sprintsOf(0)[0];
-    const first = finishSprintRun(s, sp, timed(starTimes(sp)[0]));
-    expect(first.cash).toBe(FINISH_PAY[0] + STAR_PAY[0]);
-    const again = finishSprintRun(s, sp, timed(starTimes(sp)[0] - 0.05));
-    expect(again.cash).toBe(FINISH_PAY[0]);
-    const better = finishSprintRun(s, sp, timed(starTimes(sp)[2]));
-    expect(better.cash).toBe(FINISH_PAY[0] + STAR_PAY[0] * 2 + STAR_PAY[0] * 3);
+  test("a finish gives its stars and the cars they open; winning the duel gives the rival's car and opens the next region", () => {
+    const s = fresh(), list = sprintsOf(0);
+    const first = finishSprintRun(s, list[0], timed(starTimes(list[0])[2]));
+    expect([first.stars, first.before, first.cars]).toEqual([3, 0, []]);
+    finishSprintRun(s, list[1], timed(starTimes(list[1])[2]));
+    const third = finishSprintRun(s, list[2], timed(starTimes(list[2])[1])); // 3 + 3 + 2: the Kiri's eight
+    expect(third.cars.map((c) => c.id)).toEqual([CARS[1].id]);
+    expect(pickFor(s, 0)?.id).toBe(CARS[1].id); // a new car drives its region
     const boss = bossOf(0);
-    const lost = finishSprintRun(s, boss, timed(rivalTime(boss) + 1));
-    expect(lost.duel).toEqual({ won: false });
+    expect(finishSprintRun(s, boss, timed(rivalTime(boss) + 1)).duel).toEqual({ won: false });
     const win = finishSprintRun(s, boss, timed(rivalTime(boss) - 1));
-    expect(win.duel?.won).toBe(true);
-    expect(win.duel?.car?.id).toBe(boss.boss!.car);
-    expect(win.duel?.opened).toBe(REGIONS[1].name);
-    expect(s.owned[boss.boss!.car]).toBeDefined();
+    expect(win.duel).toEqual({ won: true, opened: REGIONS[1].name });
+    expect(win.cars.map((c) => c.id)).toContain(boss.boss!.car);
     expect(regionOpen(1, s.sprints)).toBe(true);
-    expect(pickFor(s, 1)?.id).toBe(boss.boss!.car); // the won car drives the new region
+    expect(pickFor(s, 1)?.id).toBe(boss.boss!.car);
   });
-
   test("the next stop is the first open one still short of its stars, in the furthest open region", () => {
     const times: Record<string, number> = {};
     expect(nextStop(times).id).toBe(sprintsOf(0)[0].id);
@@ -119,12 +114,6 @@ describe("the road trip", () => {
     expect(nextStop(times).id).toBe(sprintsOf(0)[1].id);
   });
 
-  test("Free Drive pays by the minute in the car's region", () => {
-    const s = fresh();
-    const res = finishFree(s, timed(120), "endless", CARS[0]);
-    expect(res.cash).toBe(FINISH_PAY[0] * 2);
-    expect(s.cash).toBe(res.cash);
-  });
 });
 
 describe("accounts", () => {
@@ -135,7 +124,6 @@ describe("accounts", () => {
     expect(problems(m)).toEqual([]);
     expect(Object.keys(m.sync).sort()).toEqual(storedKeys("highway"));
     expect([m.sync.run, m.sync.scene]).toEqual(["local", "local"]);
-    expect(Object.keys(rule.fields.owned.fields)).toEqual(CARS.map((c) => c.id));
     expect(Object.keys(rule.fields.best.fields)).toEqual(MODES.map((x) => x.id));
     expect(Object.keys(rule.fields).sort()).toEqual(Object.keys(stored(fresh())).sort());
   });
@@ -150,39 +138,29 @@ describe("accounts", () => {
     expect(m.leaderboards!.length).toBe(MODES.length + SPRINTS.length + 1);
   });
 
-  test("two machines that both played since they synced keep the cash, cars, upgrades, best times and records of both", () => {
-    const base = fresh();
-    base.cash = 10000;
-    const synced = JSON.parse(JSON.stringify(stored(base))) as Save;
+  test("two machines that both played since they synced keep the best times, paints and records of both", () => {
+    const synced = JSON.parse(JSON.stringify(stored(fresh()))) as Save;
     const a = load(structuredClone(synced)), b = load(structuredClone(synced));
     const [x, y] = sprintsOf(0);
-    // a buys a car and upgrades it, sets a best, a record
-    buyCar(a, CARS[1]); buyUpgrade(a, CARS[1], "speed");
-    a.sprints[x.id] = 70; a.sprints[y.id] = 80;
+    a.sprints[x.id] = 70; a.sprints[y.id] = 80; a.paint["compact-07"] = "#c81d25";
     a.best.endless = { score: 40000, distance: 9000, combo: 5, topSpeed: 230 };
     a.totals.runs += 3;
-    // b earns cash, upgrades the first car, does better on one Sprint and on Two-Way
-    b.cash += 4000;
-    buyUpgrade(b, CARS[0], "brakes");
     b.sprints[x.id] = 65;
     b.best.twoway = { score: 52000, distance: 7000, combo: 8, topSpeed: 210 };
     b.totals.runs += 2;
     const merged = load(merge(m.sync.save, stored(b), merge(m.sync.save, stored(a), synced, synced), synced));
-    expect(merged.cash).toBe(10000 + (a.cash - 10000) + (b.cash - 10000));
-    expect(merged.owned[CARS[1].id].upgrades.speed).toBe(1);
-    expect(merged.owned[CARS[0].id].upgrades.brakes).toBe(1);
     expect(merged.sprints).toEqual({ [x.id]: 65, [y.id]: 80 });
+    expect(merged.paint["compact-07"]).toBe("#c81d25");
     expect(merged.best).toMatchObject({ endless: { score: 40000 }, twoway: { score: 52000 } });
     expect(merged.totals.runs).toBe(5);
-  });
-});
+  });});
 
 test("Speed Trap ends a run held under its floor; Time Attack's clock runs down", () => {
   const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
-  const trap = new Drive(ONE_WAY, CARS[6], NO_UP, size, 2.6, sizeOf, {}, { seed: 3, mode: "trap" });
+  const trap = new Drive(ONE_WAY, CARS[6], size, 2.6, sizeOf, {}, { seed: 3, mode: "trap" });
   for (let i = 0; i < 120 * 6 && !trap.ended; i++) trap.step(1 / 120, { throttle: 0, brake: 1, steer: 0 });
   expect(trap.ended).toBe("slow");
-  const time = new Drive(ONE_WAY, CARS[6], NO_UP, size, 2.6, sizeOf, {}, { seed: 3, mode: "time" });
+  const time = new Drive(ONE_WAY, CARS[6], size, 2.6, sizeOf, {}, { seed: 3, mode: "time" });
   for (let i = 0; i < 120; i++) time.step(1 / 120, { throttle: 0.3, brake: 0, steer: 0 });
   expect(time.clock).toBeCloseTo(59, 1);
   // the HUD's second figure: the road left to the next checkpoint, and what it adds
@@ -196,9 +174,9 @@ test("Speed Trap ends a run held under its floor; Time Attack's clock runs down"
 test("a run packed and unpacked carries on exactly as it would have", () => {
   const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
   const drive = (i: number) => ({ throttle: 1, brake: 0, steer: Math.sin(i / 90) * 0.6 });
-  const a = new Drive(ONE_WAY, CARS[6], NO_UP, size, 2.6, sizeOf, {}, { seed: 11, mode: "time" });
+  const a = new Drive(ONE_WAY, CARS[6], size, 2.6, sizeOf, {}, { seed: 11, mode: "time" });
   for (let i = 0; i < 120 * 5; i++) a.step(1 / 120, drive(i));
-  const b = new Drive(ONE_WAY, CARS[6], NO_UP, size, 2.6, sizeOf, {}, { seed: 99, mode: "time" });
+  const b = new Drive(ONE_WAY, CARS[6], size, 2.6, sizeOf, {}, { seed: 99, mode: "time" });
   b.unpack(JSON.parse(JSON.stringify(a.pack())));
   for (let i = 600; i < 120 * 10; i++) { a.step(1 / 120, drive(i)); b.step(1 / 120, drive(i)); }
   expect(b.veh.z).toBe(a.veh.z);
@@ -214,7 +192,7 @@ describe("Sprints", () => {
 
   test("the road is the same whatever the speed: every row, its cars and their drivers", () => {
     const met = (throttle: number) => {
-      const d = new Drive(sp.layout, CARS[1], NO_UP, size, 2.6, sizeOf, {}, { sprint: road });
+      const d = new Drive(sp.layout, CARS[1], size, 2.6, sizeOf, {}, { sprint: road });
       d.ghost = true; // nothing touches, so both drive the whole 30 s
       const seen = new Map<number, string>();
       for (let i = 0; i < 120 * 30 && !d.over; i++) {
@@ -229,7 +207,7 @@ describe("Sprints", () => {
   });
 
   test("it ends at the line, on the clock", () => {
-    const d = new Drive(sp.layout, CARS[1], NO_UP, size, 2.6, sizeOf, {}, { sprint: { ...road, length: 300 } });
+    const d = new Drive(sp.layout, CARS[1], size, 2.6, sizeOf, {}, { sprint: { ...road, length: 300 } });
     d.ghost = true; // nothing touches: only the line ends it
     for (let i = 0; i < 120 * 30 && !d.over; i++) d.step(1 / 120, { throttle: 1, brake: 0, steer: 0 });
     expect(d.ended).toBe("line");
@@ -256,7 +234,7 @@ describe("Sprints", () => {
 
 test("the guardrail is no lane: a car against it still meets the outer lane's traffic", () => {
   const size = { x: 1.8, z: 4.4 }, sizeOf = () => size;
-  const d = new Drive(ONE_WAY, CARS[3], NO_UP, size, 2.6, sizeOf, {}, { seed: 5 });
+  const d = new Drive(ONE_WAY, CARS[3], size, 2.6, sizeOf, {}, { seed: 5 });
   for (let i = 0; i < 120 * 3; i++) d.step(1 / 120, { throttle: 0.5, brake: 0, steer: -1 });
   const [lo] = edges(ONE_WAY);
   expect(d.veh.x - size.x / 2).toBeCloseTo(lo - RAIL, 1);
@@ -266,7 +244,7 @@ test("the guardrail is no lane: a car against it still meets the outer lane's tr
 
 test("momentum: a combo's surge takes the car past its top speed, and fades once the combo breaks", () => {
   const size = { x: 1.9, z: 4.5 }, sizeOf = () => size, car = CARS[0];
-  const d = new Drive(ONE_WAY, car, NO_UP, size, 2.6, sizeOf, {}, { seed: 2 });
+  const d = new Drive(ONE_WAY, car, size, 2.6, sizeOf, {}, { seed: 2 });
   d.ghost = true; // nothing touches
   d.surge = 99;
   const step = () => { d.traffic.cars.length = 0; d.step(1 / 120, { throttle: 1, brake: 0, steer: 0 }); }; // an empty road: no pass restarts the combo
@@ -281,7 +259,7 @@ test("momentum: a combo's surge takes the car past its top speed, and fades once
 
 test("a near miss adds to the surge by how close it was, up to a quarter of the top speed", () => {
   const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
-  const d = new Drive(ONE_WAY, CARS[0], NO_UP, size, 2.6, sizeOf, {}, { seed: 2 });
+  const d = new Drive(ONE_WAY, CARS[0], size, 2.6, sizeOf, {}, { seed: 2 });
   d.veh.launch((150 / 3.6) * 1.4);
   d.traffic.add({ kind: "x", length: 4.5, width: 1.9, z: d.veh.z + 3, v: 20, lane: 2, v0: 20, T: 1.2, a: 1, b: 2, oncoming: false, politeness: 0.5, side: 0, phase: 0, cooldown: 2 });
   d.veh.x = laneX(ONE_WAY, 2) - 1.9 - 0.2; // beside its lane, 20 cm off: a Paint trader as it drops behind
@@ -290,20 +268,19 @@ test("a near miss adds to the surge by how close it was, up to a quarter of the 
   expect(d.surge).toBeGreaterThan(7);
 });
 
-test("a save from before the road trip keeps its cars and cash, pays nitro levels back, and drops levels and old Sprint times", () => {
-  const old = { v: 2, cash: 100, level: 9, xp: 40, car: CARS[2].id, owned: { [CARS[2].id]: { upgrades: { speed: 1, handling: 0, brakes: 0, nitro: 2 }, paint: "#fff", paints: ["#fff"] } },
-    missions: [{ kind: "nitro", text: "Light the nitro 3 times in one run", target: 3, reward: { cash: 400, xp: 150 } }], sprints: { "first-light": 64 } };
+test("a save from before keeps its paints and settings, and drops money, upgrades, levels and old Sprint times", () => {
+  const old = { v: 3, cash: 9000, level: 9, xp: 40, car: CARS[2].id, owned: { [CARS[2].id]: { upgrades: { speed: 1, handling: 0, brakes: 0 }, paint: "#fff" } },
+    sprints: { "first-light": 64 }, settings: { view: "Chase" } };
   const s = load(old);
-  expect(s.owned[CARS[2].id]).toEqual({ upgrades: { speed: 1, handling: 0, brakes: 0 }, paint: "#fff" });
-  expect(s.cash).toBe(100 + upgradeCost(CARS[2], 0) + upgradeCost(CARS[2], 1));
+  expect(s.paint).toEqual({ [CARS[2].id]: "#fff" });
   expect(s.sprints).toEqual({});
-  expect("level" in s || "missions" in s).toBe(false);
-  expect(load(stored(s)).cash).toBe(s.cash); // once
+  expect(s.car).toBe(CARS[0].id); // the Milano is not yours on the road trip yet
+  expect(s.settings.view).toBe("Chase");
+  expect(["cash", "level", "owned", "missions"].some((k) => k in s)).toBe(false);
 });
-
 test("the line between two lanes is no lane: side by side, some pairs leave room for a car and some do not", () => {
   const size = { x: 1.6, z: 3.6 }, sizeOf = () => ({ x: 1.8, z: 4.4 });
-  const d = new Drive(ONE_WAY, CARS[0], NO_UP, size, 2.2, sizeOf, {}, { sprint: { seed: 11, length: 9000, density: 0.6 } });
+  const d = new Drive(ONE_WAY, CARS[0], size, 2.2, sizeOf, {}, { sprint: { seed: 11, length: 9000, density: 0.6 } });
   d.ghost = true; // nothing touches: only the traffic is watched
   const fits = size.x - 0.16; // what the Compact needs between two bodies (its collision outline)
   let open = 0, shut = 0;
@@ -324,7 +301,7 @@ test("drivers decide on their own: cars placed together do not change lanes all 
   const size = { x: 1.8, z: 4.4 }, sizeOf = () => size;
   let worst = 0;
   for (const seed of [3, 4]) {
-    const d = new Drive(ONE_WAY, CARS[0], NO_UP, size, 2.6, sizeOf, {}, { sprint: { seed, length: 9000, density: 0.8 } });
+    const d = new Drive(ONE_WAY, CARS[0], size, 2.6, sizeOf, {}, { sprint: { seed, length: 9000, density: 0.8 } });
     d.ghost = true;
     const started: number[] = [];
     const was = new Map<number, number>();
@@ -340,7 +317,7 @@ test("drivers decide on their own: cars placed together do not change lanes all 
 
 test("a rolling start: the car cruises, nothing counts and nothing touches until it ends, then the clock runs", () => {
   const size = { x: 1.8, z: 4.4 }, sizeOf = () => size;
-  const d = new Drive(ONE_WAY, CARS[0], NO_UP, size, 2.6, sizeOf, {}, { sprint: { seed: 9, length: 3000, density: 0.9 }, intro: ROLLING_START });
+  const d = new Drive(ONE_WAY, CARS[0], size, 2.6, sizeOf, {}, { sprint: { seed: 9, length: 3000, density: 0.9 }, intro: ROLLING_START });
   const z = d.veh.z;
   for (let i = 0; i < 120 * (ROLLING_START - 0.1); i++) d.step(1 / 120, { throttle: 0, brake: 1, steer: 1 }); // the keys are ignored
   expect([d.score.time, d.score.distance, d.over]).toEqual([0, 0, false]);

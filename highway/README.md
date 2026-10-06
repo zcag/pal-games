@@ -14,9 +14,10 @@ as a view level whose body is the extension's own page (`surface/`, a
   try, in your car for the region's class; three stars for the time, a
   ghost of your best beside you, R tries again at once. A duel is the same
   against a rival; win it for their car and the next region.
-- **The garage**: every car in its bay; up and down pick a line (car, paint,
-  engine, handling, brakes), left and right change it, Enter buys, upgrades
-  or makes a car the one its region's Sprints are driven in.
+- **The garage**: every car in its bay, the ones not yours yet under covers
+  with what opens them (a region's stars, or its duel). Left and right walk
+  the bays, up and down pick car or paint, Enter makes a car the one its
+  region's Sprints are driven in. A car new to you gets a showcase.
 - **Free Drive**: Endless, Two-Way, Time Attack and Speed Trap with any car
   you own, under any open region's sky; one leaderboard per mode.
 - **Driving**: up is the gas, down the brake, left and right steer (WASD
@@ -27,9 +28,9 @@ as a view level whose body is the extension's own page (`surface/`, a
   or anything coming the other way, ends the run. A car collides as its
   shape from above, a little inside what is drawn: a gap you see is a miss.
 - C changes the view, P pauses, M mutes.
-- **Signed in** to a pal account, the save syncs: cash and totals by `sum`,
-  upgrades by `max`, best times by `min`; what is open is worked out from the
-  best times, so machines never disagree. A kept run and the ghosts stay on
+- **Signed in** to a pal account, the save syncs: best times by `min`,
+  totals by `sum`; what is open and which cars you have are worked out from
+  the best times, so machines never disagree. A kept run and the ghosts stay on
   their machine.
 
 ## How it is built

@@ -78,13 +78,8 @@ kbd { display: inline-block; min-width: 18px; padding: 1px 5px 0; border-radius:
 .row.on { background: rgba(255, 255, 255, 0.13); }
 .row .val { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-weight: 700; }
 .row .val em { flex: none; font-style: normal; font-size: 11px; font-weight: 600; color: var(--dim); }
-.row .val em.can { color: var(--yellow); }
-.row .val em.no { color: rgba(255, 140, 120, 0.85); }
 .arrows::before { content: "‹"; margin-right: 6px; color: var(--faint); }
 .arrows::after { content: "›"; margin-left: 6px; color: var(--faint); }
-.pips { display: inline-flex; gap: 3px; }
-.pips i { width: 12px; height: 6px; border-radius: 2px; background: rgba(255, 255, 255, 0.2); }
-.pips i.f { background: var(--white); }
 .swatches { display: flex; flex: 1 1 0; min-width: 0; gap: 3px; } /* they shrink to leave a price its room */
 .swatches i { flex: 0 1 11px; min-width: 6px; aspect-ratio: 1; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.35); }
 .swatches i.on { box-shadow: 0 0 0 2px var(--sign), 0 0 0 3.5px var(--white); }

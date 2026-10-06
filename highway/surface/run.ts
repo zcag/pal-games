@@ -8,7 +8,7 @@ import type { World } from "./world.ts";
 import type { Input } from "../game/vehicle.ts";
 import { Drive, type DriveEvents, type Size, type SprintRoad } from "../game/drive.ts";
 import { heading } from "../game/traffic.ts";
-import { TRAFFIC, FEEL, type ModeId, type PlayerCar, type Upgrades } from "../game/content.ts";
+import { TRAFFIC, FEEL, type ModeId, type PlayerCar } from "../game/content.ts";
 import { laneX, oncomingX, type Layout } from "../game/layout.ts";
 
 const rnd = Math.random;
@@ -66,8 +66,8 @@ export class Run {
   pose = { x: 0, z: 0, yaw: 0, u: 0, ax: 0, delta: 0 };
   private prev = { x: 0, z: 0, yaw: 0 };
 
-  constructor(public world: World, public layout: Layout, public player: Car, car: PlayerCar, up: Upgrades, events: DriveEvents, density = 1, mode: ModeId = "endless", sprint?: SprintRoad, intro = 0) {
-    this.drive = new Drive(layout, car, up, player.footprint, player.wheelbase, (id) => sizes.get(id), events, { density, mode, sprint, intro });
+  constructor(public world: World, public layout: Layout, public player: Car, car: PlayerCar, events: DriveEvents, density = 1, mode: ModeId = "endless", sprint?: SprintRoad, intro = 0) {
+    this.drive = new Drive(layout, car, player.footprint, player.wheelbase, (id) => sizes.get(id), events, { density, mode, sprint, intro });
     world.scene.add(player.root);
     this.headlights();
     this.settle();
@@ -98,10 +98,10 @@ export class Run {
   }
 
   /** Swap the car you drive, keeping where and how fast it goes (the garage's browsing). */
-  setPlayer(player: Car, car: PlayerCar, up: Upgrades) {
+  setPlayer(player: Car, car: PlayerCar) {
     this.player.root.removeFromParent();
     this.player = player;
-    this.drive.setCar(car, up, player.footprint, player.wheelbase);
+    this.drive.setCar(car, player.footprint, player.wheelbase);
     this.world.scene.add(player.root);
     this.headlights();
     this.settle();

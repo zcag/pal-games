@@ -28,7 +28,7 @@ type Node = { d: Drive; slot: number; value: number; trace: Trace; samples: numb
 
 function make(s: Sprint) {
   const car = CARS.find((c) => c.id === s.car)!, size = sizes.get(car.id)!;
-  return new Drive(s.layout, car, s.up, size, size.z * 0.58, (id) => sizes.get(id), {}, { sprint: { seed: s.seed, length: s.length, density: s.density }, intro: ROLLING_START });
+  return new Drive(s.layout, car, size, size.z * 0.58, (id) => sizes.get(id), {}, { sprint: { seed: s.seed, length: s.length, density: s.density }, intro: ROLLING_START });
 }
 function clone(s: Sprint, d: Drive) { const c = make(s); c.unpack(d.pack()); return c; }
 

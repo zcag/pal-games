@@ -5,11 +5,11 @@
 // scripts/sprint.ts finds on that road: a search that sees the road the way
 // someone who has learned it does, and acts only as often as a player can.
 import type { Layout } from "./layout.ts";
-import { CLASSES, type Upgrades } from "./content.ts";
+import { CLASSES } from "./content.ts";
 
 export type Sprint = {
   id: string; name: string; about: string;
-  car: string; up: Upgrades; // the car its stars are set on: its region's class's first, stock (you drive any of the class)
+  car: string; // the car its stars are set on: its region's class's first (you drive any of the class you have)
   location: string;
   layout: Layout;
   length: number; // m on the dial
@@ -33,7 +33,6 @@ export const REGIONS = [
 ] as const;
 export const BOSS_STARS = 12;
 
-const STOCK: Upgrades = { speed: 0, handling: 0, brakes: 0 };
 const FOUR: Layout = { lanes: 4, oncoming: 0, median: 0 }, THREE: Layout = { lanes: 3, oncoming: 0, median: 0 };
 const TWO_WAY: Layout = { lanes: 2, oncoming: 2, median: 0.4 };
 const LANES = { 4: FOUR, 3: THREE, 2: TWO_WAY } as const;
@@ -117,7 +116,7 @@ const RIVALS: Record<string, { rival: string; car: string }> = {
 };
 
 export const SPRINTS: Sprint[] = ROWS.map(([region, id, name, about, lanes, km, density, seed]) => ({
-  id, name, about, car: CLASSES.find((c) => c.id === REGIONS[region].cls)!.from, up: STOCK, location: REGIONS[region].place,
+  id, name, about, car: CLASSES.find((c) => c.id === REGIONS[region].cls)!.from, location: REGIONS[region].place,
   layout: LANES[lanes], length: Math.round(km * 1000 * PACE[region] / 50) * 50, density, seed, best: BEST[id] ?? 0, region, boss: RIVALS[id],
 }));
 

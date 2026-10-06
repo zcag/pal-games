@@ -8,7 +8,7 @@ import { Traffic, crossing, heading, type Npc } from "./traffic.ts";
 import { Director, type Course } from "./director.ts";
 import { Score, DOUBLE_SURGE, type Miss } from "./score.ts";
 import { collide, resolve, type Pt, type Rigid } from "./crash.ts";
-import { TRAFFIC, FEEL, spec, topOf, trafficTop, type ModeId, type PlayerCar, type Upgrades } from "./content.ts";
+import { TRAFFIC, FEEL, spec, trafficTop, type ModeId, type PlayerCar } from "./content.ts";
 import { laneX, oncomingX, edges, LANE_W, RAIL, type Layout } from "./layout.ts";
 
 /** Closing speed that ends a run (km/h on the dial), as in the original; any touch of an oncoming car does too. */
@@ -30,7 +30,7 @@ export type End = "crash" | "time" | "slow" | "line";
 export type SprintRoad = { seed: number; length: number; density: number };
 
 /** A run packed for storage (`Drive.pack`). */
-export type Packed = { car: string; up: Upgrades; mode: ModeId; drive: object; veh: object; traffic: object; director: object; score: object };
+export type Packed = { car: string; mode: ModeId; drive: object; veh: object; traffic: object; director: object; score: object };
 
 /** A car's footprint: width and length, m, and where the model is at hand its collision outline (`planform` of
  *  what is drawn, pulled in by `INSET` and `INSET_END`). */
@@ -76,19 +76,19 @@ export class Drive {
   private seed: number;
   private pace = FEEL.pace; // the pace the car's physics were made at
 
-  constructor(public layout: Layout, public car: PlayerCar, public up: Upgrades, public size: Size, wheelbase: number,
+  constructor(public layout: Layout, public car: PlayerCar, public size: Size, wheelbase: number,
     private sizeOf: (id: string) => Size | undefined, public events: DriveEvents = {}, o: { density?: number; seed?: number; mode?: ModeId; sprint?: SprintRoad; intro?: number } = {}) {
     this.intro = o.intro ?? 0;
     this.mode = o.mode ?? "endless";
     this.sprint = o.sprint ?? null;
     this.seed = o.seed ?? Math.floor(Math.random() * 2147483646) + 1;
-    this.veh = new Vehicle(spec(car, up, wheelbase));
+    this.veh = new Vehicle(spec(car, wheelbase));
     this.veh.x = laneX(layout, Math.min(1, layout.lanes - 1));
     this.veh.launch((START_KMH / 3.6) * FEEL.pace);
     this.traffic = new Traffic(layout.lanes, layout.oncoming);
     // a Sprint plans its rows as far ahead as the car can see at its fastest, so every speed meets the same road
     const course: Course | undefined = this.sprint ? { seed: this.sprint.seed, density: this.sprint.density, reach: Math.max(320, (this.veh.spec.top ?? 60) * 1.25 * 7) } : undefined;
-    this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: trafficTop(car, up) / 3.6, rnd: () => this.rnd(), density: o.density ?? 1, course });
+    this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: trafficTop(car) / 3.6, rnd: () => this.rnd(), density: o.density ?? 1, course });
     this.director.spare = { lane: Math.min(1, layout.lanes - 1), until: 150 };
     this.place();
   }
@@ -97,8 +97,8 @@ export class Drive {
   pack(): Packed {
     const data = (o: object, skip: string[] = []) => JSON.parse(JSON.stringify(Object.fromEntries(Object.entries(o).filter(([k]) => !skip.includes(k)))));
     return {
-      car: this.car.id, up: this.up, mode: this.mode,
-      drive: data(this, ["layout", "car", "up", "size", "sizeOf", "events", "veh", "traffic", "director", "score", "mode"]),
+      car: this.car.id, mode: this.mode,
+      drive: data(this, ["layout", "car", "size", "sizeOf", "events", "veh", "traffic", "director", "score", "mode"]),
       veh: data(this.veh, ["spec"]), traffic: data(this.traffic), director: data(this.director, ["o"]), score: data(this.score),
     };
   }
@@ -115,17 +115,17 @@ export class Drive {
   rnd() { return (this.seed = (this.seed * 16807) % 2147483647) / 2147483647; }
 
   /** Swap the car, keeping where and how fast it goes (the garage's browsing, an upgrade bought). */
-  setCar(car: PlayerCar, up: Upgrades, size: Size, wheelbase: number) {
+  setCar(car: PlayerCar, size: Size, wheelbase: number) {
     const old = this.veh;
-    this.car = car; this.up = up; this.size = size;
-    this.veh = new Vehicle(spec(car, up, wheelbase));
+    this.car = car; this.size = size;
+    this.veh = new Vehicle(spec(car, wheelbase));
     this.veh.x = old.x; this.veh.z = old.z;
     this.veh.launch(old.u * (FEEL.pace / this.pace));
     this.pace = FEEL.pace;
   }
 
   /** The most a combo can push past the top speed, km/h: 15% of it. */
-  get surgeMax() { return topOf(this.car, this.up) * SURGE_MAX; }
+  get surgeMax() { return this.car.top * SURGE_MAX; }
 
   /** A Sprint's metres left to the line. */
   get toLine() { return this.sprint ? Math.max(0, this.sprint.length - this.score.distance) : 0; }

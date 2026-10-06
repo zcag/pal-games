@@ -14,13 +14,13 @@ import { Sound } from "./audio.ts";
 import { Garage, type Bay } from "./garage.ts";
 import { showMap, hideMap, onPick, onRegion, type MapView } from "./trip.ts";
 import { ONE_WAY, TWO_WAY, laneX, type Layout } from "../game/layout.ts";
-import { CARS, LOCATIONS, MODES, PAINTS, UPGRADE_MAX, FEEL, topOf, upgradeCost, stats, classOf, type PlayerCar, type Upgrades, type Location } from "../game/content.ts";
-import { load, stored, fresh, carOf, buyCar, buyUpgrade, paint, places, pickFor, forSale, finishSprintRun, finishFree, countRun, NO_UP, type Save, type Scene, type FreeResult } from "../game/meta.ts";
+import { CARS, LOCATIONS, MODES, PAINTS, FEEL, stats, classOf, type PlayerCar, type Location } from "../game/content.ts";
+import { load, stored, fresh, carOf, paintOf, has, places, pickFor, finishSprintRun, finishFree, countRun, type Save, type Scene } from "../game/meta.ts";
 import type { Miss } from "../game/score.ts";
 import { ROLLING_START, type End, type Packed } from "../game/drive.ts";
 import { acrossAt, type Input } from "../game/vehicle.ts";
 import { REGIONS, SPRINTS, BOSS_STARS, sprintOf, sprintsOf, starTimes, rivalTime, clock, GHOST_DT, ghostAt, ghostTimeAt, type Ghost, type Sprint } from "../game/sprint.ts";
-import { FINISH_PAY, STAR_PAY, bossOf, closed, nextStop, regionOfCar, regionOpen, starsIn, starsOf, totalStars, type SprintPay } from "../game/trip.ts";
+import { carNeeds, carsHad, closed, nextStop, regionOfCar, regionOpen, starsForCar, starsIn, starsOf, totalStars, type SprintResult } from "../game/trip.ts";
 
 declare const pal: SurfaceKit;
 const $ = (id: string) => document.getElementById(id)!;
@@ -54,7 +54,6 @@ let signedIn = true;
 const account = () => pal.account().then((a) => { signedIn = a?.signedIn !== false; }, () => {});
 const layoutOf = (mode: string) => (MODES.find((m) => m.id === mode)?.twoWay ? TWO_WAY : ONE_WAY);
 const stars = (n: number) => `<span class="stars">${[1, 2, 3].map((i) => `<i class="${i <= n ? "f" : ""}">★</i>`).join("")}</span>`;
-const money = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const kmh = (v: number) => (save.settings.units === "mph" ? v * 0.6214 : v);
 const unit = () => (save.settings.units === "mph" ? "mph" : "km/h");
 const placeOf = (id: string) => LOCATIONS.find((l) => l.id === id)!;
@@ -82,9 +81,8 @@ async function road(demo: boolean, ready?: () => void, intro = 0) {
   }
   run?.dispose();
   const car = sp ? trip!.car : carOf(save.car);
-  const owned = save.owned[car.id];
-  const player = await Car.load(car.id, owned?.paint ?? car.paint);
-  run = new Run(world, layout, player, car, owned?.upgrades ?? NO_UP, events, loc.density, demo || sp ? "endless" : save.mode,
+  const player = await Car.load(car.id, paintOf(save, car));
+  run = new Run(world, layout, player, car, events, loc.density, demo || sp ? "endless" : save.mode,
     sp ? { seed: sp.seed, length: sp.length, density: sp.density } : undefined, intro);
   if (demo) run.veh.launch((105 / 3.6) * FEEL.pace);
   run.settle();
@@ -298,18 +296,22 @@ function mapView(): MapView {
     regions: REGIONS.map((g, i) => ({
       name: g.name, about: g.about, art: `./map/${g.id}.webp`, open: regionOpen(i, times),
       why: regionOpen(i, times) ? undefined : `Win the duel in ${REGIONS[i - 1].name}`,
-      stars: starsIn(i, times), max: sprintsOf(i).length * 3, duelAt: BOSS_STARS,
+      stars: starsIn(i, times), max: sprintsOf(i).length * 3, duelAt: BOSS_STARS, next: nextCar(i),
     })),
     stops: sprintsOf(mapRegion).map((s) => ({
       id: s.id, name: s.boss ? `Duel: ${s.name}` : s.name, about: s.about, facts: factsOf(s),
       boss: s.boss && { rival: s.boss.rival, car: carOf(s.boss.car).name, time: rivalTime(s) },
       stars: starsOf(s, times), best: times[s.id], times: s.best ? starTimes(s) : [],
-      pay: { finish: FINISH_PAY[s.region], stars: [1, 2, 3].map((n) => STAR_PAY[s.region] * n) },
       closed: closed(s, times),
     })),
     selected: sel.region === mapRegion ? sel.id : sprintsOf(mapRegion)[0].id,
-    cash: save.cash, stars: totalStars(times), car: car?.name ?? "none yet",
+    stars: totalStars(times), car: car?.name ?? "none yet",
   };
+}
+/** The next car a region's stars open, in words: "Kiri '10 at 8 ★"; none when every one is yours. */
+function nextCar(region: number) {
+  const car = CARS.find((c) => regionOfCar(c) === region && !has(save, c) && starsForCar(c) > 0);
+  return car && `${car.name} at ${starsForCar(car)} ★`;
 }
 const traffic = (d: number) => (d < 0.2 ? "light traffic" : d < 0.45 ? "steady" : d < 0.7 ? "busy" : "packed");
 const factsOf = (s: Sprint) => `${s.layout.oncoming ? "Two-Way" : `${s.layout.lanes} lanes`} · ${(s.length / 1000).toFixed(1)} km · ${traffic(s.density)}`;
@@ -360,20 +362,15 @@ function mapKey(k: string) {
 
 let row = 0;
 let browse = 0; // the car shown, owned or not
-const ROWS = ["car", "paint", "speed", "handling", "brakes"] as const;
+const ROWS = ["car", "paint"] as const;
 const shownCar = () => CARS[browse];
-const tag = (price: number) => `<em class="${save.cash >= price ? "can" : "no"}">${money(price)}</em>`;
-const pips = (n: number) => Array.from({ length: UPGRADE_MAX }, (_, i) => `<i class="${i < n ? "f" : ""}"></i>`).join("");
 
-/** How a car stands in the garage: yours, for sale, or not yet (and what opens it). */
+/** How a car stands in the garage: yours, or under its cover until the trip opens it (`carNeeds` says how). */
 function bayOf(car: PlayerCar): Bay {
-  return { id: car.id, state: save.owned[car.id] ? "owned" : forSale(save, car) ? "for-sale" : "locked", paint: save.owned[car.id]?.paint ?? car.paint };
+  return { id: car.id, state: has(save, car) ? "owned" : "locked", paint: paintOf(save, car) };
 }
-/** What opens a locked car: its region, or the duel that wins it. */
-function opensWith(car: PlayerCar) {
-  const duel = SPRINTS.find((s) => s.boss?.car === car.id);
-  return duel ? `Win it from ${duel.boss!.rival}` : `Opens with ${REGIONS[regionOfCar(car)].name}`;
-}
+/** A car you have that the garage has not shown off yet (the first car aside): its showcase is due. */
+const unseen = (c: PlayerCar) => c !== CARS[0] && has(save, c) && !save.seen.includes(`car:${c.id}`);
 
 async function openGarage(focus?: string) {
   state = "loading";
@@ -385,18 +382,17 @@ async function openGarage(focus?: string) {
   // the bay looked at first is the first loaded, with its neighbours (unless the map built it already)
   const early = !!garageBuilt;
   await buildGarage(shownCar().id);
-  if (early) for (const c of CARS) if (!(bayOf(c).state === "owned" && !save.seen.includes(`car:${c.id}`))) garageScene!.setState(c.id, bayOf(c).state);
+  if (early) for (const c of CARS) if (!unseen(c)) garageScene!.setState(c.id, bayOf(c).state);
   garageScene!.focus(shownCar().id, true);
   r.finish.cut = true;
   state = "garage";
   veil(false);
   drawGarage();
   sound.setEngine(null);
-  // a car won in a duel and not yet seen: it is revealed now
-  for (const c of CARS) if (save.owned[c.id] && SPRINTS.some((s) => s.boss?.car === c.id) && !save.seen.includes(`car:${c.id}`)) {
+  // a car the trip gave you and not yet seen: it is shown off now, one after another
+  for (const c of CARS) if (unseen(c)) {
     browse = CARS.indexOf(c); garageScene!.focus(c.id); drawGarage();
     save.seen.push(`car:${c.id}`); persist();
-    sound.play("cash", { gain: 0.6 });
     await showcase(c.id);
     break;
   }
@@ -424,45 +420,33 @@ async function showcase(id: string) {
 }
 
 function drawGarage() {
-  const car = shownCar(), owned = save.owned[car.id], up = owned?.upgrades ?? NO_UP, bay = bayOf(car);
-  // browsing another car: each bar shows what it gains on the one this class drives in yellow; on an upgrade's row,
-  // what its next level adds to this car
-  const k = ROWS[row] as keyof Upgrades, next = owned && k in up && up[k] < UPGRADE_MAX;
-  const st = stats(car, next ? { ...up, [k]: up[k] + 1 } : up);
-  const region = regionOfCar(car), mineCar = pickFor(save, region);
-  const mine = next ? stats(car, up) : mineCar && mineCar !== car ? stats(mineCar, save.owned[mineCar.id].upgrades) : null;
-  const bar = (v: number, was?: number) => `<i class="${was === undefined ? "" : v > was + 0.05 ? "up" : "cmp"}" style="--v:${v.toFixed(2)};--w:${Math.min(v, was ?? v).toFixed(2)};--was:${(was ?? 0).toFixed(2)}"></i>`;
+  const car = shownCar(), mine = has(save, car), region = regionOfCar(car), inUse = pickFor(save, region);
+  // browsing a car: each bar shows what it gains, in yellow, on the one that drives its region
+  const st = stats(car), was = inUse && inUse !== car ? stats(inUse) : null;
+  const bar = (v: number, w?: number) => `<i class="${w === undefined ? "" : v > w + 0.05 ? "up" : "cmp"}" style="--v:${v.toFixed(2)};--w:${Math.min(v, w ?? v).toFixed(2)};--was:${(w ?? 0).toFixed(2)}"></i>`;
   const sel = (key: string) => `${ROWS[row] === key ? " on" : ""}" data-row="${ROWS.indexOf(key as (typeof ROWS)[number])}`;
-  const upRow = (key: keyof Upgrades, label: string) => {
-    const lv = up[key], max = lv >= UPGRADE_MAX;
-    const price = !owned ? "" : max ? "<em>Full</em>" : tag(upgradeCost(car, lv));
-    return `<div class="row${sel(key)}"><span>${label}</span><div class="val"><span class="pips">${pips(lv)}</span>${price}</div></div>`;
-  };
-  const picked = owned && mineCar === car;
-  const carTag = owned ? `<em>${picked ? "In use" : "Yours"}</em>` : bay.state === "for-sale" ? tag(car.price) : `<em class="lock">Locked</em>`;
+  const picked = mine && inUse === car;
+  const carTag = mine ? `<em>${picked ? "In use" : "Yours"}</em>` : `<em class="lock">Locked</em>`;
   // the colours either side of the one it wears, nine at a time
-  const at = Math.max(0, PAINTS.indexOf(owned?.paint ?? car.paint)), win = Array.from({ length: 9 }, (_, i) => PAINTS[(at - 4 + i + PAINTS.length) % PAINTS.length]);
-  const swatches = win.map((c) => `<i style="background:${c}" class="${(owned?.paint ?? car.paint) === c ? "on" : ""}"></i>`).join("");
-  const action = !owned ? (bay.state === "for-sale" ? "Buy it" : opensWith(car)) : ROWS[row] === "car" ? (picked ? "Your car for " + REGIONS[region].name : `Drive it in ${REGIONS[region].name}`) : ROWS[row] === "paint" ? "Any colour, free" : "Upgrade";
+  const at = Math.max(0, PAINTS.indexOf(paintOf(save, car))), win = Array.from({ length: 9 }, (_, i) => PAINTS[(at - 4 + i + PAINTS.length) % PAINTS.length]);
+  const swatches = win.map((c) => `<i style="background:${c}" class="${paintOf(save, car) === c ? "on" : ""}"></i>`).join("");
+  const action = !mine ? carNeeds(car) : picked ? `Your car for ${REGIONS[region].name}` : `Drive it in ${REGIONS[region].name}`;
   $("garage").innerHTML = `
     <div class="sign">
-      <div class="head"><b>Garage</b><span>${money(save.cash)}</span></div>
+      <div class="head"><b>Garage</b><span>${carsHad(save.sprints).length} of ${CARS.length}</span></div>
       <div class="rows">
         <div class="row${sel("car")}"><span>${classOf(car).name}</span><div class="val"><span class="arrows">${car.name}</span>${carTag}</div></div>
         <div class="bars">
-          <span>Top speed</span>${bar(st.speed, mine?.speed)}
-          <span>Pickup</span>${bar(st.accel, mine?.accel)}
-          <span>Handling</span>${bar(st.handling, mine?.handling)}
-          <span>Brakes</span>${bar(st.brakes, mine?.brakes)}
+          <span>Top speed</span>${bar(st.speed, was?.speed)}
+          <span>Pickup</span>${bar(st.accel, was?.accel)}
+          <span>Handling</span>${bar(st.handling, was?.handling)}
+          <span>Brakes</span>${bar(st.brakes, was?.brakes)}
         </div>
-        <div class="row${sel("paint")}"><span>Paint</span><div class="val"><span class="swatches">${owned ? swatches : ""}</span></div></div>
-        ${upRow("speed", "Engine")}
-        ${upRow("handling", "Handling")}
-        ${upRow("brakes", "Brakes")}
+        <div class="row${sel("paint")}"><span>Paint</span><div class="val"><span class="swatches">${mine ? swatches : ""}</span></div></div>
       </div>
       <div class="drive">
-        <div><div class="go">${action}</div><div class="best">${Math.round(kmh(topOf(car, up)))} ${unit()} top</div></div>
-        <div class="keys"><button data-key="enter"><kbd>enter</kbd> ${!owned ? "buy" : ROWS[row] === "car" ? "use" : "upgrade"}</button><br><button data-key="backspace"><kbd>⌫</kbd> map</button></div>
+        <div><div class="go">${action}</div><div class="best">${Math.round(kmh(car.top))} ${unit()} top</div></div>
+        <div class="keys">${mine && !picked && ROWS[row] === "car" ? `<button data-key="enter"><kbd>enter</kbd> use</button><br>` : ""}<button data-key="backspace"><kbd>⌫</kbd> map</button></div>
       </div>
     </div>`;
   $("garage").hidden = !!garageScene?.showing;
@@ -474,42 +458,30 @@ function drawTags() {
   if (garageScene.showing) { $("tags").innerHTML = ""; return; }
   const html = garageScene.labels().filter((l) => l.visible && l.id !== shownCar().id).map((l) => {
     const car = carOf(l.id), b = bayOf(car);
-    const text = b.state === "owned" ? (pickFor(save, regionOfCar(car)) === car ? "★" : "") : b.state === "for-sale" ? money(car.price) : `🔒 ${opensWith(car).replace(/^Opens with /, "")}`;
+    // short: the sign says it in full for the car looked at
+    const duel = SPRINTS.find((x) => x.boss?.car === car.id);
+    const text = b.state === "owned" ? (pickFor(save, regionOfCar(car)) === car ? "★" : "") : `🔒 ${duel ? `Beat ${duel.boss!.rival}` : `${starsForCar(car)} ★`}`;
     return text ? `<div class="bay-tag ${b.state}" style="left:${l.x}px;top:${l.y}px">${text}</div>` : "";
   }).join("");
   $("tags").innerHTML = html;
 }
 
 async function garageKey(k: string) {
-  const car = shownCar(), owned = save.owned[car.id];
+  const car = shownCar(), mine = has(save, car);
   const what = ROWS[row];
   if (vdir(k)) row = (row + vdir(k) + ROWS.length) % ROWS.length;
   else if (dir(k)) {
     const d = dir(k);
     if (what === "car") { browse = (browse + d + CARS.length) % CARS.length; garageScene?.focus(shownCar().id); sound.play("ui_select", { gain: 0.5 }); }
-    else if (what === "paint" && owned) {
-      const i = PAINTS.indexOf(owned.paint);
-      paint(save, car, PAINTS[(i + d + PAINTS.length) % PAINTS.length]);
-      garageScene?.paint(car.id, owned.paint);
+    else if (what === "paint" && mine) {
+      save.paint[car.id] = PAINTS[(PAINTS.indexOf(paintOf(save, car)) + d + PAINTS.length) % PAINTS.length];
+      garageScene?.paint(car.id, paintOf(save, car));
       persist();
     } else return;
-  } else if (k === "enter" || k === " ") {
-    let ok = false;
-    if (what === "car" && !owned) {
-      ok = buyCar(save, car);
-      if (ok) {
-        save.pick[REGIONS[regionOfCar(car)].cls] = car.id; // a new car drives its class's Sprints
-        save.seen.push(`car:${car.id}`);
-        persist();
-        drawGarage();
-        sound.play("cash", { gain: 0.6 });
-        await showcase(car.id);
-        return;
-      }
-    } else if (what === "car") { save.pick[REGIONS[regionOfCar(car)].cls] = car.id; ok = true; }
-    else if (what === "speed" || what === "handling" || what === "brakes") ok = !!owned && buyUpgrade(save, car, what);
-    sound.play(ok ? (what === "car" ? "ui_confirm" : "cash") : "ui_error", { gain: 0.6 });
-    if (ok) persist();
+  } else if ((k === "enter" || k === " ") && what === "car") {
+    const ok = mine && pickFor(save, regionOfCar(car)) !== car;
+    if (ok) { save.pick[REGIONS[regionOfCar(car)].cls] = car.id; persist(); }
+    sound.play(ok ? "ui_confirm" : "ui_error", { gain: 0.6 });
   } else if (k === "backspace" || k === "g") { openMap(); return; }
   else if (k === "f") { openFree(); return; }
   else return;
@@ -527,7 +499,7 @@ async function openFree() {
   trip = null;
   hideSigns();
   hideMap();
-  if (!save.owned[save.car]) save.car = CARS.find((c) => save.owned[c.id])!.id;
+  if (!has(save, carOf(save.car))) save.car = CARS[0].id;
   await road(true);
   state = "free";
   sound.setEngine(carOf(save.car).engine);
@@ -540,7 +512,7 @@ function drawFree() {
   const sel = (k: string) => `${FREE_ROWS[freeRow] === k ? " on" : ""}" data-row="${FREE_ROWS.indexOf(k as (typeof FREE_ROWS)[number])}`;
   $("free").innerHTML = `
     <div class="sign">
-      <div class="head"><b>Free Drive</b><span>${money(save.cash)}</span></div>
+      <div class="head"><b>Free Drive</b></div>
       <div class="rows">
         <div class="row${sel("car")}"><span>${classOf(car).name}</span><div class="val"><span class="arrows">${car.name}</span></div></div>
         <div class="row${sel("mode")}"><span>Mode</span><div class="val"><span class="arrows">${mode.name}</span></div></div>
@@ -548,7 +520,7 @@ function drawFree() {
         <div class="about">${mode.about}</div>
       </div>
       <div class="drive">
-        <div><div class="go">Drive</div><div class="best">${best ? `Best ${best.score.toLocaleString("en-US")} in ${(best.distance / 1000).toFixed(1)} km` : `Pays ${money(FINISH_PAY[regionOfCar(car)] * mode.cash)} a minute`}</div></div>
+        <div><div class="go">Drive</div><div class="best">${best ? `Best ${best.score.toLocaleString("en-US")} in ${(best.distance / 1000).toFixed(1)} km` : "No runs yet"}</div></div>
         <div class="keys"><button data-key=" "><kbd>space</kbd> drive</button><br><button data-key="backspace"><kbd>⌫</kbd> map</button></div>
       </div>
     </div>`;
@@ -561,11 +533,11 @@ async function freeKey(k: string) {
   else if (dir(k)) {
     const d = dir(k);
     if (what === "car") {
-      const mine = CARS.filter((c) => save.owned[c.id]), i = mine.findIndex((c) => c.id === save.car);
+      const mine = carsHad(save.sprints), i = mine.findIndex((c) => c.id === save.car);
       save.car = mine[(i + d + mine.length) % mine.length].id;
-      const model = await Car.load(save.car, save.owned[save.car].paint);
+      const model = await Car.load(save.car, paintOf(save, carOf(save.car)));
       if (state !== "free" || !run) { model.dispose(); return; }
-      run.setPlayer(model, carOf(save.car), save.owned[save.car].upgrades);
+      run.setPlayer(model, carOf(save.car));
       sound.setEngine(carOf(save.car).engine);
     } else if (what === "mode") {
       const i = MODES.findIndex((m) => m.id === save.mode);
@@ -648,17 +620,15 @@ function results() {
   keepRun(); // a finished run is not carried over
   $("hud").hidden = true;
   const s = run.score;
-  const res = finishFree(save, s, save.mode, carOf(save.car));
+  const res = finishFree(save, s, save.mode);
   persist();
   post(save.mode, Math.round(s.points), res.record);
   card(`<div class="sprint-end free-end">
       <div class="headline"><h2>${Math.round(s.points).toLocaleString("en-US")} points</h2>${res.record && s.points > 0 ? `<span class="plate">New best for ${MODES.find((m) => m.id === save.mode)!.name}</span>` : ""}</div>
       <div class="why ${crashInfo ? "crash" : ""}">${whyEnded()}</div>
-      <dl>${tally(res)}</dl>
     </div>
     <div class="keys"><button data-key="enter"><kbd>enter</kbd> drive again</button><button data-key="backspace"><kbd>⌫</kbd> map</button><button data-key="g"><kbd>g</kbd> garage</button></div>`);
 }
-const tally = (res: FreeResult) => res.lines.map((l) => `<dt>${l.label}</dt><dd>${money(l.amount)}</dd>`).join("") + `<dt class="total">Earned</dt><dd class="total">${money(res.cash)}</dd>`;
 function whyEnded() {
   const what = crashInfo ? names.get(crashInfo.kind) ?? "car" : "";
   return ended === "time" ? "Time's up" : ended === "slow" ? "Too slow for too long" : crashInfo
@@ -684,7 +654,7 @@ function sprintResults() {
     return;
   }
   const time = d.score.time, before = save.sprints[sp.id];
-  const pay: SprintPay = scene || trial ? { lines: [], cash: 0, stars: 0, before: 0, record: false } : finishSprintRun(save, sp, d.score);
+  const pay: SprintResult = scene || trial ? { stars: 0, before: 0, record: false, cars: [] } : finishSprintRun(save, sp, d.score);
   if (pay.record && recording) { recording.time = time; ghosts[sp.id] = recording; pal.storage.set("ghosts", ghosts).catch((e: unknown) => console.error("highway: ghost", e)); }
   // the next stop to play is selected for the map
   save.stop = (closed(sp, save.sprints) === null && pay.stars < 3 && !sp.boss ? sp : nextStop(save.sprints)).id;
@@ -693,14 +663,14 @@ function sprintResults() {
   const headline = duel ? (duel.won ? `You beat ${sp.boss!.rival}` : `${sp.boss!.rival} was ${(time - rivalTime(sp)).toFixed(2)} s faster`)
     : pay.stars > pay.before ? (pay.stars - pay.before === 1 ? "A new star" : `${pay.stars - pay.before} new stars`)
     : next ? `${(time - next).toFixed(2)} s from the next star` : "Every star";
-  wonCar = duel?.car?.id ?? null;
-  const reward = duel?.car ? `<div class="reward">${duel.car.name} is yours${duel.opened ? `, and ${duel.opened} is open` : ""}</div>` : duel?.opened ? `<div class="reward">${duel.opened} is open</div>` : "";
+  wonCar = pay.cars[0]?.id ?? null;
+  const got = pay.cars.map((c) => c.name).join(" and ");
+  const reward = got ? `<div class="reward">${got} ${pay.cars.length > 1 ? "are" : "is"} yours${duel?.opened ? `, and ${duel.opened} is open` : ""}</div>` : duel?.opened ? `<div class="reward">${duel.opened} is open</div>` : "";
   card(`<div class="sprint-end">
       <div class="headline"><h2>${clock(time)}</h2>${pay.record && before ? `<span class="plate">New best, ${(before - time).toFixed(2)} s faster</span>` : pay.record ? `<span class="plate">First finish</span>` : ""}</div>
       <div class="big">${stars(pay.stars)}</div>
       <div class="why">${headline}${!pay.record && before ? `. Your best is ${clock(before)}` : ""}</div>
       ${reward}
-      <dl>${pay.lines.map((l) => `<dt>${l.label}</dt><dd>${money(l.amount)}</dd>`).join("")}<dt class="total">Earned</dt><dd class="total">${money(pay.cash)}</dd></dl>
       ${targets(time)}</div>${wonCar ? wonKeys : keys}`);
   if (duel?.won) sound.play("bell_ding", { gain: 0.7 });
   // your time on its board first, so the board read after it has it
@@ -792,7 +762,7 @@ function hud() {
   c.hidden = !s.combo;
   // the combo, and what it is worth past the top speed
   if (s.combo) { c.querySelector("b")!.innerHTML = `Combo ×${s.combo}${d.surge >= 1 ? ` <small>+${Math.round(kmh(d.surge))} ${unit()}</small>` : ""}`; c.style.setProperty("--left", String(s.comboLeft / 4)); }
-  $("gauge").classList.toggle("surging", k > topOf(d.car, d.up) + 1);
+  $("gauge").classList.toggle("surging", k > d.car.top + 1);
   const cell = (value: string, label: string, low = false) => `<div><b class="${low ? "low" : ""}">${value}</b><span>${label}</span></div>`;
   if (sp) {
     if (rival) { $("modebox").innerHTML = cell(distance(d.toLine), "to the line") + cell(clock(rival.time), `to beat ${sp.boss!.rival}`, rival.time - s.time < 5); return; }
@@ -1011,8 +981,7 @@ async function stage(sc: Scene) {
   if (sc.mode) save.mode = sc.mode;
   if (sc.car) {
     save.car = sc.car;
-    save.owned[sc.car] ??= { upgrades: { ...NO_UP }, paint: sc.paint ?? carOf(sc.car).paint };
-    if (sc.paint) save.owned[sc.car].paint = sc.paint;
+    if (sc.paint) save.paint[sc.car] = sc.paint;
   }
   if (sc.show === "map") { if (sc.sprint) save.stop = sc.sprint; return openMap(); }
   if (sc.show === "garage") return openGarage(sc.car);
@@ -1036,15 +1005,13 @@ async function stage(sc: Scene) {
   ghosts = ((await pal.storage.get("ghosts").catch(() => null)) as Record<string, Ghost> | null) ?? {};
   account();
   let kept = scene ? null : ((await pal.storage.get("run").catch(() => null)) as Kept | null);
-  if (kept && save.owned[kept.car] && places(save).some((l) => l.id === kept!.location) && !(kept as { sprint?: unknown }).sprint) {
+  if (kept && has(save, carOf(kept.car)) && places(save).some((l) => l.id === kept!.location) && !(kept as { sprint?: unknown }).sprint) {
     save.car = kept.car; save.mode = kept.mode; save.location = kept.location;
   } else kept = null;
   if (q.has("test")) {
     // a test drive: every car yours and every region open, nothing written back
     trial = true;
-    save.cash = 2_000_000;
-    for (const c of CARS) save.owned[c.id] ??= { upgrades: { ...NO_UP }, paint: c.paint };
-    for (const [i] of REGIONS.entries()) save.sprints[bossOf(i).id] ??= 1;
+    for (const sp of SPRINTS) save.sprints[sp.id] ??= 1;
   }
   const settings = (await pal.settings().catch(() => ({}))) as Record<string, unknown>;
   if (typeof settings.volume === "number") save.settings.sound = settings.volume / 100;
