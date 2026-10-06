@@ -113,7 +113,13 @@
     "screenshots": [
       {
         "file": "1-blackjack.png",
-        "caption": "A blackjack: 3:2 on the $50 bet, the winnings stacked beside it"
+        "caption": "A blackjack: 3:2 on the $50 bet, the winnings stacked beside it",
+        "cover": [
+          378,
+          270,
+          684,
+          335
+        ]
       },
       {
         "file": "2-hand.png",

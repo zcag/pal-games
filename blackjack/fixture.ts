@@ -52,7 +52,7 @@ try {
   writeFixture("blackjack", {
     palettes: { natural: await palette(natural.dealt), split: await palette(splitPlay), bust: await palette(apply(bust.dealt, "stand", s)), bet: await palette(at(7, 50)) },
     shots: {
-      "1-blackjack": { palette: "natural", keys: ["wait:1800"], caption: "A blackjack: 3:2 on the $50 bet, the winnings stacked beside it" },
+      "1-blackjack": { cover: [378, 270, 684, 335], palette: "natural", keys: ["wait:1800"], caption: "A blackjack: 3:2 on the $50 bet, the winnings stacked beside it" },
       "2-hand": { palette: "split", keys: ["wait:1500"], caption: "Mid-hand after a split: hand 1 is being played, the hole card is face down" },
       "3-settled": { palette: "bust", keys: ["wait:1800"], caption: "Settled: the dealer drew and bust, the winnings stacked on the bet, the bankroll moved" },
       "4-bet": { palette: "bet", keys: ["wait:1000", "up", "wait:200", "up", "wait:900"], caption: "Placing a bet: the chips on the felt, up and down move it by the minimum, Enter deals" },
