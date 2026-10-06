@@ -252,6 +252,7 @@ const vdir = (k: string) => (k === "arrowup" || k === "w" ? -1 : k === "arrowdow
 function onKey(k: string) {
   if (k === "m") { muted = !muted; sound.setVolume(muted ? 0 : save.settings.sound); return; }
   if (state === "map") { mapKey(k); return; }
+  if (state === "garage" && garageScene?.showing) { garageScene.skip(); return; }
   if (state === "garage") { garageKey(k); return; }
   if (state === "free") { freeKey(k); return; }
   // a Sprint is tried again at once, from anywhere in it
@@ -270,6 +271,8 @@ function onKey(k: string) {
   }
   if (state === "results") {
     if (trip) {
+      // a car just won: Enter shows it
+      if ((k === "enter" || k === " ") && wonCar) { const id = wonCar; wonCar = null; openGarage(id); return; }
       if (k === "enter" || k === " " || k === "backspace") openMap();
       if (k === "g") openGarage();
       return;
@@ -394,9 +397,30 @@ async function openGarage(focus?: string) {
     browse = CARS.indexOf(c); garageScene!.focus(c.id); drawGarage();
     save.seen.push(`car:${c.id}`); persist();
     sound.play("cash", { gain: 0.6 });
-    await garageScene!.reveal(c.id);
+    await showcase(c.id);
     break;
   }
+}
+
+/** A car just bought or won: the garage's showcase (garage.ts), the sign and tags out of its way, a title card at
+ *  its flare. Any key skips it. */
+async function showcase(id: string) {
+  if (!garageScene) return;
+  const car = carOf(id), region = regionOfCar(car);
+  $("garage").hidden = true;
+  $("tags").innerHTML = "";
+  const off = garageScene.onBeat((b) => {
+    if (b === "sweep") {
+      $("newcar").innerHTML = `<small>New car</small><b>${car.name}</b><span>${classOf(car).name} · your ${REGIONS[region].name} car</span>`;
+      $("newcar").className = "on";
+      sound.play("bell_ding", { gain: 0.7 });
+    }
+    if (b === "settle") $("newcar").className = "";
+  });
+  await garageScene.showcase(id);
+  off();
+  $("newcar").className = "";
+  if (state === "garage") drawGarage();
 }
 
 function drawGarage() {
@@ -441,12 +465,13 @@ function drawGarage() {
         <div class="keys"><button data-key="enter"><kbd>enter</kbd> ${!owned ? "buy" : ROWS[row] === "car" ? "use" : "upgrade"}</button><br><button data-key="backspace"><kbd>⌫</kbd> map</button></div>
       </div>
     </div>`;
-  $("garage").hidden = false;
+  $("garage").hidden = !!garageScene?.showing;
 }
 
 /** The garage's tags over its bays: a price, what opens a car, or nothing for yours. */
 function drawTags() {
   if (!garageScene) return;
+  if (garageScene.showing) { $("tags").innerHTML = ""; return; }
   const html = garageScene.labels().filter((l) => l.visible && l.id !== shownCar().id).map((l) => {
     const car = carOf(l.id), b = bayOf(car);
     const text = b.state === "owned" ? (pickFor(save, regionOfCar(car)) === car ? "★" : "") : b.state === "for-sale" ? money(car.price) : `🔒 ${opensWith(car).replace(/^Opens with /, "")}`;
@@ -478,7 +503,7 @@ async function garageKey(k: string) {
         persist();
         drawGarage();
         sound.play("cash", { gain: 0.6 });
-        await garageScene?.reveal(car.id);
+        await showcase(car.id);
         return;
       }
     } else if (what === "car") { save.pick[REGIONS[regionOfCar(car)].cls] = car.id; ok = true; }
@@ -569,6 +594,7 @@ let musicOn = false;
  *  its side to behind it over a count of 3; the clock starts at Go. A key fast-forwards it, so the road at Go is the
  *  same either way. Coming back from a pause counts 3, 2, 1 over the still road (`resuming`, s left of it). */
 let resuming = 0, wasRolling = 0;
+let wonCar: string | null = null; // a duel's car, won on the results card showing
 /** Start a run: the trip's Sprint, else Free Drive. The last frame stays up until the run is ready, then it cuts to it;
  *  `prep` runs on the new run before its first frame (a kept run unpacked into it). */
 async function drive(prep?: () => void) {
@@ -646,6 +672,7 @@ function sprintResults() {
   state = "results";
   $("hud").hidden = true;
   const keys = `<div class="keys"><button data-key="r"><kbd>r</kbd> try again</button><button data-key="enter"><kbd>enter</kbd> map</button><button data-key="g"><kbd>g</kbd> garage</button></div>`;
+  const wonKeys = `<div class="keys"><button data-key="enter"><kbd>enter</kbd> see your new car</button><button data-key="backspace"><kbd>⌫</kbd> map</button><button data-key="r"><kbd>r</kbd> race again</button></div>`;
   const targets = (time?: number) => `<div class="targets">${starTimes(sp).map((t, i) => `<div class="${time !== undefined && time <= t ? "got" : ""}">${stars(i + 1)}<b>${clock(t)}</b></div>`).join("")}</div>`;
   if (d.ended !== "line") {
     if (!scene && !trial) { countRun(save, run!.score); persist(); }
@@ -666,6 +693,7 @@ function sprintResults() {
   const headline = duel ? (duel.won ? `You beat ${sp.boss!.rival}` : `${sp.boss!.rival} was ${(time - rivalTime(sp)).toFixed(2)} s faster`)
     : pay.stars > pay.before ? (pay.stars - pay.before === 1 ? "A new star" : `${pay.stars - pay.before} new stars`)
     : next ? `${(time - next).toFixed(2)} s from the next star` : "Every star";
+  wonCar = duel?.car?.id ?? null;
   const reward = duel?.car ? `<div class="reward">${duel.car.name} is yours${duel.opened ? `, and ${duel.opened} is open` : ""}</div>` : duel?.opened ? `<div class="reward">${duel.opened} is open</div>` : "";
   card(`<div class="sprint-end">
       <div class="headline"><h2>${clock(time)}</h2>${pay.record && before ? `<span class="plate">New best, ${(before - time).toFixed(2)} s faster</span>` : pay.record ? `<span class="plate">First finish</span>` : ""}</div>
@@ -673,7 +701,7 @@ function sprintResults() {
       <div class="why">${headline}${!pay.record && before ? `. Your best is ${clock(before)}` : ""}</div>
       ${reward}
       <dl>${pay.lines.map((l) => `<dt>${l.label}</dt><dd>${money(l.amount)}</dd>`).join("")}<dt class="total">Earned</dt><dd class="total">${money(pay.cash)}</dd></dl>
-      ${targets(time)}</div>${keys}`);
+      ${targets(time)}</div>${wonCar ? wonKeys : keys}`);
   if (duel?.won) sound.play("bell_ding", { gain: 0.7 });
   // your time on its board first, so the board read after it has it
   void post(`sprint/${sp.id}`, Math.round(time * 100) / 100, pay.record).then(() => showBoard(sp));
