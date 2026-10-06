@@ -49,8 +49,8 @@ const host = await Host.bundled({ only: ["ramparts"] });
 try {
   const view = await host.request("view", { extension: "ramparts", palette: "ramparts" });
   const palette = (scene: Scene | null) => ({ title: manifest.title, icon: manifest.icon, view: "view", tree: view, surface: { storage: { profile: lived(), settings: { tips: false }, ...(scene ? { scene } : {}) }, settings: { volume: 0 } } });
-  const shots: Record<string, { palette: string; keys: string[]; caption: string }> = {
-    "1-meadow": { palette: "meadow", keys: ["wait:6000"], caption: "Act I in the meadow, wave 5 of 7: towers on the bends, specialised at level four, and the next wave's roles in the band above" },
+  const shots: Record<string, { palette: string; keys: string[]; caption: string; cover?: number[] }> = {
+    "1-meadow": { cover: [253, 234, 923, 452], palette: "meadow", keys: ["wait:6000"], caption: "Act I in the meadow, wave 5 of 7: towers on the bends, specialised at level four, and the next wave's roles in the band above" },
     "2-tyrant": { palette: "tyrant", keys: ["wait:6000"], caption: "The Ember Tyrant at the citadel, its health in three bars: alchemy, fire and storm towers, a ballista and a war banner" },
     "3-map": { palette: "title", keys: ["wait:3000", "enter", "wait:1200", "enter", "wait:1500", "1", "wait:4000"], caption: "A run's map: battles, events, shops, forges and camps on branching paths, and the act's boss waiting at the end" },
     "4-snow": { palette: "snow", keys: ["wait:6000"], caption: "Act III's last wave in the snow: bats take the short way over the corners, where only some towers reach" },

@@ -263,7 +263,13 @@
     "screenshots": [
       {
         "file": "1-meadow.png",
-        "caption": "Act I in the meadow, wave 5 of 7: towers on the bends, specialised at level four, and the next wave's roles in the band above"
+        "caption": "Act I in the meadow, wave 5 of 7: towers on the bends, specialised at level four, and the next wave's roles in the band above",
+        "cover": [
+          253,
+          234,
+          923,
+          452
+        ]
       },
       {
         "file": "2-tyrant.png",
