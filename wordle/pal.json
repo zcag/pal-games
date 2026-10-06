@@ -98,7 +98,13 @@
       },
       {
         "file": "3-solved.png",
-        "caption": "Solved in four: the praise, the stats and the guess distribution, C copies the grid"
+        "caption": "Solved in four: the praise, the stats and the guess distribution, C copies the grid",
+        "cover": [
+          180,
+          231,
+          690,
+          338
+        ]
       }
     ],
     "actions": [

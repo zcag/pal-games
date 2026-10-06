@@ -30,7 +30,7 @@ const fixture = {
   shots: {
     "1-game": { palette: "wordle", keys: ["wait:1500"], caption: "The daily, three guesses in and two letters typed: the keyboard shows what the guesses found" },
     "2-notice": { palette: "notice", keys: ["wait:1500"], caption: "A word that is not in the list: a notice under the title, and the row stays for editing" },
-    "3-solved": { palette: "solved", keys: ["wait:2000"], caption: "Solved in four: the praise, the stats and the guess distribution, C copies the grid" },
+    "3-solved": { cover: [180, 231, 690, 338], palette: "solved", keys: ["wait:2000"], caption: "Solved in four: the praise, the stats and the guess distribution, C copies the grid" },
   },
 };
 writeFixture("wordle", fixture);
