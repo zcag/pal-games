@@ -34,6 +34,7 @@ export const regionOfCar = (car: PlayerCar) => {
  *  three Sprints of a region are open, each finished opens the next, so a hard one can be left for later. */
 export function closed(s: Sprint, times: Times): string | null {
   if (!regionOpen(s.region, times)) return `Win the duel in ${REGIONS[s.region - 1].name}`;
+  if (!s.best) return "Not ready yet: its star times are still being set";
   if (s.boss) { const have = starsIn(s.region, times); return have >= BOSS_STARS ? null : `${BOSS_STARS} stars in ${REGIONS[s.region].name} (you have ${have})`; }
   const list = sprintsOf(s.region), k = list.indexOf(s);
   const done = list.filter((x) => !x.boss && times[x.id]).length;
