@@ -133,7 +133,13 @@
       },
       {
         "file": "3-lost.png",
-        "caption": "A mine went off on intermediate: every mine shows, a wrong flag is crossed out"
+        "caption": "A mine went off on intermediate: every mine shows, a wrong flag is crossed out",
+        "cover": [
+          492,
+          314,
+          456,
+          224
+        ]
       },
       {
         "file": "4-expert.png",

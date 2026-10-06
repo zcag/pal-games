@@ -92,7 +92,7 @@ try {
     shots: {
       "1-board": { palette: "board", keys: ["wait:1200"], caption: "Mid-game on beginner: the mine counter, the face and the clock, the best time and the won count, the keys under the board" },
       "2-won": { palette: "win", keys: ["wait:1000", "enter", "wait:3200"], caption: "Cleared: the mines left are flagged, the time, a new best" },
-      "3-lost": { palette: "loss", keys: ["wait:1000", "enter", "wait:2600"], caption: "A mine went off on intermediate: every mine shows, a wrong flag is crossed out" },
+      "3-lost": { cover: [492, 314, 456, 224], palette: "loss", keys: ["wait:1000", "enter", "wait:2600"], caption: "A mine went off on intermediate: every mine shows, a wrong flag is crossed out" },
       "4-expert": { palette: "expert", keys: ["wait:1200"], caption: "Expert, 30 by 16 with 99 mines, scaled to the panel; Enter on the satisfied 2 opens around it" },
     },
   });
