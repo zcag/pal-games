@@ -837,6 +837,7 @@ function opening(dt: number) {
   for (const at of [1.5, 1.0, 0.5]) if (before > at && intro <= at) { banner(String(Math.round(at * 2))); sound.play("countdown_beep", { gain: 0.5 }); }
   if (intro <= 0) { banner("Go"); sound.play("countdown_go", { gain: 0.6 }); last = performance.now(); }
   hud();
+  r.finish.cut = true; // the camera swings fast: the motion blur would smear the road around a sharp car
   r.render(world.scene, { speed: 0, hit: 0, dim: 0 });
 }
 

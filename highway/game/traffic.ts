@@ -26,6 +26,7 @@ export type Npc = {
   oncoming: boolean;
   politeness: number;
   cooldown: number; // seconds before it may change lanes again
+  itch: number; // seconds it has wanted another lane; it acts once this passes its patience (`patienceOf`)
   hit?: { vx: number; yaw: number; r: number }; // knocked by a crash: sliding, no longer driving
   passed?: boolean; // the player has gone by it
   prev?: { x: number; z: number; yaw: number }; // where it was a step ago, for drawing between steps
@@ -52,8 +53,10 @@ export class Traffic {
   private nextId = 1;
   constructor(public lanes: number, public oncomingLanes: number) {}
 
-  add(n: Omit<Npc, "id" | "from" | "t" | "signal" | "signalT" | "braking" | "cooldown" | "x">) {
-    const car: Npc = { ...n, id: this.nextId++, from: n.lane, t: 1, signal: 0, signalT: 0, braking: false, cooldown: 2, x: 0 };
+  /** A car on the road; `cooldown` is how long before it may first change lanes (drawn per driver by the caller, so cars
+   *  placed together do not all decide together). */
+  add(n: Omit<Npc, "id" | "from" | "t" | "signal" | "signalT" | "braking" | "x" | "itch">) {
+    const car: Npc = { ...n, id: this.nextId++, from: n.lane, t: 1, signal: 0, signalT: 0, braking: false, x: 0, itch: 0 };
     this.cars.push(car);
     return car;
   }
@@ -92,7 +95,9 @@ export class Traffic {
     return idm(n, v, (lead.z - z) * dir - (lead.length + length) / 2, v - lead.v);
   }
 
+  private dt = 0;
   step(dt: number, ego: Ego | null) {
+    this.dt = dt;
     for (const n of this.cars) {
       if (n.hit) {
         // sliding on locked or scrubbing tyres until it stops
@@ -149,7 +154,7 @@ export class Traffic {
   private consider(n: Npc, lanesHere: number, ego: Ego | null) {
     const dir = dirOf(n.oncoming);
     const here = this.accel(n, n.z, n.v, this.leader(n.lane, n.z, n.oncoming, ego, n), n.length, dir);
-    if (here > -0.2 && n.v > n.v0 * 0.95) return; // happy where it is
+    if (here > -0.2 && n.v > n.v0 * 0.95) { n.itch = 0; return; } // happy where it is
     let best = 0, gain = 0.4; // the threshold, m/s^2
     for (const d of [-1, 1] as const) {
       const lane = n.lane + d;
@@ -168,7 +173,11 @@ export class Traffic {
       const g = there - here - n.politeness * cost + bias;
       if (g > gain) { gain = g; best = d; }
     }
-    if (best) { n.signal = best as -1 | 1; n.signalT = 0; }
+    // a better lane is not taken at once: each driver waits its own while, so a queue behind a slow truck does not all
+    // pull out on the same step
+    if (!best) { n.itch = 0; return; }
+    n.itch += this.dt;
+    if (n.itch >= patienceOf(n)) { n.signal = best as -1 | 1; n.signalT = 0; n.itch = 0; }
   }
 
   remove(pred: (n: Npc) => boolean) { this.cars = this.cars.filter((n) => !pred(n)); }
@@ -180,6 +189,9 @@ const dirOf = (oncoming: boolean) => (oncoming ? -1 : 1);
 export function occupies(n: Npc, lane: number) { return n.lane === lane || (n.t < 1 && n.from === lane); }
 
 /** Smooth lateral progress through a lane change (an S curve). */
+/** How long a driver waits before acting on a better lane, s: 0.4 to 2.6, its own (from its id), the same every run. */
+export const patienceOf = (n: Npc) => 0.4 + 2.2 * ((n.id * 0.6180339887) % 1);
+
 export function crossing(n: Npc) { const t = n.t; return t * t * (3 - 2 * t); }
 
 /** Which way a car points as it is drawn and as it collides: along its lane, turned into a lane change by its

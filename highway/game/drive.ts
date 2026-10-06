@@ -188,7 +188,7 @@ export class Drive {
         const size = this.sizeOf(kind.id);
         if (!size) continue;
         this.traffic.add({ kind: kind.id, length: size.z, width: size.x, z: row.z + s.dz, v: s.v0, lane: s.lane, v0: s.v0, T: 1.1 + r() * 0.6, a: kind.heavy ? 0.8 : 1.4, b: 2.5, oncoming: s.oncoming, politeness: 0.3 + r() * 0.4,
-          side: (r() * 2 - 1) * SIDE, phase: r() * Math.PI * 2 });
+          side: (r() * 2 - 1) * SIDE, phase: r() * Math.PI * 2, cooldown: 1.5 + r() * 6 });
       }
     }
     const lp = this.lanePos();

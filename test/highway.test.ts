@@ -283,7 +283,7 @@ test("a near miss adds to the surge by how close it was, up to a quarter of the 
   const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
   const d = new Drive(ONE_WAY, CARS[0], NO_UP, size, 2.6, sizeOf, {}, { seed: 2 });
   d.veh.launch((150 / 3.6) * 1.4);
-  d.traffic.add({ kind: "x", length: 4.5, width: 1.9, z: d.veh.z + 3, v: 20, lane: 2, v0: 20, T: 1.2, a: 1, b: 2, oncoming: false, politeness: 0.5, side: 0, phase: 0 });
+  d.traffic.add({ kind: "x", length: 4.5, width: 1.9, z: d.veh.z + 3, v: 20, lane: 2, v0: 20, T: 1.2, a: 1, b: 2, oncoming: false, politeness: 0.5, side: 0, phase: 0, cooldown: 2 });
   d.veh.x = laneX(ONE_WAY, 2) - 1.9 - 0.2; // beside its lane, 20 cm off: a Paint trader as it drops behind
   for (let i = 0; i < 60; i++) d.step(1 / 120, { throttle: 1, brake: 0, steer: 0 });
   expect(d.score.graded["Paint trader"]).toBe(1);
@@ -318,4 +318,22 @@ test("the line between two lanes is no lane: side by side, some pairs leave room
   }
   expect(open).toBeGreaterThan(0);
   expect(shut).toBeGreaterThan(0);
+});
+
+test("drivers decide on their own: cars placed together do not change lanes all at once", () => {
+  const size = { x: 1.8, z: 4.4 }, sizeOf = () => size;
+  let worst = 0;
+  for (const seed of [3, 4, 5]) {
+    const d = new Drive(ONE_WAY, CARS[0], NO_UP, size, 2.6, sizeOf, {}, { sprint: { seed, length: 9000, density: 0.8 } });
+    d.ghost = true;
+    const started: number[] = [];
+    const was = new Map<number, number>();
+    for (let i = 0; i < 120 * 90; i++) {
+      d.step(1 / 120, { throttle: 0.6, brake: 0, steer: 0 });
+      for (const n of d.traffic.cars) { if (n.signal && !was.get(n.id)) started.push(i / 120); was.set(n.id, n.signal); }
+    }
+    // the most signals switched on within any half second
+    for (const t of started) worst = Math.max(worst, started.filter((u) => u >= t && u < t + 0.5).length);
+  }
+  expect(worst).toBeLessThanOrEqual(3); // it was 6 when every car placed together waited the same 2 s
 });
