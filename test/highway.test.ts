@@ -327,3 +327,20 @@ test("a rolling start: the car cruises, nothing counts and nothing touches until
   expect(d.intro).toBe(0);
   expect(d.score.time).toBeCloseTo(0.9, 1);
 });
+
+test("a run's clone carries on exactly as the run does, and apart from it", () => {
+  const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
+  const drive = (i: number) => ({ throttle: 1, brake: 0, steer: Math.sin(i / 90) * 0.6 });
+  const a = new Drive(ONE_WAY, CARS[6], size, 2.6, sizeOf, {}, { sprint: { seed: 4, length: 9000, density: 0.7 } });
+  a.ghost = true;
+  for (let i = 0; i < 120 * 5; i++) a.step(1 / 120, drive(i));
+  const b = a.clone();
+  for (let i = 600; i < 120 * 10; i++) { a.step(1 / 120, drive(i)); b.step(1 / 120, drive(i)); }
+  expect([b.veh.z, b.score.points, b.surge]).toEqual([a.veh.z, a.score.points, a.surge]);
+  expect(b.traffic.cars.map((n) => [n.z, n.x])).toEqual(a.traffic.cars.map((n) => [n.z, n.x]));
+  // the copy goes its own way and leaves the run as it was
+  const was = JSON.stringify([a.veh, a.traffic.cars, a.score, a.director.planned]);
+  for (let i = 0; i < 120; i++) b.step(1 / 120, { throttle: 0, brake: 1, steer: 1 });
+  expect(JSON.stringify([a.veh, a.traffic.cars, a.score, a.director.planned])).toBe(was);
+  expect(b.veh.z).not.toBe(a.veh.z);
+});

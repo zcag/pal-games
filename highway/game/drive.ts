@@ -103,6 +103,18 @@ export class Drive {
     };
   }
 
+  /** A copy that runs on by itself (scripts/sprint.ts tries thousands a second): every bit of state copied, the car's
+   *  spec, the road's plan and the callbacks shared. */
+  clone(): Drive {
+    const c: Drive = Object.assign(Object.create(Drive.prototype), this);
+    c.veh = Object.assign(Object.create(Vehicle.prototype), this.veh);
+    c.traffic = Object.assign(Object.create(Traffic.prototype), this.traffic, { cars: this.traffic.cars.map((n) => ({ ...n, hit: n.hit && { ...n.hit } })) });
+    c.director = Object.assign(Object.create(Director.prototype), this.director, { planned: [...this.director.planned], spare: this.director.spare && { ...this.director.spare } });
+    c.score = Object.assign(Object.create(Score.prototype), this.score, { graded: { ...this.score.graded } });
+    c.spring = { ...this.spring };
+    return c;
+  }
+
   /** Carry on from `pack()`; the car and mode must be the ones it was packed with. */
   unpack(p: Packed) {
     Object.assign(this, p.drive);

@@ -188,6 +188,7 @@ async function sprintProps(sp: Sprint | null) {
   finishLine.scale.x = w;
   (finishLine.material.map as THREE.Texture).repeat.set(w / 2, 1);
   finishLine.position.set((world.lo + world.hi) / 2, 0.02, run.veh.z + sp.length * FEEL.pace);
+  finishLine.visible = !run.drive.intro; // a rolling start lays it at Go (atGo)
   world.scene.add(finishLine);
   if (sp.boss) {
     const line = await fetch(`./rivals/${sp.id}.json`).then((x) => (x.ok ? x.json() : null), () => null) as Ghost | null;
@@ -819,6 +820,17 @@ function resumeCount(dt: number) {
   r.render(world.scene, { speed: 0, hit: 0, dim: 0 });
 }
 
+/** Go: the distance counts from here, so the finish line, your ghost and the rival's line are laid from here too (they
+ *  were placed before the rolling start, about 100 m short). */
+function atGo() {
+  const sp = sprintNow();
+  if (!sp || !run) return;
+  z0 = run.veh.z;
+  finishLine.position.z = z0 + sp.length * FEEL.pace;
+  finishLine.visible = true;
+  recording = { x: [], z: [], yaw: [], time: 0 };
+}
+
 /** A rolling start's camera, over the chase view `chase.update` just set: round from the car's right side to behind
  *  it on an arc that keeps its distance, eased in and out; the count with it, Go at the end. */
 const aim = new THREE.Quaternion(), start = new THREE.Quaternion();
@@ -826,7 +838,7 @@ function rollingCamera(pose: { x: number; z: number }) {
   const left = run!.drive.intro, cam = r.camera;
   for (const [at, n] of [[1.65, "2"], [0.85, "1"]] as const) if (wasRolling > at && left <= at) { banner(n); sound.play("countdown_beep", { gain: 0.5 }); }
   if (wasRolling === ROLLING_START) { banner("3"); sound.play("countdown_beep", { gain: 0.5 }); }
-  if (wasRolling > 0 && left <= 0) { banner("Go"); sound.play("countdown_go", { gain: 0.6 }); }
+  if (wasRolling > 0 && left <= 0) { banner("Go"); sound.play("countdown_go", { gain: 0.6 }); atGo(); }
   wasRolling = left;
   if (left <= 0) return;
   const to = cam.position.clone();
@@ -870,17 +882,17 @@ function frame() {
     run.step(STEP, inp);
     acc -= STEP;
     // a Sprint's run, kept as a line through time: the ghost of a new best
-    if (recording && state === "run" && run.score.time >= recording.z.length * GHOST_DT) { const v = run.veh; recording.x.push(+v.x.toFixed(2)); recording.z.push(+(v.z - z0).toFixed(2)); recording.yaw.push(+v.yaw.toFixed(3)); }
+    if (recording && state === "run" && run.drive.intro <= 0 && run.score.time >= recording.z.length * GHOST_DT) { const v = run.veh; recording.x.push(+v.x.toFixed(2)); recording.z.push(+(v.z - z0).toFixed(2)); recording.yaw.push(+v.yaw.toFixed(3)); }
   }
   const live = state === "run" || state === "over", at = run.score.time + acc;
   // your best run's ghost, beside you; a duel's rival ahead or behind
   if (ghostCar) {
     const g = sprintNow() ? ghosts[sprintNow()!.id] : null;
-    ghostCar.root.visible = ghostOn && !!g && live && at < g.time + 1;
+    ghostCar.root.visible = ghostOn && !!g && live && run.drive.intro <= 0 && at < g.time + 1;
     if (g && ghostCar.root.visible) placeGhost(ghostCar, ghostAt(g, at), ghostMat, GHOST_OPACITY);
   }
   if (rival) {
-    rival.car.root.visible = live && at < rival.time + 2;
+    rival.car.root.visible = live && run.drive.intro <= 0 && at < rival.time + 2;
     if (rival.car.root.visible) placeGhost(rival.car, rivalAt(at), rivalMat, RIVAL_OPACITY);
   }
   const t1 = performance.now();
