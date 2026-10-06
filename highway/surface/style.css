@@ -212,3 +212,13 @@ button[data-key]:hover { background: rgba(255, 255, 255, 0.12); }
 .sprint-end .headline { flex-wrap: wrap; row-gap: 2px; }
 .sprint-end .headline .plate { white-space: nowrap; }
 .sprint-end .headline .standing { flex-basis: 100%; font-size: 12px; color: var(--dim); font-weight: 600; }
+/* a run's end fits the panel's height: the big stars, the lines and the star times kept tight */
+#card .sign:has(.sprint-end) { padding: 12px 18px 10px; max-height: calc(100vh - 16px); }
+.sprint-end .big .stars { font-size: 30px; margin: 0; }
+.sprint-end .why { margin: 0; }
+.sprint-end .reward { margin: 4px auto; padding: 4px 12px; font-size: 13px; }
+.sprint-end dl { margin: 4px auto 2px; gap: 0 18px; font-size: 12px; }
+.sprint-end .targets { margin-top: 6px; }
+.sprint-end .targets > div { padding: 3px 8px; }
+.sprint-end .targets b { font-size: 13px; }
+#card .sign:has(.sprint-end) .keys { margin-top: 6px; }

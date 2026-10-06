@@ -30,7 +30,13 @@ const r = new Renderer($("view") as HTMLCanvasElement);
 const world = new World(r.gl);
 const chase = new Chase(r.camera);
 const sound = new Sound();
-let garageScene: Garage | null = null;
+let garageScene: Garage | null = null, garageBuilt: Promise<void> | null = null;
+/** The garage, built once: its cars take a frame or more each to load, so this runs early, behind the map, where
+ *  nothing is drawn and a slow frame is never seen. */
+function buildGarage(focus: string) {
+  if (!garageBuilt) { garageScene = new Garage(r); garageScene.focus(focus, true); garageBuilt = garageScene.build(CARS.map(bayOf)); }
+  return garageBuilt;
+}
 let save: Save = fresh();
 let run: Run | null = null;
 let builtFor = "", warmedFor = ""; // the place the world was built for, and the one its traffic's shaders were made for
@@ -319,6 +325,7 @@ function openMap(at?: Sprint) {
   persist();
   sound.setEngine(null);
   showMap(mapView());
+  setTimeout(() => { if (state === "map") void buildGarage(pickFor(save, mapRegion)?.id ?? save.car); }, 1500);
 }
 onPick((id) => { if (state !== "map") return; if (save.stop === id) mapKey("enter"); else { save.stop = id; persist(); sound.play("ui_select", { gain: 0.4 }); showMap(mapView()); } });
 onRegion((i) => { if (state === "map") { mapRegion = i; save.stop = sprintsOf(i)[0].id; showMap(mapView()); } });
@@ -371,10 +378,11 @@ async function openGarage(focus?: string) {
   veil(true, "Opening the garage");
   browse = Math.max(0, CARS.findIndex((c) => c.id === (focus ?? pickFor(save, sprintOf(save.stop)?.region ?? 0)?.id ?? save.car)));
   row = 0;
-  // the bay looked at first is the first loaded, with its neighbours
-  if (!garageScene) { garageScene = new Garage(r); garageScene.focus(shownCar().id, true); await garageScene.build(CARS.map(bayOf)); }
-  else for (const c of CARS) if (!(bayOf(c).state === "owned" && !save.seen.includes(`car:${c.id}`))) garageScene.setState(c.id, bayOf(c).state);
-  garageScene.focus(shownCar().id, true);
+  // the bay looked at first is the first loaded, with its neighbours (unless the map built it already)
+  const early = !!garageBuilt;
+  await buildGarage(shownCar().id);
+  if (early) for (const c of CARS) if (!(bayOf(c).state === "owned" && !save.seen.includes(`car:${c.id}`))) garageScene!.setState(c.id, bayOf(c).state);
+  garageScene!.focus(shownCar().id, true);
   r.finish.cut = true;
   state = "garage";
   veil(false);
@@ -382,10 +390,10 @@ async function openGarage(focus?: string) {
   sound.setEngine(null);
   // a car won in a duel and not yet seen: it is revealed now
   for (const c of CARS) if (save.owned[c.id] && SPRINTS.some((s) => s.boss?.car === c.id) && !save.seen.includes(`car:${c.id}`)) {
-    browse = CARS.indexOf(c); garageScene.focus(c.id); drawGarage();
+    browse = CARS.indexOf(c); garageScene!.focus(c.id); drawGarage();
     save.seen.push(`car:${c.id}`); persist();
     sound.play("cash", { gain: 0.6 });
-    await garageScene.reveal(c.id);
+    await garageScene!.reveal(c.id);
     break;
   }
 }
@@ -921,7 +929,7 @@ async function startOver() {
   pal.storage.set("ghosts", {}).catch(() => undefined);
   ended = null; crashInfo = null;
   pal.storage.set("run", null).catch(() => undefined);
-  garageScene?.dispose(); garageScene = null;
+  garageScene?.dispose(); garageScene = null; garageBuilt = null;
   openMap();
   hint("Started over");
 }
