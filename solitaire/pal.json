@@ -103,7 +103,13 @@
       },
       {
         "file": "2-game.png",
-        "caption": "54 moves in: the cursor takes 4 cards of a run, the title line names them"
+        "caption": "54 moves in: the cursor takes 4 cards of a run, the title line names them",
+        "cover": [
+          173,
+          270,
+          730,
+          358
+        ]
       },
       {
         "file": "3-carry.png",

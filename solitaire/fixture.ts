@@ -66,7 +66,7 @@ try {
     palettes: { deal: palette(game.deal), carry: palette(carry), won: palette(won) },
     shots: {
       "1-deal": { palette: "deal", keys: ["wait:1200"], caption: "A fresh deal: the cursor on the stock, the moves, the time and the record beside the table" },
-      "2-game": { palette: "carry", keys: ["wait:1200"], caption: `${carry.moves} moves in: the cursor takes ${carry.depth} cards of a run, the title line names them` },
+      "2-game": { cover: [173, 270, 730, 358], palette: "carry", keys: ["wait:1200"], caption: `${carry.moves} moves in: the cursor takes ${carry.depth} cards of a run, the title line names them` },
       "3-carry": { palette: "carry", keys: ["wait:1000", "enter", "wait:800"], caption: "Enter picks the run up: it lifts, and the pile it can go on lights up" },
       "4-won": { palette: "won", keys: ["wait:1200"], caption: "Won: every card home, the moves and the time, Enter deals again" },
     },
