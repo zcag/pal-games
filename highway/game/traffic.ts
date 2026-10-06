@@ -17,6 +17,7 @@ export type Npc = {
   from: number; // the lane it is leaving; equal to lane when settled
   t: number; // 0..1 through a lane change
   x: number; // lateral position, filled by the road layout
+  side: number; phase: number; // where in its lane this driver keeps, m off the centre, and the slow drift about it
   v0: number; // the speed this driver wants
   T: number; // time gap it keeps, s
   a: number; b: number; // comfortable acceleration and braking

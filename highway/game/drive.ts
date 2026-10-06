@@ -42,6 +42,8 @@ export const INSET = 0.08, INSET_END = 0.1;
 /** Momentum: the combo pushes at most this share past the top speed, with this much acceleration (m/s², on the dial),
  *  and once it breaks the push fades this many km/h a second. */
 const SURGE_MAX = 0.15, SURGE_PUSH = 6, SURGE_FADE = 20;
+/** How far off its lane's centre a driver keeps (at most, m), and how far it drifts about that. */
+const SIDE = 0.33, DRIFT = 0.12;
 /** Time Attack's checkpoints are this far apart on the dial, m. */
 const CHECKPOINT_M = 2500;
 
@@ -185,7 +187,8 @@ export class Drive {
         const kind = s.heavy ? this.pickKind(true, r) : this.pickKind(r() < 0.12, r);
         const size = this.sizeOf(kind.id);
         if (!size) continue;
-        this.traffic.add({ kind: kind.id, length: size.z, width: size.x, z: row.z + s.dz, v: s.v0, lane: s.lane, v0: s.v0, T: 1.1 + r() * 0.6, a: kind.heavy ? 0.8 : 1.4, b: 2.5, oncoming: s.oncoming, politeness: 0.3 + r() * 0.4 });
+        this.traffic.add({ kind: kind.id, length: size.z, width: size.x, z: row.z + s.dz, v: s.v0, lane: s.lane, v0: s.v0, T: 1.1 + r() * 0.6, a: kind.heavy ? 0.8 : 1.4, b: 2.5, oncoming: s.oncoming, politeness: 0.3 + r() * 0.4,
+          side: (r() * 2 - 1) * SIDE, phase: r() * Math.PI * 2 });
       }
     }
     const lp = this.lanePos();
@@ -193,7 +196,9 @@ export class Drive {
     for (const n of this.traffic.cars) {
       if (n.hit) continue;
       const at = (l: number) => (n.oncoming ? oncomingX(L, l) : laneX(L, l));
-      n.x = at(n.from) + (at(n.lane) - at(n.from)) * crossing(n);
+      // nobody drives dead centre: each keeps to its own side of its lane and drifts about it, so the line between two
+      // lanes is open between some pairs and shut between others, never a lane of its own
+      n.x = at(n.from) + (at(n.lane) - at(n.from)) * crossing(n) + n.side + DRIFT * Math.sin(this.score.time * 0.35 + n.phase);
     }
 
     // passing: near misses and the whoosh

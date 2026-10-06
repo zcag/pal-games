@@ -4,7 +4,8 @@ import { Director } from "../highway/game/director.ts";
 import { Score } from "../highway/game/score.ts";
 import { CARS, FEEL, MODES, spec, upgradeCost } from "../highway/game/content.ts";
 import { Drive } from "../highway/game/drive.ts";
-import { ONE_WAY, edges, laneX, RAIL } from "../highway/game/layout.ts";
+import { ONE_WAY, edges, laneX, RAIL, LANE_W } from "../highway/game/layout.ts";
+import { steerToward } from "../highway/game/bot.ts";
 import { SPRINTS, starTimes, starsFor, ghostTimeAt, ghostAt, GHOST_DT } from "../highway/game/sprint.ts";
 import { fresh, buyCar, buyUpgrade, load, stored, pickFor, finishSprintRun, finishFree, type Save } from "../highway/game/meta.ts";
 import { REGIONS, BOSS_STARS, sprintsOf, rivalTime } from "../highway/game/sprint.ts";
@@ -283,7 +284,7 @@ test("a near miss adds to the surge by how close it was, up to a quarter of the 
   const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
   const d = new Drive(ONE_WAY, CARS[0], NO_UP, size, 2.6, sizeOf, {}, { seed: 2 });
   d.veh.launch((150 / 3.6) * 1.4);
-  d.traffic.add({ kind: "x", length: 4.5, width: 1.9, z: d.veh.z + 3, v: 20, lane: 2, v0: 20, T: 1.2, a: 1, b: 2, oncoming: false, politeness: 0.5 });
+  d.traffic.add({ kind: "x", length: 4.5, width: 1.9, z: d.veh.z + 3, v: 20, lane: 2, v0: 20, T: 1.2, a: 1, b: 2, oncoming: false, politeness: 0.5, side: 0, phase: 0 });
   d.veh.x = laneX(ONE_WAY, 2) - 1.9 - 0.2; // beside its lane, 20 cm off: a Paint trader as it drops behind
   for (let i = 0; i < 60; i++) d.step(1 / 120, { throttle: 1, brake: 0, steer: 0 });
   expect(d.score.graded["Paint trader"]).toBe(1);
@@ -299,4 +300,23 @@ test("a save from before the road trip keeps its cars and cash, pays nitro level
   expect(s.sprints).toEqual({});
   expect("level" in s || "missions" in s).toBe(false);
   expect(load(stored(s)).cash).toBe(s.cash); // once
+});
+
+test("the line between two lanes is no lane: side by side, some pairs leave room for a car and some do not", () => {
+  const size = { x: 1.6, z: 3.6 }, sizeOf = () => ({ x: 1.8, z: 4.4 });
+  const d = new Drive(ONE_WAY, CARS[0], NO_UP, size, 2.2, sizeOf, {}, { sprint: { seed: 11, length: 9000, density: 0.6 } });
+  d.ghost = true; // nothing touches: only the traffic is watched
+  const fits = size.x - 0.16; // what the Compact needs between two bodies (its collision outline)
+  let open = 0, shut = 0;
+  for (let i = 0; i < 120 * 60; i++) {
+    d.step(1 / 120, { throttle: 1, brake: 0, steer: 0 });
+    if (i % 30) continue;
+    const cars = d.traffic.cars.filter((n) => !n.oncoming && n.from === n.lane);
+    for (const a of cars) for (const b of cars) if (b.lane === a.lane + 1 && Math.abs(a.z - b.z) < 3) {
+      const room = Math.abs(b.x - a.x) - (a.width + b.width) / 2;
+      if (room >= fits) open++; else shut++;
+    }
+  }
+  expect(open).toBeGreaterThan(0);
+  expect(shut).toBeGreaterThan(0);
 });
