@@ -250,6 +250,7 @@ function onKey(k: string) {
   if (state === "free") { freeKey(k); return; }
   // a Sprint is tried again at once, from anywhere in it
   if (k === "r" && trip && (state === "run" || state === "paused" || state === "over" || state === "results")) { drive(); return; }
+  if (state === "run" && intro > 0) { intro = Math.min(intro, 0.001); return; }
   if (state === "run") {
     if (k === "c") { chase.view = (chase.view + 1) % VIEWS.length; save.settings.view = VIEWS[chase.view].name; persist(); hint(`${VIEWS[chase.view].name} view`); }
     if (k === "p" || k === "enter") pause();
@@ -555,6 +556,10 @@ function hideSigns() { for (const id of ["garage", "free", "card", "hud"]) $(id)
 // ---------------------------------------------------------------- the run
 
 let musicOn = false;
+/** A run's opening: the road holds still while the camera comes round from beside the car to behind it, counting down;
+ *  the clock starts at Go. Any key skips it. `intro` is the seconds left of it. */
+const INTRO = 2;
+let intro = 0;
 /** Start a run: the trip's Sprint, else Free Drive. The last frame stays up until the run is ready, then it cuts to it;
  *  `prep` runs on the new run before its first frame (a kept run unpacked into it). */
 async function drive(prep?: () => void) {
@@ -570,6 +575,7 @@ async function drive(prep?: () => void) {
     prep?.();
     chase.reset(run!.pose);
     state = "run";
+    intro = prep || scene ? 0 : INTRO;
     hud();
     $("hud").hidden = false;
   });
@@ -705,6 +711,7 @@ function pop(html: string, cls = "") {
   while ($("pops").children.length > 3) $("pops").firstElementChild!.remove();
 }
 function banner(text: string) {
+  for (const old of document.querySelectorAll(".banner")) old.remove();
   const el = document.createElement("div");
   el.className = "banner";
   el.textContent = text;
@@ -797,6 +804,34 @@ function autopilot(target = 108, bold = false): Input {
   return { throttle: !boxed && v.kmh / FEEL.pace < target ? 1 : 0, brake: boxed ? 1 : 0, steer };
 }
 
+/** One frame of a run's opening: the camera from low beside the car's nose round to its chase view, a beep a half
+ *  second, Go at the end. Nothing on the road moves. */
+const from = new THREE.Vector3(), aim = new THREE.Quaternion(), start = new THREE.Quaternion();
+function opening(dt: number) {
+  const before = intro;
+  intro = Math.max(0, intro - dt);
+  run!.draw(0, 1);
+  const pose = run!.pose, cam = r.camera;
+  chase.update(dt, pose, (world.lo + world.hi) / 2); // where the camera ends up
+  const to = cam.position.clone();
+  aim.copy(cam.quaternion);
+  // round the car on an arc, from in front of it on the right to where the chase view sits, never cutting past it
+  const end = { a: Math.atan2(to.x - pose.x, to.z - pose.z), d: Math.hypot(to.x - pose.x, to.z - pose.z), h: to.y };
+  const k = 1 - intro / INTRO, e = k * k * (3 - 2 * k);
+  const a0 = 0.6, a1 = end.a < a0 ? end.a + Math.PI * 2 : end.a;
+  const ang = a0 + (a1 - a0) * e, dist = 7 + (end.d - 7) * e, h = 1.0 + (end.h - 1.0) * e;
+  from.set(pose.x + 7 * Math.sin(a0), 1.0, pose.z + 7 * Math.cos(a0));
+  cam.position.copy(from);
+  cam.lookAt(pose.x, 0.8, pose.z);
+  start.copy(cam.quaternion);
+  cam.position.set(pose.x + dist * Math.sin(ang), h, pose.z + dist * Math.cos(ang));
+  cam.quaternion.slerpQuaternions(start, aim, e);
+  for (const at of [1.5, 1.0, 0.5]) if (before > at && intro <= at) { banner(String(Math.round(at * 2))); sound.play("countdown_beep", { gain: 0.5 }); }
+  if (intro <= 0) { banner("Go"); sound.play("countdown_go", { gain: 0.6 }); last = performance.now(); }
+  hud();
+  r.render(world.scene, { speed: 0, hit: 0, dim: 0 });
+}
+
 /** A ghost car to where its line is `time` s in, fading as it nears your car. */
 function placeGhost(car: Car, p: { x: number; z: number; yaw: number }, mat: THREE.MeshBasicMaterial, full: number) {
   car.root.position.set(p.x, 0, z0 + p.z);
@@ -814,6 +849,7 @@ function frame() {
   if (state === "garage") { garageScene?.frame(dt); drawTags(); return; }
   if (!run) return;
   if (state === "paused") { r.render(world.scene, { dim: 0.35 }); return; }
+  if (state === "run" && intro > 0) { opening(dt); return; }
   if (slowmo > 0) { slowmo -= dt; dt *= 0.25; if (slowmo <= 0 && state === "over") results(); }
   t += dt;
   acc += dt;
