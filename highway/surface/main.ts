@@ -160,7 +160,11 @@ const finishLine = (() => {
   m.receiveShadow = true;
   return m;
 })();
-const ghostMat = new THREE.MeshStandardMaterial({ color: 0xbfe3ff, transparent: true, opacity: 0.32, depthWrite: false, roughness: 0.4, metalness: 0.2 });
+/** The ghost: unlit and faint, so it reads as a line to follow and never as a car on the road; `GHOST_OPACITY` at
+ *  a distance, fading out as it comes within a few car lengths of yours. */
+const GHOST_OPACITY = 0.12;
+let ghostOn = true; // pal's Ghost setting
+const ghostMat = new THREE.MeshBasicMaterial({ color: 0x8fb8ff, transparent: true, opacity: GHOST_OPACITY, depthWrite: false });
 
 /** Put a Sprint's finish line and its ghost car in the world, or take them out. */
 async function sprintProps(sp: Sprint | null) {
@@ -175,7 +179,7 @@ async function sprintProps(sp: Sprint | null) {
   if (!ghostCar) {
     ghostCar = await Car.load(sp.car, "#ffffff", { shadow: false });
     ghostFor = sp.car;
-    ghostCar.root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.material = ghostMat; m.castShadow = false; m.receiveShadow = false; } });
+    ghostCar.ghost(ghostMat);
   }
   ghostCar.root.visible = false;
   world.scene.add(ghostCar.root);
@@ -744,8 +748,14 @@ function frame() {
   // your best run's ghost, beside you
   if (ghostCar) {
     const g = run.drive.sprint && sprintNow() ? ghosts[sprintNow()!.id] : null;
-    ghostCar.root.visible = !!g && (state === "run" || state === "over") && run.score.time < g.time + 1;
-    if (g && ghostCar.root.visible) { const p = ghostAt(g, run.score.time + (acc / STEP) * STEP); ghostCar.root.position.set(p.x, 0, z0 + p.z); ghostCar.root.rotation.y = p.yaw * FEEL.yaw; }
+    ghostCar.root.visible = ghostOn && !!g && (state === "run" || state === "over") && run.score.time < g.time + 1;
+    if (g && ghostCar.root.visible) {
+      const p = ghostAt(g, run.score.time + (acc / STEP) * STEP);
+      ghostCar.root.position.set(p.x, 0, z0 + p.z);
+      ghostCar.root.rotation.y = p.yaw * FEEL.yaw;
+      const near = Math.hypot(p.x - run.veh.x, z0 + p.z - run.veh.z);
+      ghostMat.opacity = GHOST_OPACITY * THREE.MathUtils.clamp((near - 5) / 15, 0, 1);
+    }
   }
   const t1 = performance.now();
   run.draw(dt, acc / STEP);
@@ -827,7 +837,10 @@ pal.storage.onChange((k, v) => {
   fillMissions(save);
   if (state === "garage") drawGarage();
 });
-pal.onSettings((s: Record<string, unknown>) => { if (typeof s.volume === "number") { save.settings.sound = s.volume / 100; sound.setVolume(muted ? 0 : save.settings.sound); } });
+pal.onSettings((s: Record<string, unknown>) => {
+  if (typeof s.volume === "number") { save.settings.sound = s.volume / 100; sound.setVolume(muted ? 0 : save.settings.sound); }
+  if (typeof s.ghost === "boolean") ghostOn = s.ghost;
+});
 
 // `?dev`: the page's state on window.hw, so a headless check can look inside
 if (q.has("dev")) Object.assign(window, { hw: { get run() { return run; }, get save() { return save; }, get state() { return state; }, get camera() { return r.camera; }, get world() { return world; }, r, THREE } });
@@ -876,6 +889,7 @@ async function stage(sc: Scene) {
   }
   const settings = (await pal.settings().catch(() => ({}))) as Record<string, unknown>;
   if (typeof settings.volume === "number") save.settings.sound = settings.volume / 100;
+  if (typeof settings.ghost === "boolean") ghostOn = settings.ghost;
   sound.volume = save.settings.sound;
   names = new Map((await fetch("./cars/cars.json").then((x) => x.json())).map((c: { id: string; name: string }) => [c.id, c.name]));
   browse = CARS.findIndex((c) => c.id === save.car);

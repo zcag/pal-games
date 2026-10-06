@@ -24,6 +24,13 @@
       "unit": "%",
       "slider": true,
       "default": 80
+    },
+    {
+      "id": "ghost",
+      "label": "Ghost",
+      "kind": "boolean",
+      "text": "Your best Sprint run drives beside you, faintly",
+      "default": true
     }
   ],
   "sync": {

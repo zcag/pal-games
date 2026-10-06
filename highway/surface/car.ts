@@ -358,6 +358,7 @@ export class Car {
   /** What it casts into the shadow map (shadow.ts). */
   shapes: THREE.Mesh[] = [];
   private beams: THREE.Mesh[] = [];
+  private blob: THREE.Mesh | null = null;
   /** Paint and windows: what mirrors the world (Reflections). */
   private shiny: THREE.MeshStandardMaterial[] = [];
   /** Each lamp's light (lampMaterial), and each wheel's and caliper's turn (wheelMaterial). */
@@ -510,6 +511,7 @@ export class Car {
     blob.position.y = 0.025;
     blob.renderOrder = -1;
     this.root.add(blob);
+    this.blob = blob;
     const fronts = this.wheels.filter((w) => w.front), rears = this.wheels.filter((w) => !w.front);
     if (fronts.length && rears.length) {
       this.wheelbase = fronts[0].pivot.position.z - rears[0].pivot.position.z;
@@ -552,6 +554,17 @@ export class Car {
 
   /** Mirror a cube of the world (Reflections) instead of the sky photo, or the photo again (null). */
   reflect(env: THREE.Texture | null) { for (const m of this.shiny) m.envMap = env; }
+
+  /** Make this a ghost (a Sprint's best run): every part one see-through material, and nothing a real car has
+   *  beyond its body: no contact patch under it, no shadow, no headlamp cones, no part in the reflections. */
+  ghost(mat: THREE.Material) {
+    cars.delete(this);
+    for (const s of this.shapes) { shadowOnly.delete(s); s.removeFromParent(); }
+    for (const b of this.beams) b.removeFromParent();
+    this.shapes = []; this.beams = [];
+    this.blob?.removeFromParent();
+    this.root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.material = mat; m.castShadow = m.receiveShadow = false; m.renderOrder = 3; } });
+  }
 
   dispose() { this.root.removeFromParent(); cars.delete(this); for (const s of this.shapes) shadowOnly.delete(s); }
 }
