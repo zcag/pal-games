@@ -3,7 +3,7 @@ import { Vehicle } from "../highway/game/vehicle.ts";
 import { Director } from "../highway/game/director.ts";
 import { Score } from "../highway/game/score.ts";
 import { CARS, FEEL, MODES, spec, upgradeCost } from "../highway/game/content.ts";
-import { Drive } from "../highway/game/drive.ts";
+import { Drive, ROLLING_START } from "../highway/game/drive.ts";
 import { ONE_WAY, edges, laneX, RAIL } from "../highway/game/layout.ts";
 import { SPRINTS, starTimes, starsFor, ghostTimeAt, ghostAt, GHOST_DT } from "../highway/game/sprint.ts";
 import { fresh, buyCar, buyUpgrade, load, stored, pickFor, finishSprintRun, finishFree, type Save } from "../highway/game/meta.ts";
@@ -336,4 +336,17 @@ test("drivers decide on their own: cars placed together do not change lanes all 
     for (const t of started) worst = Math.max(worst, started.filter((u) => u >= t && u < t + 0.5).length);
   }
   expect(worst).toBeLessThanOrEqual(3); // it was 6 when every car placed together waited the same 2 s
+});
+
+test("a rolling start: the car cruises, nothing counts and nothing touches until it ends, then the clock runs", () => {
+  const size = { x: 1.8, z: 4.4 }, sizeOf = () => size;
+  const d = new Drive(ONE_WAY, CARS[0], NO_UP, size, 2.6, sizeOf, {}, { sprint: { seed: 9, length: 3000, density: 0.9 }, intro: ROLLING_START });
+  const z = d.veh.z;
+  for (let i = 0; i < 120 * (ROLLING_START - 0.1); i++) d.step(1 / 120, { throttle: 0, brake: 1, steer: 1 }); // the keys are ignored
+  expect([d.score.time, d.score.distance, d.over]).toEqual([0, 0, false]);
+  expect(d.veh.z - z).toBeGreaterThan(80); // it kept going
+  expect(d.kmh).toBeGreaterThan(95);
+  for (let i = 0; i < 120; i++) d.step(1 / 120, { throttle: 1, brake: 0, steer: 0 });
+  expect(d.intro).toBe(0);
+  expect(d.score.time).toBeCloseTo(0.9, 1);
 });

@@ -10,7 +10,7 @@
 // drives: --ghosts writes them to surface/rivals/<id>.json.
 //   bun highway/scripts/sprint.ts [ids..|--region N] [--beam 150] [--workers 8] [--json out.json] [--ghosts]
 import { Worker, isMainThread, parentPort } from "node:worker_threads";
-import { Drive } from "../game/drive.ts";
+import { Drive, ROLLING_START } from "../game/drive.ts";
 import { steerToward } from "../game/bot.ts";
 import { CARS, FEEL } from "../game/content.ts";
 import { edges } from "../game/layout.ts";
@@ -28,7 +28,7 @@ type Node = { d: Drive; slot: number; value: number; trace: Trace; samples: numb
 
 function make(s: Sprint) {
   const car = CARS.find((c) => c.id === s.car)!, size = sizes.get(car.id)!;
-  return new Drive(s.layout, car, s.up, size, size.z * 0.58, (id) => sizes.get(id), {}, { sprint: { seed: s.seed, length: s.length, density: s.density } });
+  return new Drive(s.layout, car, s.up, size, size.z * 0.58, (id) => sizes.get(id), {}, { sprint: { seed: s.seed, length: s.length, density: s.density }, intro: ROLLING_START });
 }
 function clone(s: Sprint, d: Drive) { const c = make(s); c.unpack(d.pack()); return c; }
 
@@ -37,6 +37,7 @@ function search(s: Sprint, beam: number) {
   const d0 = make(s), [lo, hi] = edges(s.layout);
   const half = d0.size.x / 2 + 0.2, slots = Math.floor((hi - lo - 2 * half) / GRID);
   const xOf = (i: number) => lo + half + i * GRID;
+  while (d0.intro > 0) d0.step(DT, { throttle: 0, brake: 0, steer: 0 }); // the rolling start, as a player gets it
   const z0 = d0.veh.z;
   let nodes: Node[] = [{ d: d0, slot: Math.round((d0.veh.x - lo - half) / GRID), value: 0, trace: { up: null, x: [], z: [], yaw: [] }, samples: 0 }];
   let best: { time: number; node: Node } | null = null;

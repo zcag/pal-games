@@ -42,6 +42,9 @@ export const INSET = 0.08, INSET_END = 0.1;
 /** Momentum: the combo pushes at most this share past the top speed, with this much acceleration (m/s², on the dial),
  *  and once it breaks the push fades this many km/h a second. */
 const SURGE_MAX = 0.15, SURGE_PUSH = 6, SURGE_FADE = 20;
+/** The speed every run starts at, km/h on the dial, and how long its rolling start lasts, s. */
+const START_KMH = 100;
+export const ROLLING_START = 2.5;
 /** How far off its lane's centre a driver keeps (at most, m), and how far it drifts about that. */
 const SIDE = 0.33, DRIFT = 0.12;
 /** Time Attack's checkpoints are this far apart on the dial, m. */
@@ -59,6 +62,9 @@ export class Drive {
   scraping = 0;
   ended: End | null = null;
   ghost = false; // nothing touches: a staged scene for the store's pictures
+  /** A rolling start, s left of it: the car holds its lane and its starting speed while the traffic flows, nothing
+   *  counts and nothing touches; the clock and the distance start when it ends. The same for everyone, the search too. */
+  intro = 0;
   /** Momentum: km/h past the top speed the combo is worth; it holds while the combo lives and fades once it breaks. */
   surge = 0;
   // Time Attack: the clock and the next checkpoint (m on the dial); Speed Trap: the floor and time under it
@@ -71,13 +77,14 @@ export class Drive {
   private pace = FEEL.pace; // the pace the car's physics were made at
 
   constructor(public layout: Layout, public car: PlayerCar, public up: Upgrades, public size: Size, wheelbase: number,
-    private sizeOf: (id: string) => Size | undefined, public events: DriveEvents = {}, o: { density?: number; seed?: number; mode?: ModeId; sprint?: SprintRoad } = {}) {
+    private sizeOf: (id: string) => Size | undefined, public events: DriveEvents = {}, o: { density?: number; seed?: number; mode?: ModeId; sprint?: SprintRoad; intro?: number } = {}) {
+    this.intro = o.intro ?? 0;
     this.mode = o.mode ?? "endless";
     this.sprint = o.sprint ?? null;
     this.seed = o.seed ?? Math.floor(Math.random() * 2147483646) + 1;
     this.veh = new Vehicle(spec(car, up, wheelbase));
     this.veh.x = laneX(layout, Math.min(1, layout.lanes - 1));
-    this.veh.launch((100 / 3.6) * FEEL.pace);
+    this.veh.launch((START_KMH / 3.6) * FEEL.pace);
     this.traffic = new Traffic(layout.lanes, layout.oncoming);
     // a Sprint plans its rows as far ahead as the car can see at its fastest, so every speed meets the same road
     const course: Course | undefined = this.sprint ? { seed: this.sprint.seed, density: this.sprint.density, reach: Math.max(320, (this.veh.spec.top ?? 60) * 1.25 * 7) } : undefined;
@@ -191,6 +198,8 @@ export class Drive {
   step(dt: number, input: Input) {
     const v = this.veh, L = this.layout, ev = this.events;
     if (this.over) input = { throttle: 0, brake: 0.3, steer: 0 };
+    const rolling = this.intro > 0;
+    if (rolling) { this.intro = Math.max(0, this.intro - dt); input = { throttle: this.kmh < START_KMH ? 1 : 0, brake: 0, steer: 0 }; }
     // momentum: the combo's surge pushes the car on past its top speed; a broken combo lets it fade
     if (!this.score.combo || this.over) this.surge = Math.max(0, this.surge - SURGE_FADE * dt);
     v.over = (this.surge / 3.6) * FEEL.pace;
@@ -225,7 +234,7 @@ export class Drive {
       const closing = v.u - (n.oncoming ? -n.v : n.v);
       const side = n.x > v.x ? -1 : 1; // -1: it went by on the left of the screen
       ev.pass?.(n, gap, closing, side);
-      if (this.over) continue;
+      if (this.over || rolling) continue;
       const m = this.score.pass(gap, kmh, n.oncoming || lp.oncoming);
       if (m) {
         this.surge = Math.min(this.surgeMax, this.surge + m.grade.surge + (m.double ? DOUBLE_SURGE : 0));
@@ -234,7 +243,7 @@ export class Drive {
     }
 
     // contact (none for a staged run, which plays on while a picture is taken)
-    if (!this.ghost) for (const n of this.traffic.cars) {
+    if (!this.ghost && !rolling) for (const n of this.traffic.cars) {
       // the cars as they are drawn: the player turned FEEL.yaw of its heading, the traffic into its lane change
       const nyaw = heading(n, (l) => (n.oncoming ? oncomingX(L, l) : laneX(L, l)));
       const c = collide({ x: v.x, z: v.z, yaw: v.yaw * FEEL.yaw, ...this.outline(this.size) }, { x: n.x, z: n.z, yaw: nyaw, ...this.outline(this.sizeOf(n.kind) ?? { x: n.width, z: n.length }) });
@@ -270,7 +279,7 @@ export class Drive {
     sp.pitchV += ((pitchT - sp.pitch) * 120 - sp.pitchV * 11) * dt; sp.pitch += sp.pitchV * dt;
     sp.rollV += ((rollT - sp.roll) * 110 - sp.rollV * 10) * dt; sp.roll += sp.rollV * dt;
 
-    if (this.over) return;
+    if (this.over || rolling) return;
     this.score.tick(dt, kmh, lp.oncoming);
 
     // the modes' own rules

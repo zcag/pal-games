@@ -66,8 +66,8 @@ export class Run {
   pose = { x: 0, z: 0, yaw: 0, u: 0, ax: 0, delta: 0 };
   private prev = { x: 0, z: 0, yaw: 0 };
 
-  constructor(public world: World, public layout: Layout, public player: Car, car: PlayerCar, up: Upgrades, events: DriveEvents, density = 1, mode: ModeId = "endless", sprint?: SprintRoad) {
-    this.drive = new Drive(layout, car, up, player.footprint, player.wheelbase, (id) => sizes.get(id), events, { density, mode, sprint });
+  constructor(public world: World, public layout: Layout, public player: Car, car: PlayerCar, up: Upgrades, events: DriveEvents, density = 1, mode: ModeId = "endless", sprint?: SprintRoad, intro = 0) {
+    this.drive = new Drive(layout, car, up, player.footprint, player.wheelbase, (id) => sizes.get(id), events, { density, mode, sprint, intro });
     world.scene.add(player.root);
     this.headlights();
     this.settle();

@@ -17,7 +17,7 @@ import { ONE_WAY, TWO_WAY, laneX, type Layout } from "../game/layout.ts";
 import { CARS, LOCATIONS, MODES, PAINTS, UPGRADE_MAX, FEEL, topOf, upgradeCost, stats, classOf, type PlayerCar, type Upgrades, type Location } from "../game/content.ts";
 import { load, stored, fresh, carOf, buyCar, buyUpgrade, paint, places, pickFor, forSale, finishSprintRun, finishFree, countRun, NO_UP, type Save, type Scene, type FreeResult } from "../game/meta.ts";
 import type { Miss } from "../game/score.ts";
-import type { End, Packed } from "../game/drive.ts";
+import { ROLLING_START, type End, type Packed } from "../game/drive.ts";
 import { acrossAt, type Input } from "../game/vehicle.ts";
 import { REGIONS, SPRINTS, BOSS_STARS, sprintOf, sprintsOf, starTimes, rivalTime, clock, GHOST_DT, ghostAt, ghostTimeAt, type Ghost, type Sprint } from "../game/sprint.ts";
 import { FINISH_PAY, STAR_PAY, bossOf, closed, nextStop, regionOfCar, regionOpen, starsIn, starsOf, totalStars, type SprintPay } from "../game/trip.ts";
@@ -68,7 +68,7 @@ const sprintNow = () => trip?.sprint ?? null;
 
 /** Put a car on the road (building the place first if it changed); `ready` runs once it is placed, before any frame of it is shown.
  *  `demo`: Free Drive's page, the car driving itself behind the sign. */
-async function road(demo: boolean, ready?: () => void) {
+async function road(demo: boolean, ready?: () => void, intro = 0) {
   const sp = demo ? null : sprintNow();
   const loc: Location = placeOf(sp?.location ?? save.location);
   const layout: Layout = sp?.layout ?? layoutOf(save.mode);
@@ -85,7 +85,7 @@ async function road(demo: boolean, ready?: () => void) {
   const owned = save.owned[car.id];
   const player = await Car.load(car.id, owned?.paint ?? car.paint);
   run = new Run(world, layout, player, car, owned?.upgrades ?? NO_UP, events, loc.density, demo || sp ? "endless" : save.mode,
-    sp ? { seed: sp.seed, length: sp.length, density: sp.density } : undefined);
+    sp ? { seed: sp.seed, length: sp.length, density: sp.density } : undefined, intro);
   if (demo) run.veh.launch((105 / 3.6) * FEEL.pace);
   run.settle();
   await sprintProps(sp);
@@ -256,7 +256,8 @@ function onKey(k: string) {
   if (state === "free") { freeKey(k); return; }
   // a Sprint is tried again at once, from anywhere in it
   if (k === "r" && trip && (state === "run" || state === "paused" || state === "over" || state === "results")) { drive(); return; }
-  if (state === "run" && intro > 0) { intro = Math.min(intro, 0.001); return; }
+  if (state === "run" && run && run.drive.intro > 0 && k !== "p") { while (run.drive.intro > 0) run.step(STEP, input()); run.settle(); return; }
+  if (state === "run" && resuming > 0 && k !== "p") { resuming = Math.min(resuming, 0.001); return; }
   if (state === "run") {
     if (k === "c") { chase.view = (chase.view + 1) % VIEWS.length; save.settings.view = VIEWS[chase.view].name; persist(); hint(`${VIEWS[chase.view].name} view`); }
     if (k === "p" || k === "enter") pause();
@@ -564,10 +565,10 @@ function hideSigns() { for (const id of ["garage", "free", "card", "hud"]) $(id)
 // ---------------------------------------------------------------- the run
 
 let musicOn = false;
-/** A run's opening: the road holds still while the camera comes round from beside the car to behind it, counting down;
- *  the clock starts at Go. Any key skips it. `intro` is the seconds left of it. */
-const INTRO = 2;
-let intro = 0;
+/** A run's opening is its rolling start (game/drive.ts): the car cruises in its lane while the camera comes round from
+ *  its side to behind it over a count of 3; the clock starts at Go. A key fast-forwards it, so the road at Go is the
+ *  same either way. Coming back from a pause counts 3, 2, 1 over the still road (`resuming`, s left of it). */
+let resuming = 0, wasRolling = 0;
 /** Start a run: the trip's Sprint, else Free Drive. The last frame stays up until the run is ready, then it cuts to it;
  *  `prep` runs on the new run before its first frame (a kept run unpacked into it). */
 async function drive(prep?: () => void) {
@@ -583,17 +584,16 @@ async function drive(prep?: () => void) {
     prep?.();
     chase.reset(run!.pose);
     state = "run";
-    intro = prep || scene ? 0 : INTRO;
+    wasRolling = run!.drive.intro;
     hud();
     $("hud").hidden = false;
-  });
+  }, prep || scene ? 0 : ROLLING_START);
   sound.setEngine(car.engine);
   if (!musicOn) { musicOn = true; sound.playMusic(); }
   $("unit").textContent = unit();
   if (sp) {
     recording = { x: [], z: [], yaw: [], time: 0 };
     z0 = run!.veh.z;
-    banner(sp.boss ? `${sp.boss.rival}` : sp.name);
     $("modebox").hidden = false;
     hint(sp.boss ? `Beat ${sp.boss.rival} to the line` : save.sprints[sp.id] ? "" : save.totals.runs < 2 ? "Arrows to drive. Chain near misses to go past your top speed; R tries again" : "");
     return;
@@ -612,7 +612,7 @@ function pause() {
   card(`<h2>Paused</h2><div class="why">${!run ? "" : sp ? `${clock(run.score.time)}, ${(run.drive.toLine / 1000).toFixed(1)} km to go` : `${Math.round(run.score.points).toLocaleString("en-US")} points so far`}</div>
     <div class="keys" style="margin-top:12px"><button data-key="enter"><kbd>enter</kbd> carry on</button>${sp ? `<button data-key="r"><kbd>r</kbd> try again</button>` : ""}<button data-key="q"><kbd>q</kbd> ${sp ? "back to the map" : "end the run"}</button></div>`);
 }
-function resume() { state = "run"; $("card").hidden = true; sound.start(); last = performance.now(); }
+function resume() { state = "run"; resuming = 1.5; wasRolling = 0; $("card").hidden = true; sound.start(); last = performance.now(); banner("3"); sound.play("countdown_beep", { gain: 0.5 }); }
 function giveUp() { if (trip) { if (run) { countRun(save, run.score); persist(); } openMap(trip.sprint); } else if (run) { crashInfo = null; results(); } }
 
 function results() {
@@ -812,34 +812,37 @@ function autopilot(target = 108, bold = false): Input {
   return { throttle: !boxed && v.kmh / FEEL.pace < target ? 1 : 0, brake: boxed ? 1 : 0, steer };
 }
 
-/** One frame of a run's opening: the camera from low beside the car's nose round to its chase view, a beep a half
- *  second, Go at the end. Nothing on the road moves. */
-const from = new THREE.Vector3(), aim = new THREE.Quaternion(), start = new THREE.Quaternion();
-function opening(dt: number) {
-  const before = intro;
-  intro = Math.max(0, intro - dt);
-  run!.draw(0, 1);
-  const pose = run!.pose, cam = r.camera;
-  world.follow(pose.z); // what is drawn, and the land streamed, follow the camera as it swings round
-  chase.update(dt, pose, (world.lo + world.hi) / 2); // where the camera ends up
+/** Count 3, 2, 1 over the still road after a pause, then Go. */
+function resumeCount(dt: number) {
+  const before = resuming;
+  resuming = Math.max(0, resuming - dt);
+  for (const at of [1.0, 0.5]) if (before > at && resuming <= at) { banner(String(Math.round(at * 2))); sound.play("countdown_beep", { gain: 0.5 }); }
+  if (resuming <= 0) { banner("Go"); sound.play("countdown_go", { gain: 0.6 }); last = performance.now(); }
+  r.render(world.scene, { speed: 0, hit: 0, dim: 0 });
+}
+
+/** A rolling start's camera, over the chase view `chase.update` just set: round from the car's right side to behind
+ *  it on an arc that keeps its distance, eased in and out; the count with it, Go at the end. */
+const aim = new THREE.Quaternion(), start = new THREE.Quaternion();
+function rollingCamera(pose: { x: number; z: number }) {
+  const left = run!.drive.intro, cam = r.camera;
+  for (const [at, n] of [[1.65, "2"], [0.85, "1"]] as const) if (wasRolling > at && left <= at) { banner(n); sound.play("countdown_beep", { gain: 0.5 }); }
+  if (wasRolling === ROLLING_START) { banner("3"); sound.play("countdown_beep", { gain: 0.5 }); }
+  if (wasRolling > 0 && left <= 0) { banner("Go"); sound.play("countdown_go", { gain: 0.6 }); }
+  wasRolling = left;
+  if (left <= 0) return;
   const to = cam.position.clone();
   aim.copy(cam.quaternion);
-  // round the car on an arc, from in front of it on the right to where the chase view sits, never cutting past it
   const end = { a: Math.atan2(to.x - pose.x, to.z - pose.z), d: Math.hypot(to.x - pose.x, to.z - pose.z), h: to.y };
-  const k = 1 - intro / INTRO, e = k * k * (3 - 2 * k);
-  const a0 = 0.6, a1 = end.a < a0 ? end.a + Math.PI * 2 : end.a;
-  const ang = a0 + (a1 - a0) * e, dist = 7 + (end.d - 7) * e, h = 1.0 + (end.h - 1.0) * e;
-  from.set(pose.x + 7 * Math.sin(a0), 1.0, pose.z + 7 * Math.cos(a0));
-  cam.position.copy(from);
-  cam.lookAt(pose.x, 0.8, pose.z);
+  const k = 1 - left / ROLLING_START, e = 0.5 - 0.5 * Math.cos(Math.PI * k);
+  const a0 = 1.45, a1 = end.a < a0 ? end.a + Math.PI * 2 : end.a, d0 = 7.5, h0 = 1.3;
+  cam.position.set(pose.x + d0 * Math.sin(a0), h0, pose.z + d0 * Math.cos(a0));
+  cam.lookAt(pose.x, 0.8, pose.z + 1.5);
   start.copy(cam.quaternion);
+  const ang = a0 + (a1 - a0) * e, dist = d0 + (end.d - d0) * e, h = h0 + (end.h - h0) * e;
   cam.position.set(pose.x + dist * Math.sin(ang), h, pose.z + dist * Math.cos(ang));
   cam.quaternion.slerpQuaternions(start, aim, e);
-  for (const at of [1.5, 1.0, 0.5]) if (before > at && intro <= at) { banner(String(Math.round(at * 2))); sound.play("countdown_beep", { gain: 0.5 }); }
-  if (intro <= 0) { banner("Go"); sound.play("countdown_go", { gain: 0.6 }); last = performance.now(); }
-  hud();
   r.finish.cut = true; // the camera swings fast: the motion blur would smear the road around a sharp car
-  r.render(world.scene, { speed: 0, hit: 0, dim: 0 });
 }
 
 /** A ghost car to where its line is `time` s in, fading as it nears your car. */
@@ -859,7 +862,7 @@ function frame() {
   if (state === "garage") { garageScene?.frame(dt); drawTags(); return; }
   if (!run) return;
   if (state === "paused") { r.render(world.scene, { dim: 0.35 }); return; }
-  if (state === "run" && intro > 0) { opening(dt); return; }
+  if (state === "run" && resuming > 0) { resumeCount(dt); return; }
   if (slowmo > 0) { slowmo -= dt; dt *= 0.25; if (slowmo <= 0 && state === "over") results(); }
   t += dt;
   acc += dt;
@@ -897,7 +900,10 @@ function frame() {
     r.camera.lookAt(new THREE.Vector3(pose.x, 0.75, pose.z).addScaledVector(right, -2.1));
     r.camera.fov = 38;
     r.camera.updateProjectionMatrix();
-  } else chase.update(dt, pose, (world.lo + world.hi) / 2);
+  } else {
+    chase.update(dt, pose, (world.lo + world.hi) / 2);
+    if (state === "run" && (run.drive.intro > 0 || wasRolling > 0)) rollingCamera(pose);
+  }
   sound.drive(v.rpm, v.shifting > 0 ? 0 : v.throttle, v.u, Math.max(v.slipFront, v.slipRear), v.spec.redline);
   sound.loop("scrape_metal", run.scraping > 0 ? 0.55 : 0);
   if (v.gear !== lastGear) { if (v.gear > lastGear && state === "run") sound.play("gear_change", { gain: 0.3 }); lastGear = v.gear; }
