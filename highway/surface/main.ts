@@ -608,7 +608,7 @@ function results() {
   const s = run.score;
   const res = finishFree(save, s, save.mode, carOf(save.car));
   persist();
-  post(Math.round(s.points), res.record);
+  post(save.mode, Math.round(s.points), res.record);
   card(`<div class="result free-end">
       <div class="headline"><h2>${Math.round(s.points).toLocaleString("en-US")} points</h2>${res.record && s.points > 0 ? `<span class="plate">New best for ${MODES.find((m) => m.id === save.mode)!.name}</span>` : ""}</div>
       <div class="why ${crashInfo ? "crash" : ""}">${whyEnded()}</div>
@@ -658,15 +658,18 @@ function sprintResults() {
       <dl>${pay.lines.map((l) => `<dt>${l.label}</dt><dd>${money(l.amount)}</dd>`).join("")}<dt class="total">Earned</dt><dd class="total">${money(pay.cash)}</dd></dl>
       ${targets(time)}</div>${keys}`);
   if (duel?.won) sound.play("bell_ding", { gain: 0.7 });
+  post(`sprint/${sp.id}`, Math.round(time * 100) / 100, pay.record);
+  if (pay.stars > pay.before) post("stars", totalStars(save.sprints), true, false);
 }
 
-/** A Free Drive run to its mode's board; once it answers, where it stands under the points (and, signed out after a best, the offer to keep it). */
-function post(points: number, record: boolean) {
-  if (scene || trial || points <= 0) return;
-  pal.score(save.mode, points).then((r) => {
-    if (state !== "results" || !r?.rank || !r.total) return;
+/** A score to its board (a Free Drive mode's points, a Sprint's time, the trip's stars); once the board answers, where it
+ *  stands under the results card's headline (and, signed out after a best, the offer to keep it). */
+function post(board: string, value: number, record: boolean, show = true) {
+  if (scene || trial || value <= 0) return;
+  pal.score(board, value).then((r) => {
+    if (!show || state !== "results" || !r?.rank || !r.total) return;
     const keep = !signedIn && record ? ` · <a class="signin">Sign in to keep your scores</a>` : "";
-    document.querySelector(".result .headline")?.insertAdjacentHTML("beforeend", `<span class="standing">#${r.rank.toLocaleString("en-US")} of ${r.total.toLocaleString("en-US")}${keep}</span>`);
+    document.querySelector("#card .headline")?.insertAdjacentHTML("beforeend", `<span class="standing">#${r.rank.toLocaleString("en-US")} of ${r.total.toLocaleString("en-US")}${keep}</span>`);
   }).catch((e: unknown) => console.error("highway: score", e));
 }
 document.addEventListener("click", (e) => { if ((e.target as HTMLElement).closest(".signin")) void pal.signIn().catch(() => {}); });

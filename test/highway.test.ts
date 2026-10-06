@@ -144,6 +144,12 @@ describe("accounts", () => {
     for (const x of MODES) expect(declared(m, x.id), x.id).toMatchObject({ title: x.name, order: "desc", format: "points" });
   });
 
+  test("each Sprint and duel has a board for its time, lower is better, and the trip one for its stars", () => {
+    for (const sp of SPRINTS) expect(declared(m, `sprint/${sp.id}`), sp.id).toMatchObject({ title: expect.stringContaining(sp.name), order: "asc", format: "time" });
+    expect(declared(m, "stars")).toMatchObject({ order: "desc", max: SPRINTS.length * 3 });
+    expect(m.leaderboards!.length).toBe(MODES.length + SPRINTS.length + 1);
+  });
+
   test("two machines that both played since they synced keep the cash, cars, upgrades, best times and records of both", () => {
     const base = fresh();
     base.cash = 10000;

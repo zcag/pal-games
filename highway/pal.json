@@ -345,6 +345,374 @@
       "format": "points",
       "min": 0,
       "max": 100000000
+    },
+    {
+      "id": "stars",
+      "title": "Road trip stars",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 135
+    },
+    {
+      "id": "sprint/first-light",
+      "title": "First Light (Countryside)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/three-lanes",
+      "title": "Three Lanes (Countryside)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/commuters",
+      "title": "Commuters (Countryside)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/long-haul",
+      "title": "Long Haul (Countryside)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/farm-road",
+      "title": "Farm Road (Countryside)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/hedgerows",
+      "title": "Hedgerows (Countryside)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/squeeze",
+      "title": "Squeeze (Countryside)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/last-light",
+      "title": "Last Light (Countryside)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/heat-haze",
+      "title": "Heat Haze (High Noon)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/dry-run",
+      "title": "Dry Run (High Noon)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/old-road",
+      "title": "The Old Road (High Noon)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/noon-rush",
+      "title": "Noon Rush (High Noon)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/long-straight",
+      "title": "Long Straight (High Noon)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/white-lines",
+      "title": "White Lines (High Noon)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/overtaker",
+      "title": "Overtaker (High Noon)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/glare",
+      "title": "Glare (High Noon)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/big-block",
+      "title": "Big Block (Golden Hour)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/canyon-run",
+      "title": "Canyon Run (Golden Hour)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/head-on",
+      "title": "Head-On (Golden Hour)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/sundown",
+      "title": "Sundown (Golden Hour)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/the-mile",
+      "title": "The Mile (Golden Hour)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/low-sun",
+      "title": "Low Sun (Golden Hour)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/dust",
+      "title": "Dust (Golden Hour)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/rush-hour",
+      "title": "Rush Hour (Golden Hour)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/overcast",
+      "title": "Overcast (Grey Day)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/drizzle",
+      "title": "Drizzle (Grey Day)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/b-road",
+      "title": "B-Road (Grey Day)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/motorway",
+      "title": "Motorway (Grey Day)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/grand-tour",
+      "title": "Grand Tour (Grey Day)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/convoy",
+      "title": "Convoy (Grey Day)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/fog-line",
+      "title": "Fog Line (Grey Day)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/slipstream",
+      "title": "Slipstream (Grey Day)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/neon",
+      "title": "Neon (Night Run)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/midnight",
+      "title": "Midnight (Night Run)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/high-beams",
+      "title": "High Beams (Night Run)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/red-lights",
+      "title": "Red Lights (Night Run)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/all-night",
+      "title": "All Night (Night Run)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/tunnel-vision",
+      "title": "Tunnel Vision (Night Run)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/graveyard",
+      "title": "Graveyard Shift (Night Run)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/afterburn",
+      "title": "Afterburn (Night Run)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/duel-ines",
+      "title": "Duel: Ines (Countryside)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/duel-mika",
+      "title": "Duel: Mika (High Noon)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/duel-rook",
+      "title": "Duel: Rook (Golden Hour)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/duel-vega",
+      "title": "Duel: Vega (Grey Day)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/duel-kaz",
+      "title": "Duel: Kaz (Night Run)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
     }
   ],
   "store": {
