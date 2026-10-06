@@ -96,7 +96,7 @@ const palette = (x: typeof a) => ({ title: manifest.title, icon: manifest.icon, 
 writeFixture("crossword", {
   palettes: { play: palette(a), last: palette(b) },
   shots: {
-    "1-solving": { palette: "play", keys: ["wait:1500", "type:o", "wait:600"], caption: "Today's mini mid-solve: the clue you are on above the lists, the crossing clue lit" },
+    "1-solving": { cover: [161, 227, 673, 330], palette: "play", keys: ["wait:1500", "type:o", "wait:600"], caption: "Today's mini mid-solve: the clue you are on above the lists, the crossing clue lit" },
     "2-solved": { palette: "last", keys: ["wait:1500", `type:${puzzle.solution[lastCell].toLowerCase()}`, "wait:2600"], caption: "Solved: the time, the best, the streak, Next puzzle on Enter" },
     "3-browse": { palette: "play", keys: ["wait:1500", "cmd+o", "wait:1000"], caption: "The daily minis month by month, solved and started marked" },
     "4-stats": { palette: "play", keys: ["wait:1500", "cmd+s", "wait:1000"], caption: "Stats: best and average, the streak, recent times" },

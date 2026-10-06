@@ -124,7 +124,13 @@
     "screenshots": [
       {
         "file": "1-solving.png",
-        "caption": "Today's mini mid-solve: the clue you are on above the lists, the crossing clue lit"
+        "caption": "Today's mini mid-solve: the clue you are on above the lists, the crossing clue lit",
+        "cover": [
+          161,
+          227,
+          673,
+          330
+        ]
       },
       {
         "file": "2-solved.png",
