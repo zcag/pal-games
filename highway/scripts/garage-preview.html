@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Garage preview</title>
+<link rel="stylesheet" href="../surface/style.css">
+<style>
+  #tags { position: fixed; inset: 0; pointer-events: none; }
+  .tag { position: absolute; transform: translate(-50%, -100%); padding: 3px 8px 2px; border-radius: 5px; font-size: 11.5px; font-weight: 700; white-space: nowrap; background: var(--sign); color: var(--white); box-shadow: inset 0 0 0 1.5px var(--white), 0 4px 12px rgba(0,0,0,0.4); transition: opacity 200ms; }
+  .tag.locked { background: rgba(20, 22, 26, 0.85); color: var(--dim); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3); }
+  .tag.sale { background: #f2c12e; color: #1a1a1a; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+  #garage { display: block; }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="tags"></div>
+<div id="garage"><div class="sign"><div class="head"><b id="name">Compact '07</b><span id="state"></span></div><div class="rows"><div class="row"><span>Class</span><div class="val" id="cls"></div></div><div class="row"><span>Price</span><div class="val" id="price"></div></div></div><div class="keys" style="margin-top:8px">‹ › look round · enter reveal</div></div></div>
+<script type="module" src="../scripts/garage-preview.ts"></script>
+</body>
+</html>
