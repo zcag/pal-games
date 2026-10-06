@@ -133,15 +133,27 @@ one strong run bought the top car.
 - **Cars** of a class are for sale once its region is open; the first comes
   free from the duel before it. Seventeen in all, prices unchanged.
 - **Upgrades**: engine, handling, brakes, five levels each. An engine level
-  is +3% of the car's top speed (+15% full), so upgrading is worth the same
-  in every class. Every colour is free.
+  is mostly pickup (+10% power, +1.5% top speed), handling and brakes are
+  what make a hard Sprint possible. Every colour is free.
 
 ### Speed through the trip
 
-Momentum (below) adds up to 15% on a full chain. From a stock Compact on a
-full chain (about 182 km/h) to a tuned Saba (about 476), each region 30 to
-50 km/h quicker than the one before; a tuned car overlaps the next class's
-stock first car only a little.
+Speed is not the reward: past about 250 km/h a car ahead appears too late to
+read, and the game turns into reaction time. So the trip starts slow (the
+Compact tops out at 120 km/h) and ends at 225 (the Saba), and what a better
+car gives is control. Measured at each car's own top speed (scripts/drive.ts
+and the table below, `Vehicle` at 1/120 s):
+
+| | Compact (first) | Tozzo (Sport) | Thunderbolt (Muscle) | Stinger (GT) | Saba (last) |
+| --- | --- | --- | --- | --- | --- |
+| Top speed, km/h | 120 | 145 | 165 | 185 | 225 |
+| A lane change at its top | 0.56 s | 0.48 s | 0.43 s | 0.38 s | 0.34 s |
+| A car in view before you reach it | 12.7 s | 9.4 s | 7.8 s | 6.6 s | 5.1 s |
+
+So each region is quicker and asks more of you, while the car you earn
+for it turns in sharper, settles sooner and brakes harder. Each class also
+pulls harder (12% more power a class), so a better car gets back up to
+speed after a squeeze sooner. Momentum adds up to 15% on a full chain.
 
 ### Free Drive
 
@@ -154,7 +166,7 @@ to earn.
 
 A combo is speed. Every near miss in it pushes the car on past its top speed
 (`surge`, `game/drive.ts`): 3 km/h for a Close pass, 5 for Very close, 8 for
-a Paint trader, 6 more for threading a gap, up to a quarter of the top speed.
+a Paint trader, 6 more for threading a gap, up to 15% of the top speed.
 It holds while the combo lives (a pass every 4 s) and fades 20 km/h a second
 once it breaks. The HUD's combo says what it is worth, and the speed glows
 while you are past your top.
@@ -166,74 +178,33 @@ save from before pays its nitro upgrades back.
 
 ### Cars and upgrades
 
-Seventeen cars in five classes, each with its own engine note: City (158 to 182
-km/h), Sport (200 to 230), Muscle (245 to 275), GT (290 to 310) and Super (325
-to 360). Every car is quicker, sharper and better on the brakes than the one
-before, and the big jumps are between classes (measured, `game/vehicle.ts`):
-
-| | Compact (first) | Asti (top Sport) | Saba (top Super) |
-| --- | --- | --- | --- |
-| 100 to 150 km/h | 17.3 s | 4.5 s | 2.4 s |
-| A lane change at 160 | 0.54 s | 0.43 s | 0.34 s |
-| A flick turned back | 0.21 s | 0.16 s | 0.13 s |
-| Braking 160 to 100 | 1.02 s | 0.92 s | 0.81 s |
-
-Three upgrades per car (engine, handling, brakes), five levels each: a
-full set takes a car about half a class up. The garage shows the gain before
-you pay: browsing another car, each bar marks yours and shows what it adds in
-yellow; on an upgrade's row, what its next level adds.
+Seventeen cars in five classes, each with its own engine note: City (120 to
+135 km/h), Sport (145 to 160), Muscle (165 to 180), GT (185 to 200) and Super
+(205 to 225). Every car is sharper and better on the brakes than the one
+before (agility 0.96 to 1.70, `handlingOf` in `game/vehicle.ts`), the big
+steps between classes; prices run $2,500 to $56,000, and the first of each
+class after the City comes free from a duel. Upgrades cost 5% of the car's
+price (at least $400), half again a level. The garage shows the gain before
+you pay: browsing a car, each bar marks the one that drives its region and
+what this one adds in yellow; on an upgrade's row, what its next level adds.
 
 Traffic follows only half of your climb in top speed (Traffic Racer scales it
-with yours, so every car meets the same road): a faster car truly outruns it,
-passes more cars a minute, and near misses pay more the faster you pass (×2 at
-300 km/h). A better car is worth more money, not only more points.
-
-Prices and the XP curve come from `scripts/economy.ts`, which plays thousands of
-real runs with a bot of four skills (`game/bot.ts`) and pays careers through
-`meta.finish`. The bot drives as a player does: it dodges by lanes, brakes only
-when boxed in, and dares a speed over the traffic that grows with how quickly
-its car changes lanes. It is a careful player (about 80 to 110 km/h on
-average), so real play runs ahead of these numbers. What a minute pays in
-Endless, measured:
-
-| | Compact | Asti (Sport) | Saba (Super) |
-| --- | --- | --- | --- |
-| a good player | $436 | $637 | $754 |
-| near misses a minute | 7.5 | 11.5 | 12.7 |
-
-Cars run $2,500 to $56,000; upgrades cost 6% of the car's price (at least $800, so a
-first run buys two or three, not a set), half again a
-level. Simulated at 40 minutes a day:
-
-| | regular | good |
-| --- | --- | --- |
-| First purchase | after run 1 | after run 1 |
-| Something to buy | every 1 to 2 runs in the first 3 h, 3 to 5 after | the same |
-| Into Sport / Muscle / GT / Super | 0.5 / 2.7 / 7.4 / 13 h | 0.4 / 1.5 / 4 / 7 h |
-| The top car | about 18 h | about 9 h |
-| Two-Way, Time Attack, Speed Trap, Night Run | 4 min, 14 min, 1.1 h, 1.8 h | 10 min, 15 min, 40 min, 53 min |
-| Paint collections (levels 15, 20, 25) | 3, 7, 14 h | 1.4, 3, 6 h |
-
-What it found and changed: a combo paid its square (12·c²), so short, wild
-Two-Way runs out-earned everything; it now pays 30 per step. Near misses on
-oncoming cars paid double cash on top of triple points; they pay triple
-points only. Every car once earned about the same a minute (traffic kept pace
-with your top speed, and cars barely differed); the classes, traffic that
-falls behind a faster car, and near misses that pay with speed fixed that.
+with yours, so every car meets the same road): a faster car truly outruns it.
 
 ### Modes
 
-| Mode | Opens | Rule |
+| Mode | Pays | Rule |
 | --- | --- | --- |
-| Endless | at once | four lanes your way; one crash ends it |
-| Two-Way | level 2 | the oncoming side pays three times, touching it ends the run |
-| Time Attack | level 5 | a clock from 60 s; every 2.5 km adds time, a little less each time; the clock and the road left to the next checkpoint sit side by side at one size |
-| Speed Trap | level 10 | stay above a speed that rises every 10 s; 3 s below it ends the run |
+| Endless | ×1 | four lanes your way; one crash ends it |
+| Two-Way | ×1.2 | the oncoming side scores three times, touching it ends the run |
+| Time Attack | ×1.15 | a clock from 60 s; every 2.5 km adds time, a little less each time; the clock and the road left to the next checkpoint sit side by side at one size |
+| Speed Trap | ×1.3 | stay above a speed that rises every 10 s; 3 s below it ends the run |
 
 ## Sprints
 
-A prototype of levels, tried before a map is built on them: five short runs
-to a finish line, each on a fixed road with its own car (`game/sprint.ts`).
+The road trip's stops: short runs to a finish line, each on a fixed road
+(`game/sprint.ts`). They began as a five-Sprint prototype, tried before the
+map was built on them.
 
 - **The same road every try.** A Sprint's traffic is a course
   (`game/director.ts`): each row draws from its own seed by its number, rows
@@ -251,8 +222,9 @@ to a finish line, each on a fixed road with its own car (`game/sprint.ts`).
   steer for (half-lane steps) and gas, lift or brake, colliding as the
   game's outlines (`scripts/hulls.json`), and keeps the best
   of each kind of place to be; it knows the road as someone who has learned
-  it does. One star is +20% on its time (a good first try), two +9% (the
-  road learned), three +3% (near-perfect). Its best runs keep one combo the
+  it does, driving the region's first car stock. One star is +20% on its
+  time (a good first try), two +9% (the road learned), three +3%
+  (near-perfect). Its best runs keep one combo the
   whole way, about two near misses a second. The first margins (+30%, +12%,
   +4%, over a weaker search with nitro) gave two stars on a first try.
 - **Trying again is instant.** R, from the run, the pause or the end; your
