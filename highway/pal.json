@@ -424,7 +424,13 @@
     "screenshots": [
       {
         "file": "1-run.png",
-        "caption": "196 km/h through countryside traffic in the Stinger '96, the drivers signalling and keeping their gaps"
+        "caption": "196 km/h through countryside traffic in the Stinger '96, the drivers signalling and keeping their gaps",
+        "cover": [
+          264,
+          315,
+          844,
+          414
+        ]
       },
       {
         "file": "2-garage.png",

@@ -48,7 +48,7 @@ try {
   writeFixture("highway", {
     palettes: Object.fromEntries(Object.entries(SCENES).map(([k, s]) => [k, palette(s)])),
     shots: {
-      "1-run": { palette: "run", keys: ["wait:30000"], caption: "196 km/h through countryside traffic in the Stinger '96, the drivers signalling and keeping their gaps" },
+      "1-run": { cover: [264, 315, 844, 414], palette: "run", keys: ["wait:30000"], caption: "196 km/h through countryside traffic in the Stinger '96, the drivers signalling and keeping their gaps" },
       "2-garage": { palette: "garage", keys: ["wait:30000"], caption: "The garage: choose, paint and upgrade your car, pick the mode and place; your level, the next unlock and three missions beside it" },
       "3-night": { palette: "night", keys: ["wait:30000"], caption: "A night run: headlights on the road, tail lamps ahead, brake lights when a driver slows" },
       "4-twoway": { palette: "twoway", keys: ["wait:30000"], caption: "Two-Way at high noon: the oncoming side pays three times, and touching it ends the run" },
