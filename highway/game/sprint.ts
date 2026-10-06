@@ -91,7 +91,21 @@ const ROWS: Row[] = [
 /** Each region's roads, as a share of the kilometres listed: about a minute at the region's pace. */
 const PACE = [0.7, 0.8, 0.9, 0.95, 1];
 /** The best times scripts/sprint.ts found, each on the region's first car, stock (beam 150). */
-const BEST: Record<string, number> = {};
+const BEST: Record<string, number> = {
+  "first-light": 55.63,
+  "three-lanes": 55.56,
+  "commuters": 64.62,
+  "long-haul": 73.78,
+  "farm-road": 46.16,
+  "hedgerows": 64.7,
+  "squeeze": 46.73,
+  "last-light": 55.55,
+  "heat-haze": 62.02,
+  "dry-run": 61.67,
+  "old-road": 61.27,
+  "white-lines": 53.07,
+  "overtaker": 61.32,
+};
 const RIVALS: Record<string, { rival: string; car: string }> = {
   "duel-ines": { rival: "Ines", car: "tozzo-98" }, "duel-mika": { rival: "Mika", car: "thunderbolt-96" },
   "duel-rook": { rival: "Rook", car: "stinger-96" }, "duel-vega": { rival: "Vega", car: "roadster-00" }, "duel-kaz": { rival: "Kaz", car: "saba-v12-95" },

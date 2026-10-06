@@ -370,8 +370,9 @@ async function openGarage(focus?: string) {
   veil(true, "Opening the garage");
   browse = Math.max(0, CARS.findIndex((c) => c.id === (focus ?? pickFor(save, sprintOf(save.stop)?.region ?? 0)?.id ?? save.car)));
   row = 0;
-  if (!garageScene) { garageScene = new Garage(r); await garageScene.build(CARS.map(bayOf)); }
-  else for (const c of CARS) garageScene.setState(c.id, bayOf(c).state);
+  // the bay looked at first is the first loaded, with its neighbours
+  if (!garageScene) { garageScene = new Garage(r); garageScene.focus(shownCar().id, true); await garageScene.build(CARS.map(bayOf)); }
+  else for (const c of CARS) if (!(bayOf(c).state === "owned" && !save.seen.includes(`car:${c.id}`))) garageScene.setState(c.id, bayOf(c).state);
   garageScene.focus(shownCar().id, true);
   r.finish.cut = true;
   state = "garage";
@@ -404,9 +405,11 @@ function drawGarage() {
     return `<div class="row${sel(key)}"><span>${label}</span><div class="val"><span class="pips">${pips(lv)}</span>${price}</div></div>`;
   };
   const picked = owned && mineCar === car;
-  const carTag = owned ? `<em>${picked ? `Drives ${REGIONS[region].name}` : "Yours"}</em>` : bay.state === "for-sale" ? tag(car.price) : `<em class="lock">${opensWith(car)}</em>`;
-  const swatches = PAINTS.map((c) => `<i style="background:${c}" class="${(owned?.paint ?? car.paint) === c ? "on" : ""}"></i>`).join("");
-  const action = !owned ? (bay.state === "for-sale" ? "Buy it" : "Not open yet") : ROWS[row] === "car" ? (picked ? "Your car for " + REGIONS[region].name : `Drive it in ${REGIONS[region].name}`) : ROWS[row] === "paint" ? "Any colour, free" : "Upgrade";
+  const carTag = owned ? `<em>${picked ? "In use" : "Yours"}</em>` : bay.state === "for-sale" ? tag(car.price) : `<em class="lock">Locked</em>`;
+  // the colours either side of the one it wears, nine at a time
+  const at = Math.max(0, PAINTS.indexOf(owned?.paint ?? car.paint)), win = Array.from({ length: 9 }, (_, i) => PAINTS[(at - 4 + i + PAINTS.length) % PAINTS.length]);
+  const swatches = win.map((c) => `<i style="background:${c}" class="${(owned?.paint ?? car.paint) === c ? "on" : ""}"></i>`).join("");
+  const action = !owned ? (bay.state === "for-sale" ? "Buy it" : opensWith(car)) : ROWS[row] === "car" ? (picked ? "Your car for " + REGIONS[region].name : `Drive it in ${REGIONS[region].name}`) : ROWS[row] === "paint" ? "Any colour, free" : "Upgrade";
   $("garage").innerHTML = `
     <div class="sign">
       <div class="head"><b>Garage</b><span>${money(save.cash)}</span></div>
@@ -434,7 +437,7 @@ function drawGarage() {
 /** The garage's tags over its bays: a price, what opens a car, or nothing for yours. */
 function drawTags() {
   if (!garageScene) return;
-  const html = garageScene.labels().filter((l) => l.visible).map((l) => {
+  const html = garageScene.labels().filter((l) => l.visible && l.id !== shownCar().id).map((l) => {
     const car = carOf(l.id), b = bayOf(car);
     const text = b.state === "owned" ? (pickFor(save, regionOfCar(car)) === car ? "★" : "") : b.state === "for-sale" ? money(car.price) : `🔒 ${opensWith(car).replace(/^Opens with /, "")}`;
     return text ? `<div class="bay-tag ${b.state}" style="left:${l.x}px;top:${l.y}px">${text}</div>` : "";
@@ -465,7 +468,6 @@ async function garageKey(k: string) {
         persist();
         drawGarage();
         sound.play("cash", { gain: 0.6 });
-        garageScene?.setState(car.id, "owned");
         await garageScene?.reveal(car.id);
         return;
       }
@@ -609,7 +611,7 @@ function results() {
   const res = finishFree(save, s, save.mode, carOf(save.car));
   persist();
   post(save.mode, Math.round(s.points), res.record);
-  card(`<div class="result free-end">
+  card(`<div class="sprint-end free-end">
       <div class="headline"><h2>${Math.round(s.points).toLocaleString("en-US")} points</h2>${res.record && s.points > 0 ? `<span class="plate">New best for ${MODES.find((m) => m.id === save.mode)!.name}</span>` : ""}</div>
       <div class="why ${crashInfo ? "crash" : ""}">${whyEnded()}</div>
       <dl>${tally(res)}</dl>

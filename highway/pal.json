@@ -766,8 +766,12 @@
     ],
     "screenshots": [
       {
-        "file": "1-run.png",
-        "caption": "196 km/h through countryside traffic in the Stinger '96, the drivers signalling and keeping their gaps",
+        "file": "1-map.png",
+        "caption": "The road trip: High Noon's stops on the map, each with its stars, the next one picked, the duel at the end of the road"
+      },
+      {
+        "file": "2-run.png",
+        "caption": "A Sprint in the Countryside: the clock, the road to the line and the time the next star needs, a combo carrying the Kiri past its top speed",
         "cover": [
           264,
           315,
@@ -776,20 +780,16 @@
         ]
       },
       {
-        "file": "2-garage.png",
-        "caption": "The garage: choose, paint and upgrade your car, pick the mode and place; your level, the next unlock and three missions beside it"
+        "file": "3-garage.png",
+        "caption": "The garage: your cars in their bays, the ones for sale and the ones still covered, with what opens them"
       },
       {
-        "file": "3-night.png",
-        "caption": "A night run: headlights on the road, tail lamps ahead, brake lights when a driver slows"
-      },
-      {
-        "file": "4-twoway.png",
-        "caption": "Two-Way at high noon: the oncoming side pays three times, and touching it ends the run"
+        "file": "4-night.png",
+        "caption": "Free Drive at night in the Saba: headlights on the road, tail lamps ahead, brake lights when a driver slows"
       },
       {
         "file": "5-results.png",
-        "caption": "The end of a run: the pay counted up line by line, the XP toward your next level, and how far each mission got"
+        "caption": "The end of a Free Drive run: the points, where they stand on the board, and what the minutes on the road paid"
       }
     ]
   },
