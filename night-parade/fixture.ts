@@ -56,7 +56,7 @@ try {
     },
     shots: {
       "1-night": { palette: "night", keys: ["wait:1600"], caption: "Midnight, 8:06 into the night: shuriken, katana, thunder, fire talisman and spirit wisps against the Act II crowd" },
-      "2-tengu": { palette: "tengu", keys: ["wait:1400"], caption: "10:10, the Tengu arrives; Storm of Stars and Crescent Moon already evolved" },
+      "2-tengu": { cover: [241, 294, 958, 470], palette: "tengu", keys: ["wait:1400"], caption: "10:10, the Tengu arrives; Storm of Stars and Crescent Moon already evolved" },
       "3-levelup": { palette: "levelup", keys: ["wait:700"], caption: "A level-up: three choices with what each adds, the item that evolves a weapon you carry starred" },
       "4-evolve": { palette: "evolve", keys: ["wait:3900"], caption: "A golden chest: the shuriken with its Scroll evolves into Storm of Stars, and four more upgrades" },
       "5-title": { palette: "home", keys: ["wait:1500"], caption: "The title, with a night playing behind it" },

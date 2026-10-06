@@ -292,7 +292,13 @@
       },
       {
         "file": "2-tengu.png",
-        "caption": "10:10, the Tengu arrives; Storm of Stars and Crescent Moon already evolved"
+        "caption": "10:10, the Tengu arrives; Storm of Stars and Crescent Moon already evolved",
+        "cover": [
+          241,
+          294,
+          958,
+          470
+        ]
       },
       {
         "file": "3-levelup.png",
