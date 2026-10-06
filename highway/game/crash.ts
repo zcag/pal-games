@@ -1,26 +1,40 @@
 // Contact between two cars seen from above: oriented boxes, separating-axis
 // test, and an impulse at the contact that changes both cars' speeds and
 // spins them about their centres. Road frame: x across (+ left), z along.
+//
+// A car is its planform where it has one: the outline of the model as seen
+// from above (`planform`, the convex hull of its vertices), not the box
+// around it. A box has corners a car does not: a nose or a tail is up to
+// 0.35 m each side narrower than the widest point, so two boxes touched
+// where the screen showed a gap. A car without one (the headless scripts)
+// is its box.
 
-export type Box = { x: number; z: number; yaw: number; w: number; l: number }; // yaw 0 = along +z
+/** A point in a car's own frame: r across (+ right of a car heading +z, which is +x), f along (+ forward), m. */
+export type Pt = [r: number, f: number];
+export type Box = { x: number; z: number; yaw: number; w: number; l: number; hull?: Pt[] }; // yaw 0 = along +z
 export type Contact = { nx: number; nz: number; depth: number; px: number; pz: number }; // normal from b to a
 
 function axes(b: Box) {
   const c = Math.cos(b.yaw), s = Math.sin(b.yaw);
   return { fx: s, fz: c, rx: c, rz: -s }; // forward and right unit vectors
 }
+/** The outline in the car's frame: its hull, else the box's corners. */
+const outline = (b: Box): Pt[] => b.hull ?? [[b.w / 2, b.l / 2], [-b.w / 2, b.l / 2], [-b.w / 2, -b.l / 2], [b.w / 2, -b.l / 2]];
 function corners(b: Box): [number, number][] {
-  const { fx, fz, rx, rz } = axes(b), hl = b.l / 2, hw = b.w / 2;
-  return [[1, 1], [1, -1], [-1, -1], [-1, 1]].map(([f, r]) => [b.x + fx * hl * f + rx * hw * r, b.z + fz * hl * f + rz * hw * r]);
+  const { fx, fz, rx, rz } = axes(b);
+  return outline(b).map(([r, f]) => [b.x + fx * f + rx * r, b.z + fz * f + rz * r]);
+}
+/** Each edge's normal: the axes a separating line can lie across. */
+function normals(c: [number, number][]): [number, number][] {
+  return c.map(([x, z], i) => { const [x2, z2] = c[(i + 1) % c.length]; const ex = x2 - x, ez = z2 - z, n = Math.hypot(ex, ez) || 1; return [ez / n, -ex / n] as [number, number]; });
 }
 
 /** The contact if the boxes overlap, else null. */
 export function collide(a: Box, b: Box): Contact | null {
   if (Math.abs(a.z - b.z) > (a.l + b.l) / 2 + 1 || Math.abs(a.x - b.x) > (a.l + b.l) / 2 + 1) return null;
   const ca = corners(a), cb = corners(b);
-  const A = axes(a), B = axes(b);
   let best = Infinity, nx = 0, nz = 0;
-  for (const [ax, az] of [[A.fx, A.fz], [A.rx, A.rz], [B.fx, B.fz], [B.rx, B.rz]]) {
+  for (const [ax, az] of [...normals(ca), ...normals(cb)]) {
     let minA = Infinity, maxA = -Infinity, minB = Infinity, maxB = -Infinity;
     for (const [x, z] of ca) { const p = x * ax + z * az; minA = Math.min(minA, p); maxA = Math.max(maxA, p); }
     for (const [x, z] of cb) { const p = x * ax + z * az; minB = Math.min(minB, p); maxB = Math.max(maxB, p); }
@@ -34,14 +48,47 @@ export function collide(a: Box, b: Box): Contact | null {
   }
   // the contact point: the deepest corner of either box inside the other, else the midpoint
   let px = (a.x + b.x) / 2, pz = (a.z + b.z) / 2, deepest = -Infinity;
-  for (const [x, z] of ca) { const d = -((x - b.x) * nx + (z - b.z) * nz); if (inside(b, x, z) && d > deepest) { deepest = d; px = x; pz = z; } }
-  for (const [x, z] of cb) { const d = (x - a.x) * nx + (z - a.z) * nz; if (inside(a, x, z) && d > deepest) { deepest = d; px = x; pz = z; } }
+  for (const [x, z] of ca) { const d = -((x - b.x) * nx + (z - b.z) * nz); if (inside(cb, x, z) && d > deepest) { deepest = d; px = x; pz = z; } }
+  for (const [x, z] of cb) { const d = (x - a.x) * nx + (z - a.z) * nz; if (inside(ca, x, z) && d > deepest) { deepest = d; px = x; pz = z; } }
   return { nx, nz, depth: best, px, pz };
 }
 
-function inside(b: Box, x: number, z: number) {
-  const { fx, fz, rx, rz } = axes(b), dx = x - b.x, dz = z - b.z;
-  return Math.abs(dx * fx + dz * fz) <= b.l / 2 + 0.05 && Math.abs(dx * rx + dz * rz) <= b.w / 2 + 0.05;
+/** Whether a point is inside a convex outline (given in either winding), with 5 cm to spare. */
+function inside(c: [number, number][], x: number, z: number) {
+  let sign = 0;
+  for (let i = 0; i < c.length; i++) {
+    const [x1, z1] = c[i], [x2, z2] = c[(i + 1) % c.length], ex = x2 - x1, ez = z2 - z1, n = Math.hypot(ex, ez) || 1;
+    const d = (ex * (z - z1) - ez * (x - x1)) / n;
+    if (Math.abs(d) <= 0.05) continue;
+    if (sign && Math.sign(d) !== sign) return false;
+    sign = Math.sign(d);
+  }
+  return true;
+}
+
+/**
+ * A model's outline from above: the convex hull of its vertices (r, f),
+ * counter-clockwise, cut to at most `max` points by dropping the one that
+ * changes the area least, then pulled in by `inset` m across and `insetEnd`
+ * m along on every side (scaled toward the centre, so it stays convex):
+ * what is drawn, a hair inside it.
+ */
+export function planform(pts: Pt[], inset = 0, insetEnd = inset, max = 16): Pt[] {
+  const p = [...pts].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o: Pt, a: Pt, b: Pt) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lower: Pt[] = [], upper: Pt[] = [];
+  for (const q of p) { while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], q) <= 0) lower.pop(); lower.push(q); }
+  for (const q of [...p].reverse()) { while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], q) <= 0) upper.pop(); upper.push(q); }
+  const hull = [...lower.slice(0, -1), ...upper.slice(0, -1)];
+  while (hull.length > max) {
+    let k = 0, least = Infinity;
+    hull.forEach((q, i) => { const a = Math.abs(cross(hull[(i + hull.length - 1) % hull.length], q, hull[(i + 1) % hull.length])); if (a < least) { least = a; k = i; } });
+    hull.splice(k, 1);
+  }
+  const hw = Math.max(...hull.map((q) => Math.abs(q[0]))), hl = Math.max(...hull.map((q) => Math.abs(q[1])));
+  const sr = hw > inset ? 1 - inset / hw : 1, sf = hl > insetEnd ? 1 - insetEnd / hl : 1;
+  const out = hull.map(([r, f]): Pt => [+(r * sr).toFixed(3), +(f * sf).toFixed(3)]);
+  return out.filter((q, i) => { const n = out[(i + 1) % out.length]; return q[0] !== n[0] || q[1] !== n[1]; }); // rounding can make two one
 }
 
 /** A body that takes impulses: world velocity, yaw rate, mass and yaw inertia. */

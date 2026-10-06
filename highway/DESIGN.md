@@ -58,6 +58,14 @@ the oncoming lane pays three times; two passes within 0.15 s pay 2500. A hit
 ends the run when the closing speed is 35 km/h or more, or the car was
 coming the other way.
 
+A hit is what the screen shows. A car collides as its outline from above
+(the convex hull of the model's vertices), pulled in 8 cm across and 10 cm
+along, and turned the way it is drawn: yours at 85% of its heading
+(`FEEL.yaw`), a car changing lanes into its move. The first cut used the box
+around each model, whose corners stick out 6 to 35 cm past a tapered nose or
+tail (20 cm typically), so cutting past a car's tail with a gap on screen
+still ended the run (`game/crash.ts`, `test/highway-crash.test.ts`).
+
 ## Progression
 
 What keeps you coming back. Traffic Racer's long-term layer is a ladder of 48

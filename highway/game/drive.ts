@@ -4,10 +4,10 @@
 // script can play it headless (scripts/economy.ts). It tells whoever listens
 // what happened through events.
 import { Vehicle, type Input } from "./vehicle.ts";
-import { Traffic, crossing, type Npc } from "./traffic.ts";
+import { Traffic, crossing, heading, type Npc } from "./traffic.ts";
 import { Director } from "./director.ts";
 import { Score, type Miss } from "./score.ts";
-import { collide, resolve, type Rigid } from "./crash.ts";
+import { collide, resolve, type Pt, type Rigid } from "./crash.ts";
 import { TRAFFIC, FEEL, spec, nitroOf, trafficTop, type ModeId, type PlayerCar, type Upgrades } from "./content.ts";
 import { laneX, oncomingX, edges, LANE_W, type Layout } from "./layout.ts";
 
@@ -31,8 +31,13 @@ export type End = "crash" | "time" | "slow";
 /** A run packed for storage (`Drive.pack`). */
 export type Packed = { car: string; up: Upgrades; mode: ModeId; drive: object; veh: object; traffic: object; director: object; score: object };
 
-/** A car's footprint: width and length, m. */
-export type Size = { x: number; z: number };
+/** A car's footprint: width and length, m, and where the model is at hand its collision outline (`planform` of
+ *  what is drawn, pulled in by `INSET` and `INSET_END`). */
+export type Size = { x: number; z: number; hull?: Pt[] };
+
+/** How far inside what is drawn a car collides, m: across and along. A gap the eye sees is a miss, and a
+ *  scrape a hair under it is forgiven too (the screen's last pixel of paint is never the reason a run ends). */
+export const INSET = 0.08, INSET_END = 0.1;
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
@@ -99,6 +104,11 @@ export class Drive {
   }
 
   /** The dial's speed. */
+  /** What a car collides as: its outline (`Size.hull`, inset already), else its box pulled in by the insets. */
+  private outline(s: Size): { w: number; l: number; hull?: Pt[] } {
+    return s.hull ? { w: s.x, l: s.z, hull: s.hull } : { w: s.x - 2 * INSET, l: s.z - 2 * INSET_END };
+  }
+
   get kmh() { return this.veh.kmh / FEEL.pace; }
 
   /** Which of our lanes the car is in, and whether it is over the centre line. */
@@ -186,8 +196,9 @@ export class Drive {
 
     // contact (none for a staged run, which plays on while a picture is taken)
     if (!this.ghost) for (const n of this.traffic.cars) {
-      const nyaw = n.hit ? n.hit.yaw : n.oncoming ? Math.PI : 0;
-      const c = collide({ x: v.x, z: v.z, yaw: v.yaw, w: this.size.x * 0.96, l: this.size.z * 0.98 }, { x: n.x, z: n.z, yaw: nyaw, w: n.width * 0.96, l: n.length * 0.98 });
+      // the cars as they are drawn: the player turned FEEL.yaw of its heading, the traffic into its lane change
+      const nyaw = heading(n, (l) => (n.oncoming ? oncomingX(L, l) : laneX(L, l)));
+      const c = collide({ x: v.x, z: v.z, yaw: v.yaw * FEEL.yaw, ...this.outline(this.size) }, { x: n.x, z: n.z, yaw: nyaw, ...this.outline(this.sizeOf(n.kind) ?? { x: n.width, z: n.length }) });
       if (!c) continue;
       const cy = Math.cos(v.yaw), sy = Math.sin(v.yaw);
       const me: Rigid = { x: v.x, z: v.z, vx: v.u * sy + v.v * cy, vz: v.u * cy - v.v * sy, r: v.r, m: v.spec.mass, I: (v.spec.mass * (this.size.z ** 2 + this.size.x ** 2)) / 12 };

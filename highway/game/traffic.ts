@@ -180,3 +180,11 @@ export function occupies(n: Npc, lane: number) { return n.lane === lane || (n.t 
 
 /** Smooth lateral progress through a lane change (an S curve). */
 export function crossing(n: Npc) { const t = n.t; return t * t * (3 - 2 * t); }
+
+/** Which way a car points as it is drawn and as it collides: along its lane, turned into a lane change by its
+ *  sideways speed (the S curve's slope); a knocked one as it spins. `at` is a lane's x. */
+export function heading(n: Npc, at: (lane: number) => number) {
+  if (n.hit) return n.hit.yaw;
+  const dx = n.t < 1 ? ((at(n.lane) - at(n.from)) * 6 * n.t * (1 - n.t)) / CHANGE_TIME : 0;
+  return (n.oncoming ? Math.PI : 0) + Math.atan2(dx, Math.max(n.v, 1));
+}

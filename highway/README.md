@@ -14,7 +14,8 @@ as a view level whose body is the extension's own page (`surface/`, a
   left (Close, Very close, Paint trader); near misses within four seconds of
   each other build a combo. Points grow with the cube of your speed.
 - **Crashes**: a bump is a bump; hitting something 35 km/h slower than you,
-  or anything coming the other way, ends the run.
+  or anything coming the other way, ends the run. A car collides as its
+  shape from above, a little inside what is drawn: a gap you see is a miss.
 - **Modes**: Endless (four lanes your way) and Two-Way (the oncoming side
   pays three times).
 - C changes the view (chase, far, bumper), P pauses, M mutes.
@@ -29,7 +30,7 @@ as a view level whose body is the extension's own page (`surface/`, a
   slip, load transfer, an engine with gears, a driver aid that holds the
   heading you ask for), `traffic.ts` the drivers (IDM car following, MOBIL
   lane changes, signals), `director.ts` where traffic appears (patterns per
-  row, always a lane through), `score.ts`, `crash.ts` (boxes and impulses),
+  row, always a lane through), `score.ts`, `crash.ts` (outlines and impulses),
   `content.ts` every number and name, `meta.ts` the save.
 - `surface/`: the page. `world.ts` builds a place (sky, road, rails, land),
   `terrain.ts` streams the land and plans it (forest, fields or a town each

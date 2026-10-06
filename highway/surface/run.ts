@@ -6,7 +6,8 @@ import * as THREE from "./vendor/three.js";
 import { Car } from "./car.ts";
 import type { World } from "./world.ts";
 import type { Input } from "../game/vehicle.ts";
-import { Drive, type DriveEvents } from "../game/drive.ts";
+import { Drive, type DriveEvents, type Size } from "../game/drive.ts";
+import { heading } from "../game/traffic.ts";
 import { TRAFFIC, FEEL, type ModeId, type PlayerCar, type Upgrades } from "../game/content.ts";
 import { laneX, oncomingX, type Layout } from "../game/layout.ts";
 
@@ -14,7 +15,7 @@ const rnd = Math.random;
 
 // the traffic's cars, made once and shared by every run: idle ones wait here by model
 const pool = new Map<string, Car[]>();
-const sizes = new Map<string, { x: number; z: number }>();
+const sizes = new Map<string, Size>();
 const loading = new Set<string>();
 
 async function makeCar(id: string) {
@@ -31,7 +32,7 @@ export async function preloadTraffic(progress: (f: number) => void) {
   await Promise.all(TRAFFIC.map(async (t) => {
     if (sizes.has(t.id)) return;
     const cars = await Promise.all([makeCar(t.id), makeCar(t.id)]);
-    sizes.set(t.id, { x: cars[0].size.x, z: cars[0].size.z });
+    sizes.set(t.id, cars[0].footprint);
     (pool.get(t.id) ?? pool.set(t.id, []).get(t.id)!).push(...cars);
     progress(++done / TRAFFIC.length);
   }));
@@ -66,7 +67,7 @@ export class Run {
   private prev = { x: 0, z: 0, yaw: 0 };
 
   constructor(public world: World, public layout: Layout, public player: Car, car: PlayerCar, up: Upgrades, events: DriveEvents, density = 1, mode: ModeId = "endless") {
-    this.drive = new Drive(layout, car, up, { x: player.size.x, z: player.size.z }, player.wheelbase, (id) => sizes.get(id), events, { density, mode });
+    this.drive = new Drive(layout, car, up, player.footprint, player.wheelbase, (id) => sizes.get(id), events, { density, mode });
     world.scene.add(player.root);
     this.headlights();
     this.settle();
@@ -100,7 +101,7 @@ export class Run {
   setPlayer(player: Car, car: PlayerCar, up: Upgrades) {
     this.player.root.removeFromParent();
     this.player = player;
-    this.drive.setCar(car, up, { x: player.size.x, z: player.size.z }, player.wheelbase);
+    this.drive.setCar(car, up, player.footprint, player.wheelbase);
     this.world.scene.add(player.root);
     this.headlights();
     this.settle();
@@ -151,10 +152,9 @@ export class Run {
         this.world.scene.add(car.root);
       }
       const at = (l: number) => (n.oncoming ? oncomingX(this.layout, l) : laneX(this.layout, l));
-      const dx = n.t < 1 ? ((at(n.lane) - at(n.from)) * 6 * n.t * (1 - n.t)) / 3.2 : 0;
       const pv = n.prev ?? { x: n.x, z: n.z, yaw: n.hit?.yaw ?? 0 };
       car.root.position.set(pv.x * b + n.x * a, 0, pv.z * b + n.z * a);
-      car.root.rotation.y = n.hit ? pv.yaw * b + n.hit.yaw * a : (n.oncoming ? Math.PI : 0) + Math.atan2(dx, Math.max(n.v, 1));
+      car.root.rotation.y = n.hit ? pv.yaw * b + n.hit.yaw * a : heading(n, at);
       car.setShadow(Math.abs(n.z - v.z) < 150); // as far as anything is still big enough for its shadow to read
       for (const w of car.wheels) w.spin.rotation.x += (n.v / 0.33) * dt;
       lamps(car, this.world.night, n.braking);

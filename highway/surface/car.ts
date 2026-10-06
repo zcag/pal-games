@@ -7,6 +7,8 @@ import { BufferGeometryUtils } from "./vendor/three.js";
 import { loadGltf } from "./gltf.ts";
 import { floats } from "./env.ts";
 import { shadowOnly } from "./shadow.ts";
+import { planform, type Pt } from "../game/crash.ts";
+import { INSET, INSET_END, type Size } from "../game/drive.ts";
 
 export type CarInfo = { id: string; name: string; author: string; license: string; source: string; size: [number, number, number] };
 
@@ -39,7 +41,7 @@ const PAINT = /bodymat|(^|_)body$/i;
  *  are gone): each part's names and box as it was placed, which wheel it belongs to, the model's size;
  *  and the geometries every car of it shares, merged on its first build. */
 type Part = { names: string; box: THREE.Box3; wheel: number; caliper: boolean };
-type Model = { parts: Part[]; size: THREE.Vector3; wheels: THREE.Box3[]; merged: Map<string, THREE.BufferGeometry> };
+type Model = { parts: Part[]; size: THREE.Vector3; hull: Pt[]; wheels: THREE.Box3[]; merged: Map<string, THREE.BufferGeometry> };
 const models = new WeakMap<THREE.Object3D, Model>();
 
 /** A part's geometry with the attributes every other one has, as plain floats, so parts merge. */
@@ -70,6 +72,19 @@ function merge(list: THREE.BufferGeometry[]) {
   return BufferGeometryUtils.mergeGeometries(all, false);
 }
 
+/** What the model collides as: its outline from above, every vertex's (x, z), a hair inside it (game/crash.ts). */
+function outline(src: THREE.Group): Pt[] {
+  src.updateMatrixWorld(true);
+  const pts: Pt[] = [], v = new THREE.Vector3();
+  src.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const pos = mesh.geometry.attributes.position;
+    for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld); pts.push([v.x, v.z]); }
+  });
+  return planform(pts, INSET, INSET_END);
+}
+
 /** Merge every part that never moves on its own into one mesh per material: ~80 meshes become ~10.
  *  Wheels, calipers, lamps and their lenses stay separate (a car merges those per car, in build), and
  *  sit flat under the model with their placement baked in, so a car is a dozen nodes, not a hundred. */
@@ -97,7 +112,7 @@ function prepare(src: THREE.Group): THREE.Group {
   }
   // the model as a car measures it, and each remaining part where it stands; a wheel is its own node,
   // the highest one whose name says wheel (the names are unreliable for which corner: that comes from its position)
-  const model: Model = { parts: [], size: new THREE.Box3().setFromObject(src).getSize(new THREE.Vector3()), wheels: [], merged: new Map() };
+  const model: Model = { parts: [], size: new THREE.Box3().setFromObject(src).getSize(new THREE.Vector3()), hull: outline(src), wheels: [], merged: new Map() };
   const nodes: THREE.Object3D[] = [];
   for (const [mesh, names] of rest) {
     let wheel = -1;
@@ -334,6 +349,8 @@ export class Car {
   wheels: { pivot: THREE.Object3D; spin: THREE.Object3D; front: boolean; left: boolean; radius: number }[] = [];
   paint: THREE.MeshPhysicalMaterial[] = [];
   size = new THREE.Vector3();
+  /** What it collides as, from above (`outline`). */
+  hull: Pt[] = [];
   /** Where things are, in the car's frame (metres, +z forward). */
   anchors = { head: [] as THREE.Vector3[], tail: [] as THREE.Vector3[] };
   wheelbase = 2.6;
@@ -346,6 +363,9 @@ export class Car {
   /** Each lamp's light (lampMaterial), and each wheel's and caliper's turn (wheelMaterial). */
   private glow = LAMPS.map(() => new THREE.Color(0));
   private turn: THREE.Matrix4[] = [];
+
+  /** Its footprint for the game: the box and the outline it collides as. */
+  get footprint(): Size { return { x: this.size.x, z: this.size.z, hull: this.hull }; }
 
   static async load(id: string, color: THREE.ColorRepresentation, opts: { shadow?: boolean } = {}) {
     const car = new Car();
@@ -360,6 +380,7 @@ export class Car {
     this.root.add(this.body);
     this.body.add(model);
     this.size.copy(info.size);
+    this.hull = info.hull;
 
     const meshes = [...model.children] as THREE.Mesh[];
     const paintFor = new Map<THREE.Material, THREE.MeshPhysicalMaterial>();
