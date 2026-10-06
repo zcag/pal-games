@@ -11,9 +11,9 @@ export const NEAR_SPEED = 80; // km/h: below this nothing counts as a near miss,
 export const COMBO_TIME = 4; // s
 /** `surge`: km/h a pass of the grade adds to the combo's push past the top speed. */
 export const GRADES = [
-  { gap: 0.3, name: "Paint trader", mult: 2.5, cash: 60, surge: 8 },
-  { gap: 0.6, name: "Very close", mult: 1.6, cash: 35, surge: 5 },
-  { gap: 1.0, name: "Close", mult: 1, cash: 20, surge: 3 },
+  { gap: 0.3, name: "Paint trader", mult: 2.5, surge: 8 },
+  { gap: 0.6, name: "Very close", mult: 1.6, surge: 5 },
+  { gap: 1.0, name: "Close", mult: 1, surge: 3 },
 ] as const;
 /** km/h threading a gap adds on top of its two passes. */
 export const DOUBLE_SURGE = 6;
@@ -29,15 +29,12 @@ export function rate(kmh: number, oncomingLane: boolean) {
   return p * 25; // the original counts per 0.04 s tick
 }
 
-/** What a run paid, line by line, as the end of a run counts it up. */
-export type PayLine = { label: string; amount: number };
 
 export class Score {
   points = 0;
   combo = 0; comboLeft = 0; bestCombo = 0;
   misses = 0;
   graded: Record<Grade["name"], number> = { "Paint trader": 0, "Very close": 0, Close: 0 };
-  missCash = 0; // what the near misses themselves paid
   doubles = 0; // gaps threaded
   distance = 0; // m on the dial
   fastTime = 0; // s above 150 km/h
@@ -76,28 +73,10 @@ export class Score {
     const double = this.time - this.lastMiss < 0.15;
     if (double) { base += 2500; this.doubles++; }
     this.lastMiss = this.time;
-    // faster pays more (a near miss at 300 is worth twice one at 150), so a quicker car earns its price back;
-    // the oncoming side pays in points (×3), not cash: it would out-earn everything else
-    this.missCash += grade.cash * Math.min(2.4, Math.max(0.8, kmh / 150));
     const points = Math.round(base);
     this.points += points;
     return { points, grade, combo: n, oncoming, double };
   }
 
   breakCombo() { this.combo = 0; this.comboLeft = 0; }
-
-  /** The run's pay before the place's and the mode's multipliers, line by line. */
-  pay(): PayLine[] {
-    const lines: PayLine[] = [
-      { label: "Distance", amount: Math.round((this.distance / 1000) * 120) },
-      { label: "Near misses", amount: Math.round(this.missCash) },
-      { label: `Best combo ×${this.bestCombo}`, amount: this.bestCombo >= 3 ? 30 * this.bestCombo : 0 },
-      { label: "Gaps threaded", amount: this.doubles * 150 },
-      { label: "Above 150 km/h", amount: Math.round(this.fastTime * 2) },
-      { label: "Oncoming lane", amount: Math.round(this.oncomingTime * 6) },
-    ];
-    return lines.filter((l) => l.amount > 0);
-  }
-
-  cash() { return this.pay().reduce((a, l) => a + l.amount, 0); }
 }

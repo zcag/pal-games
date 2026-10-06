@@ -1,86 +1,75 @@
-// What outlives a run: cash, the garage, the driver's level and missions,
-// records. Stored whole in the extension's storage under "save" after every
-// change (`stored`), and synced to the player's account field by field
-// (pal.json `sync`): cash, XP and totals `sum`, records and upgrades `max`,
-// paints `union`. `finish` turns a run into everything the end of a run
-// counts up.
-import { CARS, LOCATIONS, MODES, PAINT_SETS, UPGRADE_MAX, paintSet, upgradeCost, type ModeId, type PlayerCar, type Upgrades } from "./content.ts";
-import { MAX_LEVEL, gainXp, isMission, levelCash, newMission, progressOf, statsOf, unlocked, xpFor, xpOfPoints, type Mission, type Unlock } from "./progress.ts";
-import type { PayLine, Score } from "./score.ts";
-import { SPRINTS, sprintOf } from "./sprint.ts";
+// What outlives a run: cash, the garage, the road trip's best times, Free
+// Drive's records. Stored whole in the extension's storage under "save"
+// after every change, and synced to the player's account field by field
+// (pal.json `sync`): cash and totals `sum`, upgrades `max`, best times `min`.
+// What is open (regions, stops, car classes) is never stored: game/trip.ts
+// works it out from the best times, so two machines can never disagree.
+import { CARS, CLASSES, LOCATIONS, MODES, UPGRADE_MAX, upgradeCost, type ModeId, type PlayerCar, type Upgrades } from "./content.ts";
+import { SPRINTS, REGIONS, sprintOf, type Sprint } from "./sprint.ts";
+import { FINISH_PAY, finishSprint, nextStop, regionOfCar, regionOpen, regionsOpen, type SprintPay } from "./trip.ts";
+import type { Score } from "./score.ts";
 
-export type Owned = { upgrades: Upgrades; paint: string; paints: string[] };
+export type Owned = { upgrades: Upgrades; paint: string };
 export type Best = { score: number; distance: number; combo: number; topSpeed: number };
 export type Save = {
-  v: 3; // 3: the nitro upgrade is gone, paid back
+  v: 4; // 4: the road trip (levels, XP, missions and paid paints gone)
   cash: number;
-  car: string; // the one you drive
   owned: Record<string, Owned>;
-  location: string;
-  mode: ModeId;
-  level: number;
-  xp: number; // toward the next level
-  missions: Mission[];
-  day: string; // the last day a run paid the day's double (YYYY-MM-DD)
-  best: Record<string, Best>; // by mode
-  sprinting: boolean; // the garage is on the Sprints, not a mode
-  sprint: string; // the Sprint picked
+  pick: Record<string, string>; // per class: the car its region's Sprints are driven in
+  car: string; // Free Drive's car
+  location: string; mode: ModeId; // Free Drive's place and mode
+  stop: string; // the map's selected stop
   sprints: Record<string, number>; // each Sprint's best time, s
+  best: Record<string, Best>; // Free Drive, by mode
+  seen: string[]; // moments shown once: a region opened, a car won
   totals: { runs: number; distance: number; misses: number; cash: number };
   settings: { view: string; music: number; sound: number; units: "kmh" | "mph" };
 };
 
 /** A staged moment for the store's pictures (the fixture stores it as "scene"): nothing is saved while one plays. */
-export type Scene = { show: "garage" | "run" | "results"; location?: string; mode?: ModeId; car?: string; paint?: string; speed?: number; warm?: number; crash?: { you: number; them: number; kind: string; oncoming: boolean } };
+export type Scene = { show: "map" | "garage" | "run" | "results"; location?: string; mode?: ModeId; car?: string; paint?: string; speed?: number; warm?: number; sprint?: string; crash?: { you: number; them: number; kind: string; oncoming: boolean } };
 
 export const NO_UP: Upgrades = { speed: 0, handling: 0, brakes: 0 };
+export const carOf = (id: string) => CARS.find((c) => c.id === id)!;
+const own = (car: PlayerCar): Owned => ({ upgrades: { ...NO_UP }, paint: car.paint });
 
 export function fresh(): Save {
   const first = CARS[0];
   return {
-    v: 3, cash: 0, car: first.id,
-    owned: { [first.id]: { upgrades: { ...NO_UP }, paint: first.paint, paints: [first.paint] } },
-    location: LOCATIONS[0].id, mode: "endless", level: 1, xp: 0, missions: [], day: "",
-    best: {}, sprinting: false, sprint: SPRINTS[0].id, sprints: {}, totals: { runs: 0, distance: 0, misses: 0, cash: 0 },
+    v: 4, cash: 0, owned: { [first.id]: own(first) }, pick: {}, car: first.id,
+    location: LOCATIONS[0].id, mode: "endless", stop: SPRINTS[0].id, sprints: {}, best: {}, seen: [],
+    totals: { runs: 0, distance: 0, misses: 0, cash: 0 },
     settings: { view: "Low", music: 0.6, sound: 1, units: "kmh" },
   };
 }
 
-/** Every XP earned, from a level and the XP toward the next. */
-export const xpTotal = (level: number, xp: number) => { let t = xp; for (let l = 1; l < level; l++) t += xpFor(l); return t; };
-/**
- * The save as it is stored: with `xpTotal`, which syncs by `sum` so the XP
- * two machines earned adds up (a level and its XP could not merge); `load`
- * reads the level back from it.
- */
-export const stored = (s: Save) => ({ ...s, xpTotal: xpTotal(s.level, s.xp) });
+/** The save as it is stored. */
+export const stored = (s: Save) => ({ ...s });
 
 /** A stored save, or a fresh one; anything unknown in it is dropped, an older save is carried over. */
 export function load(raw: unknown): Save {
   const s = fresh();
   if (!raw || typeof raw !== "object") return s;
-  const r = raw as Partial<Save> & { locations?: string[]; xpTotal?: number };
+  const r = raw as Partial<Save> & { v?: number };
+  const v = r.v ?? 2;
   if (typeof r.cash === "number") s.cash = Math.max(0, Math.floor(r.cash));
   if (r.owned) for (const [id, o] of Object.entries(r.owned)) {
     const car = CARS.find((c) => c.id === id);
     if (!car) continue;
     const { nitro = 0, ...up } = o.upgrades as Upgrades & { nitro?: number };
-    s.owned[id] = { ...o, upgrades: { ...NO_UP, ...up } };
+    s.owned[id] = { upgrades: { ...NO_UP, ...up }, paint: o.paint ?? car.paint };
     // a save from before momentum: the nitro levels bought are paid back, once
-    if ((r.v ?? 2) < 3) for (let l = 0; l < nitro; l++) s.cash += upgradeCost(car, l);
+    if (v < 3) for (let l = 0; l < nitro; l++) s.cash += upgradeCost(car, l);
   }
+  if (r.pick) for (const [cls, id] of Object.entries(r.pick)) if (s.owned[id] && CLASSES.some((c) => c.id === cls)) s.pick[cls] = id;
   if (r.car && s.owned[r.car]) s.car = r.car;
-  if (typeof r.level === "number") s.level = Math.max(1, Math.min(MAX_LEVEL, Math.floor(r.level)));
-  if (typeof r.xp === "number") s.xp = Math.max(0, r.xp);
-  if (typeof r.xpTotal === "number") ({ level: s.level, xp: s.xp } = gainXp(1, 0, Math.max(0, r.xpTotal)));
-  if (Array.isArray(r.missions)) s.missions = r.missions.filter(isMission).slice(0, 3);
-  if (typeof r.day === "string") s.day = r.day;
-  if (r.location && places(s).some((l) => l.id === r.location)) s.location = r.location;
-  if (r.mode && modes(s).some((m) => m.id === r.mode)) s.mode = r.mode;
+  if (r.mode && MODES.some((m) => m.id === r.mode)) s.mode = r.mode;
   if (r.best) s.best = r.best;
-  if (typeof r.sprinting === "boolean") s.sprinting = r.sprinting;
-  if (r.sprint && sprintOf(r.sprint)) s.sprint = r.sprint;
-  if (r.sprints) for (const [id, t] of Object.entries(r.sprints)) if (sprintOf(id) && typeof t === "number" && t > 0) s.sprints[id] = t;
+  // the Sprints before the road trip were other roads: their times mean nothing on these
+  if (v >= 4 && r.sprints) for (const [id, t] of Object.entries(r.sprints)) if (sprintOf(id) && typeof t === "number" && t > 0) s.sprints[id] = t;
+  if (r.stop && sprintOf(r.stop)) s.stop = r.stop; else s.stop = nextStop(s.sprints).id;
+  if (r.location && places(s).some((l) => l.id === r.location)) s.location = r.location;
+  if (Array.isArray(r.seen)) s.seen = r.seen.filter((x) => typeof x === "string");
   if (r.totals) s.totals = { ...s.totals, ...r.totals };
   if (r.settings) {
     const { camera, ...rest } = r.settings as Save["settings"] & { camera?: number };
@@ -91,24 +80,23 @@ export function load(raw: unknown): Save {
   return s;
 }
 
-export const carOf = (id: string) => CARS.find((c) => c.id === id)!;
+/** Whether a car can be bought: its class's region is open. */
+export const forSale = (s: Save, car: PlayerCar) => regionOpen(regionOfCar(car), s.sprints);
+/** Free Drive's places: the skies of the open regions. */
+export const places = (s: Save) => regionsOpen(s.sprints).map((r) => LOCATIONS.find((l) => l.id === REGIONS[r].place)!);
+export const modes = () => MODES;
 
-/** The places, modes and paint sets the driver's level has opened. */
-export const places = (s: Save) => LOCATIONS.filter((l, i) => i === 0 || unlocked(s.level).some((u) => u.kind === "place" && u.id === l.id));
-export const modes = (s: Save) => MODES.filter((m, i) => i === 0 || unlocked(s.level).some((u) => u.kind === "mode" && u.id === m.id));
-export const paintsOpen = (s: Save) => PAINT_SETS.filter((p, i) => i === 0 || unlocked(s.level).some((u) => u.kind === "paints" && u.id === p.id));
-/** The level a place or mode opens at. */
-export const opensAt = (kind: "place" | "mode", id: string) => {
-  for (let l = 1; l <= MAX_LEVEL; l++) if (unlocked(l).some((u) => u.kind === kind && u.id === id)) return l;
-  return 1;
-};
+/** The car a region's Sprints are driven in: the one picked for its class, else the best of the class you own. */
+export function pickFor(s: Save, region: number): PlayerCar | null {
+  const cls = REGIONS[region].cls, mine = CARS.filter((c) => s.owned[c.id] && regionOfCar(c) === region);
+  return mine.find((c) => c.id === s.pick[cls]) ?? mine[mine.length - 1] ?? null;
+}
 
-/** Buy a car: true if it went through. */
+/** Buy a car: true if it went through. A first car of its class becomes that class's Sprint car. */
 export function buyCar(s: Save, car: PlayerCar) {
-  if (s.owned[car.id] || s.cash < car.price) return false;
+  if (s.owned[car.id] || s.cash < car.price || !forSale(s, car)) return false;
   s.cash -= car.price;
-  s.owned[car.id] = { upgrades: { ...NO_UP }, paint: car.paint, paints: [car.paint] };
-  s.car = car.id;
+  s.owned[car.id] = own(car);
   return true;
 }
 
@@ -122,75 +110,50 @@ export function buyUpgrade(s: Save, car: PlayerCar, kind: keyof Upgrades) {
   return true;
 }
 
-/** Paint a car: a colour it has worn before is free; a new one costs its collection's price, if open. */
+/** Paint a car you own: every colour is free. */
 export function paint(s: Save, car: PlayerCar, color: string) {
-  const o = s.owned[car.id], set = paintSet(color);
-  if (!o || !paintsOpen(s).includes(set)) return false;
-  if (!o.paints.includes(color)) {
-    if (s.cash < set.price) return false;
-    s.cash -= set.price;
-    o.paints.push(color);
-  }
+  const o = s.owned[car.id];
+  if (!o) return false;
   o.paint = color;
   return true;
 }
 
-/** Keep three missions on the board. */
-export function fillMissions(s: Save, rnd: () => number = Math.random) {
-  while (s.missions.length < 3) s.missions.push(newMission(s.level, carOf(s.car).top, s.missions, rnd));
-}
-
-/** Everything the end of a run shows, in the order it counts up. */
-export type Result = {
-  lines: PayLine[]; // what the driving paid
-  mults: { label: string; mult: number }[]; // the place, the mode, the day's first run
-  cash: number; // the run's pay after its multipliers
-  missions: { mission: Mission; done: boolean; progress: number }[];
-  missionCash: number; missionXp: number;
-  xp: number; // all XP gained
-  before: { level: number; xp: number }; after: { level: number; xp: number };
-  levels: { level: number; cash: number; unlocks: Unlock[] }[]; // levels reached and what each gave
-  record: boolean;
-};
-
-/** Pay a finished run into the save. `today` as YYYY-MM-DD. */
-export function finish(s: Save, score: Score, mode: ModeId, location: string, today: string): Result {
-  const lines = score.pay();
-  const mults: Result["mults"] = [];
-  const place = LOCATIONS.find((l) => l.id === location)!, m = MODES.find((x) => x.id === mode)!;
-  if (place.cash !== 1) mults.push({ label: place.name, mult: place.cash });
-  if (m.cash !== 1) mults.push({ label: m.name, mult: m.cash });
-  const first = s.day !== today && score.distance > 500;
-  if (first) { mults.push({ label: "First run today", mult: 2 }); s.day = today; }
-  const cash = Math.round(lines.reduce((a, l) => a + l.amount, 0) * mults.reduce((a, x) => a * x.mult, 1));
-
-  // missions: the ones this run finished pay and make way for new ones
-  const stats = statsOf(score, mode);
-  const missions = s.missions.map((mi) => ({ mission: mi, progress: progressOf(mi, stats), done: progressOf(mi, stats) >= 1 }));
-  const missionCash = missions.filter((x) => x.done).reduce((a, x) => a + x.mission.reward.cash, 0);
-  const missionXp = missions.filter((x) => x.done).reduce((a, x) => a + x.mission.reward.xp, 0);
-
-  const xp = xpOfPoints(score.points) + missionXp;
-  const before = { level: s.level, xp: s.xp };
-  const g = gainXp(s.level, s.xp, xp);
-  const levels: Result["levels"] = [];
-  for (let l = s.level + 1; l <= g.level; l++) levels.push({ level: l, cash: levelCash(l), unlocks: unlocked(l).filter((u) => !unlocked(l - 1).includes(u)) });
-  s.level = g.level; s.xp = g.xp;
-
-  s.cash += cash + missionCash + levels.reduce((a, l) => a + l.cash, 0);
-  s.missions = s.missions.filter((_, i) => !missions[i].done);
-  fillMissions(s);
+const count = (s: Save, score: Score) => {
   s.totals.runs++;
   s.totals.distance += score.distance;
   s.totals.misses += score.misses;
-  s.totals.cash += cash + missionCash;
+};
+
+/** A Sprint finished: its pay, a duel's car; the save updated. */
+export function finishSprintRun(s: Save, sp: Sprint, score: Score): SprintPay {
+  const pay = finishSprint(sp, score.time, s.sprints, (id) => !!s.owned[id]);
+  if (pay.duel?.car) s.owned[pay.duel.car.id] = own(pay.duel.car);
+  s.cash += pay.cash;
+  s.totals.cash += pay.cash;
+  count(s, score);
+  return pay;
+}
+
+/** A run that ended short of the line still counts its distance. */
+export const countRun = (s: Save, score: Score) => count(s, score);
+
+/** What a Free Drive run paid and whether it set the mode's record. */
+export type FreeResult = { lines: { label: string; amount: number }[]; cash: number; record: boolean };
+
+/** Free Drive pays like a finish does, by the minute, in the region of the car you drive, times the mode's rate. */
+export function finishFree(s: Save, score: Score, mode: ModeId, car: PlayerCar): FreeResult {
+  const m = MODES.find((x) => x.id === mode)!;
+  const minutes = score.time / 60;
+  const cash = Math.round(FINISH_PAY[regionOfCar(car)] * minutes * m.cash);
+  const lines = [{ label: `${Math.floor(minutes)}:${String(Math.round((minutes % 1) * 60)).padStart(2, "0")} on the road${m.cash !== 1 ? `, ${m.name} ×${m.cash}` : ""}`, amount: cash }];
+  s.cash += cash;
+  s.totals.cash += cash;
+  count(s, score);
   const b = s.best[mode];
   const record = !b || score.points > b.score;
   s.best[mode] = {
     score: Math.max(b?.score ?? 0, Math.round(score.points)), distance: Math.max(b?.distance ?? 0, score.distance),
     combo: Math.max(b?.combo ?? 0, score.bestCombo), topSpeed: Math.max(b?.topSpeed ?? 0, score.topSpeed),
   };
-  return { lines, mults, cash, missions, missionCash, missionXp, xp, before, after: { level: s.level, xp: s.xp }, levels, record };
+  return { lines, cash, record };
 }
-
-export { xpFor };

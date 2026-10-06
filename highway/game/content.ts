@@ -68,21 +68,16 @@ export const CARS: PlayerCar[] = [
   { id: "saba-v12-95", name: "Saba V12 '95", price: 56000, top: 225, mass: 1450, grip: 1.50, agility: 1.70, brake: 1.22, engine: "super", paint: "#e85d04" },
 ];
 
-/** Paints in collections: the first is open from the start, the others open with driver levels (game/progress.ts). */
-export const PAINT_SETS: { id: string; name: string; colors: string[]; price: number }[] = [
-  { id: "basic", name: "Solid", colors: ["#e8e6e0", "#13161c", "#9aa0a6", "#c81d25", "#d6421a", "#e2b310", "#1d6b43", "#2a5caa", "#1b3f8f", "#5a2a82", "#b9bcc0", "#7a1424"], price: 800 },
-  { id: "metallic", name: "Metallic", colors: ["#b8bcc4", "#3d4a5c", "#8c1c13", "#0d5c63", "#c5a15a", "#4a2c6b"], price: 2000 },
-  { id: "matte", name: "Matte", colors: ["#2b2d2f", "#5c6b4a", "#6e6a62", "#3b4f6b"], price: 3500 },
-  { id: "deep", name: "Deep", colors: ["#0b1d3a", "#1a3b2a", "#3a0d12", "#ff6a00"], price: 5000 },
+/** Every colour a car can wear, free on any car you own. */
+export const PAINTS = [
+  "#e8e6e0", "#13161c", "#9aa0a6", "#c81d25", "#d6421a", "#e2b310", "#1d6b43", "#2a5caa", "#1b3f8f", "#5a2a82", "#b9bcc0", "#7a1424",
+  "#b8bcc4", "#3d4a5c", "#8c1c13", "#0d5c63", "#c5a15a", "#4a2c6b", "#2b2d2f", "#5c6b4a", "#6e6a62", "#3b4f6b", "#0b1d3a", "#ff6a00",
 ];
-export const PAINTS = PAINT_SETS.flatMap((p) => p.colors);
-export const paintSet = (color: string) => PAINT_SETS.find((p) => p.colors.includes(color)) ?? PAINT_SETS[0];
 
 export type Upgrades = { speed: number; handling: number; brakes: number }; // 0..5 each
 export const UPGRADE_MAX = 5;
-/** What a level of an upgrade costs: 6% of the car's price, at least 800 as in the original (a first run buys two or three, not
- *  a whole set), half again each level; tuned by scripts/economy.ts. */
-export const upgradeCost = (car: PlayerCar, level: number) => Math.round((Math.max(800, car.price * 0.06) * 1.5 ** level) / 50) * 50;
+/** What a level of an upgrade costs: 5% of the car's price (at least 400), half again each level. */
+export const upgradeCost = (car: PlayerCar, level: number) => Math.round((Math.max(400, car.price * 0.05) * 1.5 ** level) / 50) * 50;
 
 const G = 9.81, RHO = 1.2, CDA = 0.62, CRR = 0.012, EFF = 0.88;
 
@@ -147,15 +142,14 @@ export const TRAFFIC: TrafficKind[] = [
   { id: "illinois-90-police-cruiser", weight: 0.3, livery: true },
 ];
 
-/** Places: a sky over the land, how it pays, how its traffic runs. */
-/** Places: a sky over the land, how it pays, how its traffic runs. They open with driver levels (game/progress.ts). */
-export type Location = { id: string; name: string; sky: string; cash: number; density: number; asphalt: string };
+/** Places: a sky over the land and how its traffic runs; each is a road trip region's (game/sprint.ts), open with it. */
+export type Location = { id: string; name: string; sky: string; density: number; asphalt: string };
 export const LOCATIONS: Location[] = [
-  { id: "countryside", name: "Countryside", sky: "partly_cloudy", cash: 1, density: 1, asphalt: "asphalt_new" },
-  { id: "midday", name: "High Noon", sky: "clear_midday", cash: 1.1, density: 1.05, asphalt: "asphalt_new" },
-  { id: "dusk", name: "Golden Hour", sky: "golden_hour", cash: 1.2, density: 1, asphalt: "asphalt_new" },
-  { id: "overcast", name: "Grey Day", sky: "overcast", cash: 1.25, density: 1.15, asphalt: "asphalt_new" },
-  { id: "night", name: "Night Run", sky: "night", cash: 1.4, density: 0.8, asphalt: "asphalt_new" },
+  { id: "countryside", name: "Countryside", sky: "partly_cloudy", density: 1, asphalt: "asphalt_new" },
+  { id: "midday", name: "High Noon", sky: "clear_midday", density: 1.05, asphalt: "asphalt_new" },
+  { id: "dusk", name: "Golden Hour", sky: "golden_hour", density: 1, asphalt: "asphalt_new" },
+  { id: "overcast", name: "Grey Day", sky: "overcast", density: 1.15, asphalt: "asphalt_new" },
+  { id: "night", name: "Night Run", sky: "night", density: 0.8, asphalt: "asphalt_new" },
 ];
 
 export type ModeId = "endless" | "twoway" | "time" | "trap";

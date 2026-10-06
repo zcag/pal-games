@@ -38,10 +38,6 @@
       "fields": {
         "v": "max",
         "cash": "sum",
-        "xpTotal": "sum",
-        "level": "max",
-        "xp": "latest",
-        "car": "latest",
         "owned": {
           "fields": {
             "compact-07": {
@@ -53,8 +49,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "kiri-10": {
@@ -66,8 +61,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "milano-95": {
@@ -79,8 +73,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "tozzo-98": {
@@ -92,8 +85,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "sigil-07": {
@@ -105,8 +97,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "tiara-gt-83": {
@@ -118,8 +109,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "asti-stradale-89": {
@@ -131,8 +121,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "thunderbolt-96": {
@@ -144,8 +133,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "jdm-sport-99": {
@@ -157,8 +145,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "exterminator-00": {
@@ -170,8 +157,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "phoenix-455-71": {
@@ -183,8 +169,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "stinger-96": {
@@ -196,8 +181,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "hazer-turbo-81": {
@@ -209,8 +193,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "libeccio-v6-91": {
@@ -222,8 +205,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "roadster-00": {
@@ -235,8 +217,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "cheetah-84": {
@@ -248,8 +229,7 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             },
             "saba-v12-95": {
@@ -261,16 +241,19 @@
                     "brakes": "max"
                   }
                 },
-                "paint": "latest",
-                "paints": "union"
+                "paint": "latest"
               }
             }
           }
         },
+        "pick": "latest",
+        "car": "latest",
         "location": "latest",
         "mode": "latest",
-        "missions": "latest",
-        "day": "latest",
+        "stop": "latest",
+        "sprints": {
+          "each": "min"
+        },
         "best": {
           "fields": {
             "endless": {
@@ -307,11 +290,7 @@
             }
           }
         },
-        "sprinting": "latest",
-        "sprint": "latest",
-        "sprints": {
-          "each": "min"
-        },
+        "seen": "union",
         "totals": {
           "fields": {
             "runs": "sum",

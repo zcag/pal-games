@@ -6,8 +6,9 @@ import { CARS, FEEL, MODES, spec, upgradeCost } from "../highway/game/content.ts
 import { Drive } from "../highway/game/drive.ts";
 import { ONE_WAY, edges, laneX, RAIL } from "../highway/game/layout.ts";
 import { SPRINTS, starTimes, starsFor, ghostTimeAt, ghostAt, GHOST_DT } from "../highway/game/sprint.ts";
-import { fresh, buyCar, buyUpgrade, load, stored, xpTotal, type Save } from "../highway/game/meta.ts";
-import { gainXp, xpFor } from "../highway/game/progress.ts";
+import { fresh, buyCar, buyUpgrade, load, stored, pickFor, finishSprintRun, finishFree, type Save } from "../highway/game/meta.ts";
+import { REGIONS, BOSS_STARS, sprintsOf, rivalTime } from "../highway/game/sprint.ts";
+import { closed, regionOpen, starsIn, bossOf, FINISH_PAY, STAR_PAY, nextStop } from "../highway/game/trip.ts";
 import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
 
 const NO_UP = { speed: 0, handling: 0, brakes: 0 };
@@ -62,15 +63,68 @@ test("a near miss counts only fast and close, and builds a combo", () => {
   expect(s.combo).toBe(0);
 });
 
-test("buying needs the cash, and a save survives a round trip", () => {
+// the trip's rules read each Sprint's best time; until scripts/sprint.ts has set them all, a stand-in
+for (const sp of SPRINTS) sp.best ||= 60;
+const timed = (time: number) => Object.assign(new Score(), { time, distance: 3000 });
+
+test("buying needs the cash and the car's region open, and a save survives a round trip", () => {
   const s = fresh();
   expect(buyCar(s, CARS[1])).toBe(false);
-  s.cash = CARS[1].price + 5000;
+  s.cash = 100000;
   expect(buyCar(s, CARS[1])).toBe(true);
+  expect(buyCar(s, CARS[3])).toBe(false); // a Sport car: High Noon is not open
   expect(buyUpgrade(s, CARS[1], "speed")).toBe(true);
   const back = load(JSON.parse(JSON.stringify(stored(s))));
   expect(back.owned[CARS[1].id].upgrades.speed).toBe(1);
-  expect(back.car).toBe(CARS[1].id);
+});
+
+describe("the road trip", () => {
+  test("a region's first three stops are open, each finish opens one more, the duel opens at its stars", () => {
+    const times: Record<string, number> = {}, list = sprintsOf(0);
+    expect(list.map((x) => closed(x, times) === null)).toEqual([true, true, true, false, false, false, false, false, false]);
+    times[list[0].id] = 999;
+    expect(closed(list[3], times)).toBeNull();
+    expect(closed(list[4], times)).not.toBeNull();
+    for (const x of list.slice(0, 8)) times[x.id] = starTimes(x)[1]; // two stars each
+    expect(starsIn(0, times)).toBe(16);
+    expect(closed(list[8], times)).toBeNull();
+    expect(BOSS_STARS).toBeLessThanOrEqual(16);
+    expect(regionOpen(1, times)).toBe(false);
+  });
+
+  test("a finish pays every time, a star only the first time; winning the duel gives the rival's car and opens the next region", () => {
+    const s = fresh(), sp = sprintsOf(0)[0];
+    const first = finishSprintRun(s, sp, timed(starTimes(sp)[0]));
+    expect(first.cash).toBe(FINISH_PAY[0] + STAR_PAY[0]);
+    const again = finishSprintRun(s, sp, timed(starTimes(sp)[0] - 0.05));
+    expect(again.cash).toBe(FINISH_PAY[0]);
+    const better = finishSprintRun(s, sp, timed(starTimes(sp)[2]));
+    expect(better.cash).toBe(FINISH_PAY[0] + STAR_PAY[0] * 2 + STAR_PAY[0] * 3);
+    const boss = bossOf(0);
+    const lost = finishSprintRun(s, boss, timed(rivalTime(boss) + 1));
+    expect(lost.duel).toEqual({ won: false });
+    const win = finishSprintRun(s, boss, timed(rivalTime(boss) - 1));
+    expect(win.duel?.won).toBe(true);
+    expect(win.duel?.car?.id).toBe(boss.boss!.car);
+    expect(win.duel?.opened).toBe(REGIONS[1].name);
+    expect(s.owned[boss.boss!.car]).toBeDefined();
+    expect(regionOpen(1, s.sprints)).toBe(true);
+    expect(pickFor(s, 1)?.id).toBe(boss.boss!.car); // the won car drives the new region
+  });
+
+  test("the next stop is the first open one still short of its stars, in the furthest open region", () => {
+    const times: Record<string, number> = {};
+    expect(nextStop(times).id).toBe(sprintsOf(0)[0].id);
+    times[sprintsOf(0)[0].id] = starTimes(sprintsOf(0)[0])[2];
+    expect(nextStop(times).id).toBe(sprintsOf(0)[1].id);
+  });
+
+  test("Free Drive pays by the minute in the car's region", () => {
+    const s = fresh();
+    const res = finishFree(s, timed(120), "endless", CARS[0]);
+    expect(res.cash).toBe(FINISH_PAY[0] * 2);
+    expect(s.cash).toBe(res.cash);
+  });
 });
 
 describe("accounts", () => {
@@ -90,39 +144,28 @@ describe("accounts", () => {
     for (const x of MODES) expect(declared(m, x.id), x.id).toMatchObject({ title: x.name, order: "desc", format: "points" });
   });
 
-  test("the level is stored as every XP earned, and a save from before reads it back from its level", () => {
-    const s = fresh();
-    Object.assign(s, gainXp(1, 0, xpFor(1) + xpFor(2) + 120));
-    expect([s.level, s.xp]).toEqual([3, 120]);
-    expect(stored(s).xpTotal).toBe(xpTotal(3, 120));
-    expect(load({ ...stored(s), level: 1, xp: 0 })).toMatchObject({ level: 3, xp: 120 });
-    expect(load({ v: 2, level: 7, xp: 40 })).toMatchObject({ level: 7, xp: 40 });
-  });
-
-  test("two machines that both played since they synced keep the cash, XP, cars, upgrades and records of both", () => {
+  test("two machines that both played since they synced keep the cash, cars, upgrades, best times and records of both", () => {
     const base = fresh();
     base.cash = 10000;
-    Object.assign(base, gainXp(1, 0, 500));
     const synced = JSON.parse(JSON.stringify(stored(base))) as Save;
     const a = load(structuredClone(synced)), b = load(structuredClone(synced));
-    // a buys a car and upgrades it, earns XP, sets a record
+    const [x, y] = sprintsOf(0);
+    // a buys a car and upgrades it, sets a best, a record
     buyCar(a, CARS[1]); buyUpgrade(a, CARS[1], "speed");
-    Object.assign(a, gainXp(a.level, a.xp, 300));
+    a.sprints[x.id] = 70; a.sprints[y.id] = 80;
     a.best.endless = { score: 40000, distance: 9000, combo: 5, topSpeed: 230 };
     a.totals.runs += 3;
-    // b earns cash, upgrades the first car, does better on Two-Way
+    // b earns cash, upgrades the first car, does better on one Sprint and on Two-Way
     b.cash += 4000;
     buyUpgrade(b, CARS[0], "brakes");
-    Object.assign(b, gainXp(b.level, b.xp, 2000));
+    b.sprints[x.id] = 65;
     b.best.twoway = { score: 52000, distance: 7000, combo: 8, topSpeed: 210 };
     b.totals.runs += 2;
     const merged = load(merge(m.sync.save, stored(b), merge(m.sync.save, stored(a), synced, synced), synced));
-    // what each spent and earned since: the base, less a's car and upgrade, plus b's earnings less its upgrade
     expect(merged.cash).toBe(10000 + (a.cash - 10000) + (b.cash - 10000));
-    expect(merged.cash).toBeLessThan(10000);
     expect(merged.owned[CARS[1].id].upgrades.speed).toBe(1);
     expect(merged.owned[CARS[0].id].upgrades.brakes).toBe(1);
-    expect(xpTotal(merged.level, merged.xp)).toBe(500 + 300 + 2000);
+    expect(merged.sprints).toEqual({ [x.id]: 65, [y.id]: 80 });
     expect(merged.best).toMatchObject({ endless: { score: 40000 }, twoway: { score: 52000 } });
     expect(merged.totals.runs).toBe(5);
   });
@@ -200,8 +243,8 @@ describe("Sprints", () => {
   });
 
   test("a best time is kept per Sprint; an unknown one is dropped", () => {
-    const s = load({ ...stored(fresh()), sprinting: true, sprint: sp.id, sprints: { [sp.id]: 71.5, nope: 3 } });
-    expect([s.sprinting, s.sprint, s.sprints]).toEqual([true, sp.id, { [sp.id]: 71.5 }]);
+    const s = load({ ...stored(fresh()), stop: sp.id, sprints: { [sp.id]: 71.5, nope: 3 } });
+    expect([s.stop, s.sprints]).toEqual([sp.id, { [sp.id]: 71.5 }]);
   });
 });
 
@@ -241,12 +284,13 @@ test("a near miss adds to the surge by how close it was, up to a quarter of the 
   expect(d.surge).toBeGreaterThan(7);
 });
 
-test("a save from before momentum pays its nitro levels back and drops a nitro mission", () => {
-  const old = { v: 2, cash: 100, car: CARS[2].id, owned: { [CARS[2].id]: { upgrades: { speed: 1, handling: 0, brakes: 0, nitro: 2 }, paint: "#fff", paints: ["#fff"] } },
-    missions: [{ kind: "nitro", text: "Light the nitro 3 times in one run", target: 3, reward: { cash: 400, xp: 150 } }] };
+test("a save from before the road trip keeps its cars and cash, pays nitro levels back, and drops levels and old Sprint times", () => {
+  const old = { v: 2, cash: 100, level: 9, xp: 40, car: CARS[2].id, owned: { [CARS[2].id]: { upgrades: { speed: 1, handling: 0, brakes: 0, nitro: 2 }, paint: "#fff", paints: ["#fff"] } },
+    missions: [{ kind: "nitro", text: "Light the nitro 3 times in one run", target: 3, reward: { cash: 400, xp: 150 } }], sprints: { "first-light": 64 } };
   const s = load(old);
-  expect(s.owned[CARS[2].id].upgrades).toEqual({ speed: 1, handling: 0, brakes: 0 });
+  expect(s.owned[CARS[2].id]).toEqual({ upgrades: { speed: 1, handling: 0, brakes: 0 }, paint: "#fff" });
   expect(s.cash).toBe(100 + upgradeCost(CARS[2], 0) + upgradeCost(CARS[2], 1));
-  expect(s.missions).toEqual([]);
+  expect(s.sprints).toEqual({});
+  expect("level" in s || "missions" in s).toBe(false);
   expect(load(stored(s)).cash).toBe(s.cash); // once
 });

@@ -1,8 +1,8 @@
-// Highway's page: the garage (your car driving the highway behind a sign you
-// set it up on), the run, the pause and the end of a run. The extension's
-// storage keeps the save (synced: a merged one sync brings in replaces the
-// page's); every finished run goes to its mode's leaderboard; the panel
-// hiding pauses the run.
+// Highway's page: the road trip's map (home), the garage, Free Drive, the
+// run, the pause and the end of a run (DESIGN.md, "The road trip"). The
+// extension's storage keeps the save (synced: a merged one sync brings in
+// replaces the page's); every finished Free Drive run goes to its mode's
+// leaderboard; the panel hiding pauses the run.
 import * as THREE from "./vendor/three.js";
 import type { SurfaceKit } from "@zcag/pal";
 import { Renderer } from "./render.ts";
@@ -11,14 +11,16 @@ import { Run, preloadTraffic, warmTraffic } from "./run.ts";
 import { Chase, VIEWS } from "./camera.ts";
 import { Car } from "./car.ts";
 import { Sound } from "./audio.ts";
-import { ONE_WAY, TWO_WAY, laneX } from "../game/layout.ts";
-import { CARS, LOCATIONS, MODES, UPGRADE_MAX, FEEL, topOf, upgradeCost, stats, paintSet, classOf, type Upgrades } from "../game/content.ts";
-import { load, stored, fresh, carOf, buyCar, buyUpgrade, paint, finish, places, modes, paintsOpen, opensAt, fillMissions, NO_UP, type Save, type Scene, type Result } from "../game/meta.ts";
-import { xpFor, nextUnlock, progressOf, statsOf, MAX_LEVEL } from "../game/progress.ts";
+import { Garage, type Bay } from "./garage.ts";
+import { showMap, hideMap, onPick, onRegion, type MapView } from "./trip.ts";
+import { ONE_WAY, TWO_WAY, laneX, type Layout } from "../game/layout.ts";
+import { CARS, LOCATIONS, MODES, PAINTS, UPGRADE_MAX, FEEL, topOf, upgradeCost, stats, classOf, type PlayerCar, type Upgrades, type Location } from "../game/content.ts";
+import { load, stored, fresh, carOf, buyCar, buyUpgrade, paint, places, pickFor, forSale, finishSprintRun, finishFree, countRun, NO_UP, type Save, type Scene, type FreeResult } from "../game/meta.ts";
 import type { Miss } from "../game/score.ts";
 import type { End, Packed } from "../game/drive.ts";
 import { acrossAt, type Input } from "../game/vehicle.ts";
-import { SPRINTS, sprintOf, starTimes, starsFor, clock, GHOST_DT, ghostAt, ghostTimeAt, type Ghost, type Sprint } from "../game/sprint.ts";
+import { REGIONS, SPRINTS, BOSS_STARS, sprintOf, sprintsOf, starTimes, rivalTime, clock, GHOST_DT, ghostAt, ghostTimeAt, type Ghost, type Sprint } from "../game/sprint.ts";
+import { FINISH_PAY, STAR_PAY, bossOf, closed, nextStop, regionOfCar, regionOpen, starsIn, starsOf, totalStars, type SprintPay } from "../game/trip.ts";
 
 declare const pal: SurfaceKit;
 const $ = (id: string) => document.getElementById(id)!;
@@ -28,10 +30,11 @@ const r = new Renderer($("view") as HTMLCanvasElement);
 const world = new World(r.gl);
 const chase = new Chase(r.camera);
 const sound = new Sound();
+let garageScene: Garage | null = null;
 let save: Save = fresh();
 let run: Run | null = null;
 let builtFor = "", warmedFor = ""; // the place the world was built for, and the one its traffic's shaders were made for
-type State = "loading" | "garage" | "run" | "paused" | "over" | "results";
+type State = "loading" | "map" | "garage" | "free" | "run" | "paused" | "over" | "results";
 let state: State = "loading";
 let names = new Map<string, string>(); // model id to its name, for the crash line
 
@@ -44,22 +47,25 @@ const persist = () => { if (!scene && !trial) pal.storage.set("save", stored(sav
 let signedIn = true;
 const account = () => pal.account().then((a) => { signedIn = a?.signedIn !== false; }, () => {});
 const layoutOf = (mode: string) => (MODES.find((m) => m.id === mode)?.twoWay ? TWO_WAY : ONE_WAY);
-/** The Sprint the garage is on, if it is on the Sprints. */
-const sprintNow = (): Sprint | null => (save.sprinting ? sprintOf(save.sprint) ?? null : null);
-const placeNow = () => LOCATIONS.find((l) => l.id === (sprintNow()?.location ?? save.location))!;
-const layoutNow = () => sprintNow()?.layout ?? layoutOf(save.mode);
 const stars = (n: number) => `<span class="stars">${[1, 2, 3].map((i) => `<i class="${i <= n ? "f" : ""}">★</i>`).join("")}</span>`;
 const money = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const kmh = (v: number) => (save.settings.units === "mph" ? v * 0.6214 : v);
 const unit = () => (save.settings.units === "mph" ? "mph" : "km/h");
-const today = () => new Date().toISOString().slice(0, 10);
+const placeOf = (id: string) => LOCATIONS.find((l) => l.id === id)!;
+
+/** What is driven next: a Sprint (in your car for its class) or Free Drive (your Free Drive car, mode and place). */
+type Trip = { sprint: Sprint; car: PlayerCar } | null;
+let trip: Trip = null;
+const sprintNow = () => trip?.sprint ?? null;
 
 // ---------------------------------------------------------------- the road
 
-/** Put a car on the road (building the place first if it changed); `ready` runs once it is placed, before any frame of it is shown. */
+/** Put a car on the road (building the place first if it changed); `ready` runs once it is placed, before any frame of it is shown.
+ *  `demo`: Free Drive's page, the car driving itself behind the sign. */
 async function road(demo: boolean, ready?: () => void) {
-  const loc = placeNow(), sp = sprintNow();
-  const layout = layoutNow();
+  const sp = demo ? null : sprintNow();
+  const loc: Location = placeOf(sp?.location ?? save.location);
+  const layout: Layout = sp?.layout ?? layoutOf(save.mode);
   const key = `${loc.id}/${layout.lanes}/${layout.oncoming}`;
   if (builtFor !== key) {
     veil(true, `Driving to ${loc.name}`);
@@ -69,14 +75,14 @@ async function road(demo: boolean, ready?: () => void) {
     builtFor = key;
   }
   run?.dispose();
-  const car = sp ? carOf(sp.car) : demo ? CARS[browse] : carOf(save.car);
+  const car = sp ? trip!.car : carOf(save.car);
   const owned = save.owned[car.id];
   const player = await Car.load(car.id, owned?.paint ?? car.paint);
-  run = new Run(world, layout, player, car, sp ? sp.up : owned?.upgrades ?? NO_UP, events, loc.density, demo || sp ? "endless" : save.mode,
-    sp && !demo ? { seed: sp.seed, length: sp.length, density: sp.density } : undefined);
+  run = new Run(world, layout, player, car, owned?.upgrades ?? NO_UP, events, loc.density, demo || sp ? "endless" : save.mode,
+    sp ? { seed: sp.seed, length: sp.length, density: sp.density } : undefined);
   if (demo) run.veh.launch((105 / 3.6) * FEEL.pace);
   run.settle();
-  await sprintProps(sp && !demo ? sp : null);
+  await sprintProps(sp);
   if (warmedFor !== key) { await warmTraffic(world, (sc) => r.warm(sc)); warmedFor = key; }
   chase.reset(run.pose);
   ready?.();
@@ -114,7 +120,7 @@ const events = {
     flash = Math.min(1, flash + j / 20000);
   },
   crash(info: { you: number; them: number; kind: string; oncoming: boolean }) {
-    if (state === "garage") { setTimeout(() => state === "garage" && road(true), 1800); return; }
+    if (state === "free") { setTimeout(() => state === "free" && road(true), 1800); return; }
     ended = "crash";
     state = "over";
     sound.play("crash_heavy", { gain: 1 });
@@ -138,12 +144,13 @@ const events = {
 };
 let ended: End | null = null;
 
-// ---------------------------------------------------------------- a Sprint's finish line and ghost
+// ---------------------------------------------------------------- a Sprint's finish line, your ghost, a duel's rival
 
 let ghosts: Record<string, Ghost> = {}; // each Sprint's best run, this machine's
 let recording: Ghost | null = null; // the Sprint being driven, as it goes
 let z0 = 0; // where it started
 let ghostCar: Car | null = null, ghostFor = "";
+let rival: { car: Car; line: Ghost; time: number } | null = null; // a duel's
 const finishLine = (() => {
   // a chequered band across the road, 2 m deep
   const c = document.createElement("canvas");
@@ -161,29 +168,44 @@ const finishLine = (() => {
   return m;
 })();
 /** The ghost: unlit and faint, so it reads as a line to follow and never as a car on the road; `GHOST_OPACITY` at
- *  a distance, fading out as it comes within a few car lengths of yours. */
-const GHOST_OPACITY = 0.12;
+ *  a distance, fading out as it comes within a few car lengths of yours. A duel's rival is the same, warmer and clearer. */
+const GHOST_OPACITY = 0.12, RIVAL_OPACITY = 0.3;
 let ghostOn = true; // pal's Ghost setting
 const ghostMat = new THREE.MeshBasicMaterial({ color: 0x8fb8ff, transparent: true, opacity: GHOST_OPACITY, depthWrite: false });
+const rivalMat = new THREE.MeshBasicMaterial({ color: 0xff8a3c, transparent: true, opacity: RIVAL_OPACITY, depthWrite: false });
 
-/** Put a Sprint's finish line and its ghost car in the world, or take them out. */
+/** Put a Sprint's finish line, your ghost and a duel's rival in the world, or take them out. */
 async function sprintProps(sp: Sprint | null) {
   finishLine.removeFromParent();
-  if (ghostCar && (!sp || ghostFor !== sp.car)) { ghostCar.dispose(); ghostCar = null; }
+  if (ghostCar && (!sp || ghostFor !== trip?.car.id)) { ghostCar.dispose(); ghostCar = null; }
+  if (rival) { rival.car.dispose(); rival = null; }
   if (!sp || !run) return;
   const w = world.hi - world.lo;
   finishLine.scale.x = w;
   (finishLine.material.map as THREE.Texture).repeat.set(w / 2, 1);
   finishLine.position.set((world.lo + world.hi) / 2, 0.02, run.veh.z + sp.length * FEEL.pace);
   world.scene.add(finishLine);
+  if (sp.boss) {
+    const line = await fetch(`./rivals/${sp.id}.json`).then((x) => (x.ok ? x.json() : null), () => null) as Ghost | null;
+    if (line) {
+      const car = await Car.load(sp.boss.car, carOf(sp.boss.car).paint, { shadow: false });
+      car.ghost(rivalMat);
+      world.scene.add(car.root);
+      rival = { car, line, time: rivalTime(sp) };
+    }
+    return; // a duel shows the rival, not your own best
+  }
   if (!ghostCar) {
-    ghostCar = await Car.load(sp.car, "#ffffff", { shadow: false });
-    ghostFor = sp.car;
+    ghostCar = await Car.load(trip!.car.id, "#ffffff", { shadow: false });
+    ghostFor = trip!.car.id;
     ghostCar.ghost(ghostMat);
   }
   ghostCar.root.visible = false;
   world.scene.add(ghostCar.root);
 }
+
+/** The rival's place `t` s in: its line, played at the pace that finishes in its time. */
+const rivalAt = (t: number) => ghostAt(rival!.line, (t * rival!.line.time) / rival!.time);
 
 // ---------------------------------------------------------------- input
 
@@ -193,17 +215,18 @@ window.addEventListener("keydown", (e: KeyboardEvent) => {
   const k = e.key.toLowerCase();
   if (e.metaKey || e.ctrlKey) return;
   sound.start();
-  if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(k)) e.preventDefault();
+  if (["arrowup", "arrowdown", "arrowleft", "arrowright", " ", "backspace"].includes(k)) e.preventDefault();
   if (!e.repeat) onKey(k);
   keys.add(k);
 });
-// the key hints are buttons too, and a garage line is picked by clicking it
+// the key hints are buttons too, and a sign's line is picked by clicking it
 document.addEventListener("click", (e) => {
   const el = e.target as HTMLElement;
   const key = el.closest<HTMLElement>("[data-key]")?.dataset.key;
   if (key) { sound.start(); onKey(key); return; }
   const at = el.closest<HTMLElement>("[data-row]")?.dataset.row;
   if (at && state === "garage") { row = +at; drawGarage(); }
+  if (at && state === "free") { freeRow = +at; drawFree(); }
 });
 window.addEventListener("keyup", (e: KeyboardEvent) => keys.delete(e.key.toLowerCase()));
 window.addEventListener("blur", () => keys.clear());
@@ -217,11 +240,16 @@ function input(): Input {
   };
 }
 
+const dir = (k: string) => (k === "arrowleft" || k === "a" ? -1 : k === "arrowright" || k === "d" ? 1 : 0);
+const vdir = (k: string) => (k === "arrowup" || k === "w" ? -1 : k === "arrowdown" || k === "s" ? 1 : 0);
+
 function onKey(k: string) {
   if (k === "m") { muted = !muted; sound.setVolume(muted ? 0 : save.settings.sound); return; }
+  if (state === "map") { mapKey(k); return; }
   if (state === "garage") { garageKey(k); return; }
+  if (state === "free") { freeKey(k); return; }
   // a Sprint is tried again at once, from anywhere in it
-  if (k === "r" && run?.drive.sprint && (state === "run" || state === "paused" || state === "over" || state === "results")) { if (!tallying) drive(); return; }
+  if (k === "r" && trip && (state === "run" || state === "paused" || state === "over" || state === "results")) { drive(); return; }
   if (state === "run") {
     if (k === "c") { chase.view = (chase.view + 1) % VIEWS.length; save.settings.view = VIEWS[chase.view].name; persist(); hint(`${VIEWS[chase.view].name} view`); }
     if (k === "p" || k === "enter") pause();
@@ -233,71 +261,155 @@ function onKey(k: string) {
     return;
   }
   if (state === "results") {
-    if (tallying) { skipTally(); return; } // a key while it counts shows it all at once
-    if (k === "enter" || (k === " " && !run?.drive.sprint)) drive();
-    if (k === "backspace" || k === "g") garage();
+    if (trip) {
+      if (k === "enter" || k === " " || k === "backspace") openMap();
+      if (k === "g") openGarage();
+      return;
+    }
+    if (k === "enter" || k === " ") drive();
+    if (k === "backspace") openMap();
+    if (k === "f") openFree();
+    if (k === "g") openGarage();
   }
 }
 
-// ---------------------------------------------------------------- garage
+// ---------------------------------------------------------------- the map (home)
+
+let mapRegion = 0;
+
+/** The map's picture of where you are: the region shown, its stops, the selected one. */
+function mapView(): MapView {
+  const times = save.sprints;
+  const sel = sprintOf(save.stop)!;
+  const car = pickFor(save, mapRegion);
+  return {
+    region: mapRegion,
+    regions: REGIONS.map((g, i) => ({
+      name: g.name, about: g.about, art: `./map/${g.id}.webp`, open: regionOpen(i, times),
+      why: regionOpen(i, times) ? undefined : `Win the duel in ${REGIONS[i - 1].name}`,
+      stars: starsIn(i, times), max: sprintsOf(i).length * 3, duelAt: BOSS_STARS,
+    })),
+    stops: sprintsOf(mapRegion).map((s) => ({
+      id: s.id, name: s.boss ? `Duel: ${s.name}` : s.name, about: s.about, facts: factsOf(s),
+      boss: s.boss && { rival: s.boss.rival, car: carOf(s.boss.car).name, time: rivalTime(s) },
+      stars: starsOf(s, times), best: times[s.id], times: s.best ? starTimes(s) : [],
+      pay: { finish: FINISH_PAY[s.region], stars: [1, 2, 3].map((n) => STAR_PAY[s.region] * n) },
+      closed: closed(s, times),
+    })),
+    selected: sel.region === mapRegion ? sel.id : sprintsOf(mapRegion)[0].id,
+    cash: save.cash, stars: totalStars(times), car: car?.name ?? "none yet",
+  };
+}
+const traffic = (d: number) => (d < 0.2 ? "light traffic" : d < 0.45 ? "steady" : d < 0.7 ? "busy" : "packed");
+const factsOf = (s: Sprint) => `${s.layout.oncoming ? "Two-Way" : `${s.layout.lanes} lanes`} · ${(s.length / 1000).toFixed(1)} km · ${traffic(s.density)}`;
+
+/** Home: the map, on the stop to play next (or the one last picked), a newly opened region slid to and named. */
+function openMap(at?: Sprint) {
+  state = "map";
+  trip = null;
+  hideSigns();
+  const s = at ?? sprintOf(save.stop) ?? nextStop(save.sprints);
+  save.stop = s.id;
+  mapRegion = s.region;
+  // a region opened since the map was last seen: go there
+  const fresh = REGIONS.findIndex((g, i) => regionOpen(i, save.sprints) && !save.seen.includes(`region:${g.id}`));
+  if (fresh > 0) { mapRegion = fresh; save.stop = sprintsOf(fresh)[0].id; banner(`${REGIONS[fresh].name} is open`); sound.play("bell_ding", { gain: 0.6 }); }
+  for (const [i, g] of REGIONS.entries()) if (regionOpen(i, save.sprints) && !save.seen.includes(`region:${g.id}`)) save.seen.push(`region:${g.id}`);
+  persist();
+  sound.setEngine(null);
+  showMap(mapView());
+}
+onPick((id) => { if (state !== "map") return; if (save.stop === id) mapKey("enter"); else { save.stop = id; persist(); sound.play("ui_select", { gain: 0.4 }); showMap(mapView()); } });
+onRegion((i) => { if (state === "map") { mapRegion = i; save.stop = sprintsOf(i)[0].id; showMap(mapView()); } });
+
+function mapKey(k: string) {
+  const list = sprintsOf(mapRegion), at = Math.max(0, list.findIndex((s) => s.id === save.stop));
+  if (dir(k)) { save.stop = list[(at + dir(k) + list.length) % list.length].id; sound.play("ui_select", { gain: 0.4 }); }
+  else if (vdir(k)) {
+    mapRegion = THREE.MathUtils.clamp(mapRegion - vdir(k), 0, REGIONS.length - 1);
+    const open = sprintsOf(mapRegion).find((s) => !closed(s, save.sprints) && starsOf(s, save.sprints) < 3);
+    save.stop = (open ?? sprintsOf(mapRegion)[0]).id;
+    sound.play("ui_select", { gain: 0.4 });
+  } else if (k === "enter" || k === " ") {
+    const s = sprintOf(save.stop)!, car = pickFor(save, s.region);
+    if (closed(s, save.sprints) || !car || !s.best) { sound.play("ui_error", { gain: 0.5 }); return; }
+    trip = { sprint: s, car };
+    persist();
+    drive();
+    return;
+  } else if (k === "g") { openGarage(); return; }
+  else if (k === "f") { openFree(); return; }
+  else return;
+  persist();
+  showMap(mapView());
+}
+
+// ---------------------------------------------------------------- the garage
 
 let row = 0;
 let browse = 0; // the car shown, owned or not
-const ROWS = ["car", "paint", "speed", "handling", "brakes", "mode", "place", "sprint"] as const;
-/** The garage's lines: on the Sprints, the mode and the Sprint (its car and road are its own). */
-const rows = (): readonly (typeof ROWS)[number][] => (save.sprinting ? ["mode", "sprint"] : ROWS.slice(0, 7));
-/** The modes, and the Sprints as one more. */
-const MODE_LIST = [...MODES.map((m) => m.id as string), "sprint"];
-
-async function garage() {
-  state = "garage";
-  $("card").hidden = true;
-  $("hud").hidden = true;
-  browse = CARS.findIndex((c) => c.id === save.car);
-  row = Math.min(row, rows().length - 1);
-  fillMissions(save);
-  persist();
-  await road(true);
-  sound.setEngine(sprintNow() ? carOf(sprintNow()!.car).engine : CARS[browse].engine);
-  drawGarage();
-  $("garage").hidden = false;
-  $("side").hidden = false;
-}
-
+const ROWS = ["car", "paint", "speed", "handling", "brakes"] as const;
 const shownCar = () => CARS[browse];
 const tag = (price: number) => `<em class="${save.cash >= price ? "can" : "no"}">${money(price)}</em>`;
-const lock = (level: number) => `<em class="lock">level ${level}</em>`;
 const pips = (n: number) => Array.from({ length: UPGRADE_MAX }, (_, i) => `<i class="${i < n ? "f" : ""}"></i>`).join("");
-let tint = ""; // a colour being looked at, not yet bought
+
+/** How a car stands in the garage: yours, for sale, or not yet (and what opens it). */
+function bayOf(car: PlayerCar): Bay {
+  return { id: car.id, state: save.owned[car.id] ? "owned" : forSale(save, car) ? "for-sale" : "locked", paint: save.owned[car.id]?.paint ?? car.paint };
+}
+/** What opens a locked car: its region, or the duel that wins it. */
+function opensWith(car: PlayerCar) {
+  const duel = SPRINTS.find((s) => s.boss?.car === car.id);
+  return duel ? `Win it from ${duel.boss!.rival}` : `Opens with ${REGIONS[regionOfCar(car)].name}`;
+}
+
+async function openGarage(focus?: string) {
+  state = "loading";
+  hideSigns();
+  hideMap();
+  veil(true, "Opening the garage");
+  browse = Math.max(0, CARS.findIndex((c) => c.id === (focus ?? pickFor(save, sprintOf(save.stop)?.region ?? 0)?.id ?? save.car)));
+  row = 0;
+  if (!garageScene) { garageScene = new Garage(r); await garageScene.build(CARS.map(bayOf)); }
+  else for (const c of CARS) garageScene.setState(c.id, bayOf(c).state);
+  garageScene.focus(shownCar().id, true);
+  r.finish.cut = true;
+  state = "garage";
+  veil(false);
+  drawGarage();
+  sound.setEngine(null);
+  // a car won in a duel and not yet seen: it is revealed now
+  for (const c of CARS) if (save.owned[c.id] && SPRINTS.some((s) => s.boss?.car === c.id) && !save.seen.includes(`car:${c.id}`)) {
+    browse = CARS.indexOf(c); garageScene.focus(c.id); drawGarage();
+    save.seen.push(`car:${c.id}`); persist();
+    sound.play("cash", { gain: 0.6 });
+    await garageScene.reveal(c.id);
+    break;
+  }
+}
 
 function drawGarage() {
-  const sp = sprintNow();
-  if (sp) { drawSprints(sp); return; }
-  const car = shownCar(), owned = save.owned[car.id], up = owned?.upgrades ?? NO_UP;
-  // browsing another car: each bar shows what it gains on yours in yellow, and where yours stands; on an
-  // upgrade's row, what its next level adds to this car
-  const k = rows()[row] as keyof Upgrades, next = owned && k in up && up[k] < UPGRADE_MAX;
+  const car = shownCar(), owned = save.owned[car.id], up = owned?.upgrades ?? NO_UP, bay = bayOf(car);
+  // browsing another car: each bar shows what it gains on the one this class drives in yellow; on an upgrade's row,
+  // what its next level adds to this car
+  const k = ROWS[row] as keyof Upgrades, next = owned && k in up && up[k] < UPGRADE_MAX;
   const st = stats(car, next ? { ...up, [k]: up[k] + 1 } : up);
-  const mine = next ? stats(car, up) : car.id === save.car ? null : stats(carOf(save.car), save.owned[save.car]?.upgrades ?? NO_UP);
+  const region = regionOfCar(car), mineCar = pickFor(save, region);
+  const mine = next ? stats(car, up) : mineCar && mineCar !== car ? stats(mineCar, save.owned[mineCar.id].upgrades) : null;
   const bar = (v: number, was?: number) => `<i class="${was === undefined ? "" : v > was + 0.05 ? "up" : "cmp"}" style="--v:${v.toFixed(2)};--w:${Math.min(v, was ?? v).toFixed(2)};--was:${(was ?? 0).toFixed(2)}"></i>`;
-  const loc = LOCATIONS.find((l) => l.id === save.location)!;
-  const mode = MODES.find((m) => m.id === save.mode)!;
-  const best = save.best[save.mode];
-  const sel = (k: string) => `${rows()[row] === k ? " on" : ""}" data-row="${rows().indexOf(k as (typeof ROWS)[number])}`;
-  const upRow = (k: keyof Upgrades, label: string) => {
-    const lv = up[k], max = lv >= UPGRADE_MAX;
+  const sel = (key: string) => `${ROWS[row] === key ? " on" : ""}" data-row="${ROWS.indexOf(key as (typeof ROWS)[number])}`;
+  const upRow = (key: keyof Upgrades, label: string) => {
+    const lv = up[key], max = lv >= UPGRADE_MAX;
     const price = !owned ? "" : max ? "<em>Full</em>" : tag(upgradeCost(car, lv));
-    return `<div class="row${sel(k)}"><span>${label}</span><div class="val"><span class="pips">${pips(lv)}</span>${price}</div></div>`;
+    return `<div class="row${sel(key)}"><span>${label}</span><div class="val"><span class="pips">${pips(lv)}</span>${price}</div></div>`;
   };
-  const carTag = owned ? `<em>${car.id === save.car ? "Yours" : "Owned"}</em>` : tag(car.price);
-  const placeOpen = places(save).includes(loc), modeOpen = modes(save).includes(mode);
-  const shown = tint || owned?.paint;
-  const set = paintSet(shown ?? car.paint);
-  const paintTag = owned && tint && !owned.paints.includes(tint) ? (paintsOpen(save).includes(set) ? tag(set.price) : lock(opensAtPaint(set.id))) : "";
-  const swatches = set.colors.map((c) => `<i style="background:${c}" class="${shown === c ? "on" : ""}"></i>`).join("");
+  const picked = owned && mineCar === car;
+  const carTag = owned ? `<em>${picked ? `Drives ${REGIONS[region].name}` : "Yours"}</em>` : bay.state === "for-sale" ? tag(car.price) : `<em class="lock">${opensWith(car)}</em>`;
+  const swatches = PAINTS.map((c) => `<i style="background:${c}" class="${(owned?.paint ?? car.paint) === c ? "on" : ""}"></i>`).join("");
+  const action = !owned ? (bay.state === "for-sale" ? "Buy it" : "Not open yet") : ROWS[row] === "car" ? (picked ? "Your car for " + REGIONS[region].name : `Drive it in ${REGIONS[region].name}`) : ROWS[row] === "paint" ? "Any colour, free" : "Upgrade";
   $("garage").innerHTML = `
     <div class="sign">
-      <div class="head"><b>Highway</b><span>${money(save.cash)}</span></div>
+      <div class="head"><b>Garage</b><span>${money(save.cash)}</span></div>
       <div class="rows">
         <div class="row${sel("car")}"><span>${classOf(car).name}</span><div class="val"><span class="arrows">${car.name}</span>${carTag}</div></div>
         <div class="bars">
@@ -306,144 +418,151 @@ function drawGarage() {
           <span>Handling</span>${bar(st.handling, mine?.handling)}
           <span>Brakes</span>${bar(st.brakes, mine?.brakes)}
         </div>
-        <div class="row${sel("paint")}"><span>${set.name}</span><div class="val"><span class="swatches">${swatches}</span>${paintTag}</div></div>
+        <div class="row${sel("paint")}"><span>Paint</span><div class="val"><span class="swatches">${owned ? swatches : ""}</span></div></div>
         ${upRow("speed", "Engine")}
         ${upRow("handling", "Handling")}
         ${upRow("brakes", "Brakes")}
-        <div class="row${sel("mode")}"><span>Mode</span><div class="val"><span class="arrows">${mode.name}</span>${modeOpen ? "" : lock(opensAt("mode", mode.id))}</div></div>
-        <div class="row${sel("place")}"><span>Place</span><div class="val"><span class="arrows">${loc.name}</span>${placeOpen ? "" : lock(opensAt("place", loc.id))}</div></div>
       </div>
       <div class="drive">
-        <div><div class="go">${!owned ? "Buy it to drive" : !modeOpen || !placeOpen ? "Not open yet" : "Drive"}</div><div class="best">${best ? `Best ${best.score.toLocaleString("en-US")} in ${(best.distance / 1000).toFixed(1)} km` : mode.about}</div></div>
-        <div class="keys"><button data-key=" "><kbd>space</kbd> drive</button><br><button data-key="enter"><kbd>enter</kbd> buy</button></div>
+        <div><div class="go">${action}</div><div class="best">${Math.round(kmh(topOf(car, up)))} ${unit()} top</div></div>
+        <div class="keys"><button data-key="enter"><kbd>enter</kbd> ${!owned ? "buy" : ROWS[row] === "car" ? "use" : "upgrade"}</button><br><button data-key="backspace"><kbd>⌫</kbd> map</button></div>
       </div>
     </div>`;
-  drawSide();
-}
-/** The garage on the Sprints: the mode, the Sprint, its car and road, the times its stars need, your best. */
-function drawSprints(sp: Sprint) {
-  const sel = (k: string) => `${rows()[row] === k ? " on" : ""}" data-row="${rows().indexOf(k as (typeof ROWS)[number])}`;
-  const best = save.sprints[sp.id], car = carOf(sp.car), loc = placeNow();
-  const lanes = sp.layout.oncoming ? `${sp.layout.lanes} lanes each way` : `${sp.layout.lanes} lanes`;
-  $("garage").innerHTML = `
-    <div class="sign">
-      <div class="head"><b>Highway</b><span>${money(save.cash)}</span></div>
-      <div class="rows">
-        <div class="row${sel("mode")}"><span>Mode</span><div class="val"><span class="arrows">Sprints</span></div></div>
-        <div class="row${sel("sprint")}"><span>Sprint ${SPRINTS.indexOf(sp) + 1}</span><div class="val"><span class="arrows">${sp.name}</span>${stars(best ? starsFor(sp, best) : 0)}</div></div>
-        <div class="about">${sp.about}</div>
-        <div class="facts"><span>${car.name}</span><span>${loc.name}, ${lanes}</span><span>${(sp.length / 1000).toFixed(1)} km</span></div>
-        <div class="targets">${starTimes(sp).map((t, i) => `<div class="${best && best <= t ? "got" : ""}">${stars(i + 1)}<b>${clock(t)}</b></div>`).join("")}</div>
-      </div>
-      <div class="drive">
-        <div><div class="go">Drive</div><div class="best">${best ? `Your best ${clock(best)}` : "Reach the line. R tries again."}</div></div>
-        <div class="keys"><button data-key=" "><kbd>space</kbd> drive</button></div>
-      </div>
-    </div>`;
-  const total = SPRINTS.reduce((a, s) => a + (save.sprints[s.id] ? starsFor(s, save.sprints[s.id]) : 0), 0);
-  $("side").innerHTML = `
-    <div class="driver"><b>Sprints</b><span>${total} of ${SPRINTS.length * 3} stars</span><i style="--v:${total / (SPRINTS.length * 3)}"></i></div>
-    <div class="missions sprints">${SPRINTS.map((s) => `<div class="${s === sp ? "on" : ""}"><span>${s.name}</span>${stars(save.sprints[s.id] ? starsFor(s, save.sprints[s.id]) : 0)}<em>${save.sprints[s.id] ? clock(save.sprints[s.id]) : "Not finished"}</em></div>`).join("")}</div>`;
+  $("garage").hidden = false;
 }
 
-const opensAtPaint = (id: string) => { for (let l = 1; l <= MAX_LEVEL; l++) if (paintsOpen({ ...save, level: l }).some((p) => p.id === id)) return l; return 1; };
-
-/** The driver's level and the missions, on the right. */
-function drawSide() {
-  const next = nextUnlock(save.level);
-  const need = xpFor(save.level);
-  $("side").innerHTML = `
-    <div class="driver"><b>Level ${save.level}</b><span>${save.level >= MAX_LEVEL ? "Top level" : `${Math.round(save.xp).toLocaleString("en-US")} / ${need.toLocaleString("en-US")} XP`}</span>
-      <i style="--v:${save.level >= MAX_LEVEL ? 1 : save.xp / need}"></i>
-      ${next ? `<small>Level ${next.level} opens ${next.unlocks.map((u) => u.name).join(", ")}</small>` : ""}</div>
-    <div class="missions">${save.missions.map((m) => `<div><span>${m.text}</span><em>${money(m.reward.cash)} · ${m.reward.xp} XP</em></div>`).join("")}</div>`;
+/** The garage's tags over its bays: a price, what opens a car, or nothing for yours. */
+function drawTags() {
+  if (!garageScene) return;
+  const html = garageScene.labels().filter((l) => l.visible).map((l) => {
+    const car = carOf(l.id), b = bayOf(car);
+    const text = b.state === "owned" ? (pickFor(save, regionOfCar(car)) === car ? "★" : "") : b.state === "for-sale" ? money(car.price) : `🔒 ${opensWith(car).replace(/^Opens with /, "")}`;
+    return text ? `<div class="bay-tag ${b.state}" style="left:${l.x}px;top:${l.y}px">${text}</div>` : "";
+  }).join("");
+  $("tags").innerHTML = html;
 }
 
 async function garageKey(k: string) {
   const car = shownCar(), owned = save.owned[car.id];
-  const what = rows()[row];
-  if (k === "arrowup" || k === "w" || k === "arrowdown" || k === "s") {
-    if (tint && owned) { tint = ""; run?.player.setColor(owned.paint); }
-    row = (row + (k === "arrowup" || k === "w" ? rows().length - 1 : 1)) % rows().length;
-  } else if (k === " " && save.sprinting) {
-    drive();
-    return;
-  } else if (k === " ") {
-    const loc = LOCATIONS.find((l) => l.id === save.location)!, mode = MODES.find((m) => m.id === save.mode)!;
-    if (!owned || !places(save).includes(loc) || !modes(save).includes(mode)) { sound.play("ui_error", { gain: 0.5 }); return; }
-    if (tint) { tint = ""; run?.player.setColor(owned.paint); }
-    if (save.car !== car.id) { save.car = car.id; persist(); }
-    drive();
-    return;
-  } else if (k === "arrowleft" || k === "arrowright" || k === "a" || k === "d") {
-    const d = k === "arrowleft" || k === "a" ? -1 : 1;
-    if (what === "car") { browse = (browse + d + CARS.length) % CARS.length; tint = ""; sound.play("ui_select", { gain: 0.5 }); await preview(); }
+  const what = ROWS[row];
+  if (vdir(k)) row = (row + vdir(k) + ROWS.length) % ROWS.length;
+  else if (dir(k)) {
+    const d = dir(k);
+    if (what === "car") { browse = (browse + d + CARS.length) % CARS.length; garageScene?.focus(shownCar().id); sound.play("ui_select", { gain: 0.5 }); }
     else if (what === "paint" && owned) {
-      // the open collections' colours, then the next locked one's to look at
-      const colors = paintsOpen(save).flatMap((p) => p.colors);
-      const i = colors.indexOf(tint || owned.paint);
-      tint = colors[(i + d + colors.length) % colors.length];
-      if (owned.paints.includes(tint)) { owned.paint = tint; tint = ""; persist(); }
-      run?.player.setColor(tint || owned.paint);
-    }
-    else if (what === "mode") {
-      const i = MODE_LIST.indexOf(save.sprinting ? "sprint" : save.mode), next = MODE_LIST[(i + d + MODE_LIST.length) % MODE_LIST.length];
-      save.sprinting = next === "sprint";
-      if (!save.sprinting) save.mode = next as typeof save.mode;
-      row = rows().indexOf("mode");
-      if (save.sprinting || modes(save).some((m) => m.id === save.mode)) persist();
-      if (!save.sprinting) browse = CARS.findIndex((c) => c.id === save.car);
-      await road(true);
-      sound.setEngine(sprintNow() ? carOf(sprintNow()!.car).engine : CARS[browse].engine);
-    }
-    else if (what === "sprint") {
-      const i = SPRINTS.findIndex((x) => x.id === save.sprint);
-      save.sprint = SPRINTS[(i + d + SPRINTS.length) % SPRINTS.length].id;
+      const i = PAINTS.indexOf(owned.paint);
+      paint(save, car, PAINTS[(i + d + PAINTS.length) % PAINTS.length]);
+      garageScene?.paint(car.id, owned.paint);
       persist();
-      sound.play("ui_select", { gain: 0.5 });
-      await road(true);
-      sound.setEngine(carOf(sprintNow()!.car).engine);
-    }
-    else if (what === "place") { const i = LOCATIONS.findIndex((l) => l.id === save.location); save.location = LOCATIONS[(i + d + LOCATIONS.length) % LOCATIONS.length].id; if (places(save).some((l) => l.id === save.location)) persist(); await road(true); }
-    else return;
-  } else if (k === "enter") {
+    } else return;
+  } else if (k === "enter" || k === " ") {
     let ok = false;
-    if (what === "car") { ok = !owned && buyCar(save, car); if (owned) { save.car = car.id; ok = true; } }
-    else if (what === "paint" && owned && tint) { ok = paint(save, car, tint); if (ok) tint = ""; }
-    else if ((what === "speed" || what === "handling" || what === "brakes") && owned) { ok = buyUpgrade(save, car, what); if (ok && run) run.setPlayer(run.player, car, owned.upgrades); }
-    sound.play(ok ? "cash" : "ui_error", { gain: 0.6 });
+    if (what === "car" && !owned) {
+      ok = buyCar(save, car);
+      if (ok) {
+        save.pick[REGIONS[regionOfCar(car)].cls] = car.id; // a new car drives its class's Sprints
+        save.seen.push(`car:${car.id}`);
+        persist();
+        drawGarage();
+        sound.play("cash", { gain: 0.6 });
+        garageScene?.setState(car.id, "owned");
+        await garageScene?.reveal(car.id);
+        return;
+      }
+    } else if (what === "car") { save.pick[REGIONS[regionOfCar(car)].cls] = car.id; ok = true; }
+    else if (what === "speed" || what === "handling" || what === "brakes") ok = !!owned && buyUpgrade(save, car, what);
+    sound.play(ok ? (what === "car" ? "ui_confirm" : "cash") : "ui_error", { gain: 0.6 });
     if (ok) persist();
-  } else return;
+  } else if (k === "backspace" || k === "g") { openMap(); return; }
+  else if (k === "f") { openFree(); return; }
+  else return;
   drawGarage();
 }
 
-/** Show the browsed car on the road. */
-async function preview() {
-  const car = shownCar();
-  const model = await Car.load(car.id, save.owned[car.id]?.paint ?? car.paint);
-  if (shownCar() !== car || !run) { model.dispose(); return; }
-  run.setPlayer(model, car, save.owned[car.id]?.upgrades ?? NO_UP);
-  sound.setEngine(car.engine);
-  drawGarage();
+// ---------------------------------------------------------------- Free Drive
+
+let freeRow = 0;
+const FREE_ROWS = ["car", "mode", "place"] as const;
+
+/** Free Drive: your car driving itself behind a sign where you pick the car, the mode and the sky. */
+async function openFree() {
+  state = "loading";
+  trip = null;
+  hideSigns();
+  hideMap();
+  if (!save.owned[save.car]) save.car = CARS.find((c) => save.owned[c.id])!.id;
+  await road(true);
+  state = "free";
+  sound.setEngine(carOf(save.car).engine);
+  drawFree();
 }
+
+function drawFree() {
+  const car = carOf(save.car), mode = MODES.find((m) => m.id === save.mode)!, loc = placeOf(save.location);
+  const best = save.best[save.mode];
+  const sel = (k: string) => `${FREE_ROWS[freeRow] === k ? " on" : ""}" data-row="${FREE_ROWS.indexOf(k as (typeof FREE_ROWS)[number])}`;
+  $("free").innerHTML = `
+    <div class="sign">
+      <div class="head"><b>Free Drive</b><span>${money(save.cash)}</span></div>
+      <div class="rows">
+        <div class="row${sel("car")}"><span>${classOf(car).name}</span><div class="val"><span class="arrows">${car.name}</span></div></div>
+        <div class="row${sel("mode")}"><span>Mode</span><div class="val"><span class="arrows">${mode.name}</span></div></div>
+        <div class="row${sel("place")}"><span>Place</span><div class="val"><span class="arrows">${loc.name}</span></div></div>
+        <div class="about">${mode.about}</div>
+      </div>
+      <div class="drive">
+        <div><div class="go">Drive</div><div class="best">${best ? `Best ${best.score.toLocaleString("en-US")} in ${(best.distance / 1000).toFixed(1)} km` : `Pays ${money(FINISH_PAY[regionOfCar(car)] * mode.cash)} a minute`}</div></div>
+        <div class="keys"><button data-key=" "><kbd>space</kbd> drive</button><br><button data-key="backspace"><kbd>⌫</kbd> map</button></div>
+      </div>
+    </div>`;
+  $("free").hidden = false;
+}
+
+async function freeKey(k: string) {
+  const what = FREE_ROWS[freeRow];
+  if (vdir(k)) freeRow = (freeRow + vdir(k) + FREE_ROWS.length) % FREE_ROWS.length;
+  else if (dir(k)) {
+    const d = dir(k);
+    if (what === "car") {
+      const mine = CARS.filter((c) => save.owned[c.id]), i = mine.findIndex((c) => c.id === save.car);
+      save.car = mine[(i + d + mine.length) % mine.length].id;
+      const model = await Car.load(save.car, save.owned[save.car].paint);
+      if (state !== "free" || !run) { model.dispose(); return; }
+      run.setPlayer(model, carOf(save.car), save.owned[save.car].upgrades);
+      sound.setEngine(carOf(save.car).engine);
+    } else if (what === "mode") {
+      const i = MODES.findIndex((m) => m.id === save.mode);
+      save.mode = MODES[(i + d + MODES.length) % MODES.length].id;
+      await road(true);
+    } else {
+      const open = places(save), i = open.findIndex((l) => l.id === save.location);
+      save.location = open[(i + d + open.length) % open.length].id;
+      await road(true);
+    }
+    sound.play("ui_select", { gain: 0.5 });
+    persist();
+  } else if (k === " " || k === "enter") { drive(); return; }
+  else if (k === "backspace" || k === "f") { openMap(); return; }
+  else if (k === "g") { openGarage(save.car); return; }
+  else return;
+  drawFree();
+}
+
+function hideSigns() { for (const id of ["garage", "free", "card", "hud"]) $(id).hidden = true; $("tags").innerHTML = ""; }
 
 // ---------------------------------------------------------------- the run
 
 let musicOn = false;
-/** Start a run. The garage's last frame stays up (its sign too) until the run is ready, then it cuts to it; `prep` runs
- *  on the new run before its first frame (a kept run unpacked into it). */
+/** Start a run: the trip's Sprint, else Free Drive. The last frame stays up until the run is ready, then it cuts to it;
+ *  `prep` runs on the new run before its first frame (a kept run unpacked into it). */
 async function drive(prep?: () => void) {
-  const sp = sprintNow();
-  const car = sp ? carOf(sp.car) : carOf(save.car);
-  if (!sp) browse = CARS.indexOf(car);
+  const sp = sprintNow(), car = trip?.car ?? carOf(save.car);
   state = "loading"; // nothing drawn while the car is swapped: the last frame holds
   crashInfo = null;
   ended = null;
-  done.clear();
+  hideMap();
   await road(false, () => {
-    $("garage").hidden = true;
-    $("side").hidden = true;
-    $("card").hidden = true;
+    hideSigns();
     chase.view = viewOf(save);
     if (q.has("launch")) { run!.veh.launch((+q.get("launch")! / 3.6) * FEEL.pace); run!.settle(); } // ?launch=<km/h>: start a run at a speed, for trying the feel
     prep?.();
@@ -455,90 +574,93 @@ async function drive(prep?: () => void) {
   sound.setEngine(car.engine);
   if (!musicOn) { musicOn = true; sound.playMusic(); }
   $("unit").textContent = unit();
-  const mode = MODES.find((m) => m.id === save.mode)!;
   if (sp) {
     recording = { x: [], z: [], yaw: [], time: 0 };
     z0 = run!.veh.z;
-    banner(sp.name);
+    banner(sp.boss ? `${sp.boss.rival}` : sp.name);
     $("modebox").hidden = false;
-    hint(save.sprints[sp.id] ? "" : "Reach the line. Chain near misses to go past your top speed; R tries again");
+    hint(sp.boss ? `Beat ${sp.boss.rival} to the line` : save.sprints[sp.id] ? "" : save.totals.runs < 2 ? "Arrows to drive. Chain near misses to go past your top speed; R tries again" : "");
     return;
   }
   recording = null;
-  banner(mode.id === "endless" ? LOCATIONS.find((l) => l.id === save.location)!.name : mode.name);
+  const mode = MODES.find((m) => m.id === save.mode)!;
+  banner(mode.id === "endless" ? placeOf(save.location).name : mode.name);
   $("modebox").hidden = mode.id !== "time" && mode.id !== "trap";
-  hint(save.totals.runs < 3 ? "Arrows to drive. Pass close above 100 km/h; a chain of near misses takes you past your top speed" : "");
+  hint("");
 }
 
 function pause() {
   state = "paused";
   sound.suspend();
-  const sp = run?.drive.sprint;
+  const sp = sprintNow();
   card(`<h2>Paused</h2><div class="why">${!run ? "" : sp ? `${clock(run.score.time)}, ${(run.drive.toLine / 1000).toFixed(1)} km to go` : `${Math.round(run.score.points).toLocaleString("en-US")} points so far`}</div>
-    <div class="keys" style="margin-top:12px"><button data-key="enter"><kbd>enter</kbd> carry on</button>${sp ? `<button data-key="r"><kbd>r</kbd> try again</button>` : ""}<button data-key="q"><kbd>q</kbd> ${sp ? "back to the garage" : "give up the run"}</button></div>`);
+    <div class="keys" style="margin-top:12px"><button data-key="enter"><kbd>enter</kbd> carry on</button>${sp ? `<button data-key="r"><kbd>r</kbd> try again</button>` : ""}<button data-key="q"><kbd>q</kbd> ${sp ? "back to the map" : "end the run"}</button></div>`);
 }
 function resume() { state = "run"; $("card").hidden = true; sound.start(); last = performance.now(); }
-function giveUp() { if (run?.drive.sprint) garage(); else if (run) { crashInfo = null; results(); } }
-
-let tallying = false, skipTally = () => {};
+function giveUp() { if (trip) { if (run) { countRun(save, run.score); persist(); } openMap(trip.sprint); } else if (run) { crashInfo = null; results(); } }
 
 function results() {
   if (!run) return;
-  if (run.drive.sprint) { sprintResults(); return; }
+  if (trip) { sprintResults(); return; }
   state = "results";
   keepRun(); // a finished run is not carried over
   $("hud").hidden = true;
   const s = run.score;
-  const res = finish(save, s, save.mode, save.location, today());
+  const res = finishFree(save, s, save.mode, carOf(save.car));
   persist();
   post(Math.round(s.points), res.record);
+  card(`<div class="result free-end">
+      <div class="headline"><h2>${Math.round(s.points).toLocaleString("en-US")} points</h2>${res.record && s.points > 0 ? `<span class="plate">New best for ${MODES.find((m) => m.id === save.mode)!.name}</span>` : ""}</div>
+      <div class="why ${crashInfo ? "crash" : ""}">${whyEnded()}</div>
+      <dl>${tally(res)}</dl>
+    </div>
+    <div class="keys"><button data-key="enter"><kbd>enter</kbd> drive again</button><button data-key="backspace"><kbd>⌫</kbd> map</button><button data-key="g"><kbd>g</kbd> garage</button></div>`);
+}
+const tally = (res: FreeResult) => res.lines.map((l) => `<dt>${l.label}</dt><dd>${money(l.amount)}</dd>`).join("") + `<dt class="total">Earned</dt><dd class="total">${money(res.cash)}</dd>`;
+function whyEnded() {
   const what = crashInfo ? names.get(crashInfo.kind) ?? "car" : "";
-  const why = ended === "time" ? "Time's up" : ended === "slow" ? "Too slow for too long" : crashInfo
+  return ended === "time" ? "Time's up" : ended === "slow" ? "Too slow for too long" : crashInfo
     ? crashInfo.oncoming ? `Head-on with ${article(what)} ${what} at ${Math.round(kmh(crashInfo.you))} ${unit()}` : `Into ${article(what)} ${what}: you at ${Math.round(kmh(crashInfo.you))}, it at ${Math.round(kmh(crashInfo.them))} ${unit()}`
     : "You pulled over";
-  card(`<div class="result">
-      <div class="left">
-        <div class="headline"><h2>${Math.round(s.points).toLocaleString("en-US")} points</h2>${res.record && s.points > 0 ? `<span class="plate">New best for ${MODES.find((m) => m.id === save.mode)!.name}</span>` : ""}</div>
-        <div class="why ${crashInfo ? "crash" : ""}">${why}</div>
-        <dl id="tally"></dl>
-      </div>
-      <div class="right">
-        <div class="driver"><b id="lvl">Level ${res.before.level}</b><span id="xpn"></span><i id="xpbar" style="--v:${res.before.xp / xpFor(res.before.level)}"></i><small id="lvlup"></small></div>
-        <div class="missions">${res.missions.map((m) => `<div class="${m.done ? "done" : ""}"><span>${m.mission.text}</span><i style="--v:${m.progress}"></i><em>${m.done ? `Done: ${money(m.mission.reward.cash)} · ${m.mission.reward.xp} XP` : `${Math.round(m.progress * 100)}%`}</em></div>`).join("")}</div>
-      </div>
-    </div>
-    <div class="keys"><button data-key="enter"><kbd>enter</kbd> drive again</button><button data-key="g"><kbd>g</kbd> garage</button></div>`);
-  tally(res);
 }
 
-/** The end of a Sprint: the time and its stars, a new best kept with its ghost; or how far it got. */
+/** The end of a Sprint: the time, its stars and what they paid, a duel's outcome; or how far it got. */
 function sprintResults() {
-  const sp = sprintNow()!, d = run!.drive;
+  const sp = trip!.sprint, d = run!.drive;
   state = "results";
   $("hud").hidden = true;
-  const what = crashInfo ? names.get(crashInfo.kind) ?? "car" : "";
-  const keys = `<div class="keys"><button data-key="r"><kbd>r</kbd> try again</button><button data-key="g"><kbd>g</kbd> garage</button></div>`;
+  const keys = `<div class="keys"><button data-key="r"><kbd>r</kbd> try again</button><button data-key="enter"><kbd>enter</kbd> map</button><button data-key="g"><kbd>g</kbd> garage</button></div>`;
+  const targets = (time?: number) => `<div class="targets">${starTimes(sp).map((t, i) => `<div class="${time !== undefined && time <= t ? "got" : ""}">${stars(i + 1)}<b>${clock(t)}</b></div>`).join("")}</div>`;
   if (d.ended !== "line") {
+    if (!scene && !trial) { countRun(save, run!.score); persist(); }
+    const what = crashInfo ? names.get(crashInfo.kind) ?? "car" : "";
     card(`<div class="sprint-end"><h2>${crashInfo ? "Crashed" : "Stopped"}</h2>
       <div class="why crash">${crashInfo ? (crashInfo.oncoming ? `Head-on with ${article(what)} ${what}` : `Into ${article(what)} ${what}`) + `, ${((sp.length - d.toLine) / 1000).toFixed(1)} of ${(sp.length / 1000).toFixed(1)} km` : ""}</div>
-      <div class="targets">${starTimes(sp).map((t, i) => `<div>${stars(i + 1)}<b>${clock(t)}</b></div>`).join("")}</div></div>${keys}`);
+      ${targets()}</div>${keys}`);
     return;
   }
-  const time = d.score.time, before = save.sprints[sp.id], record = !before || time < before;
-  const got = starsFor(sp, time), had = before ? starsFor(sp, before) : 0;
-  if (record && !scene && !trial) {
-    save.sprints[sp.id] = time;
-    persist();
-    if (recording) { recording.time = time; ghosts[sp.id] = recording; pal.storage.set("ghosts", ghosts).catch((e: unknown) => console.error("highway: ghost", e)); }
-  }
-  const next = starTimes(sp).find((t) => time > t);
-  card(`<div class="sprint-end"><div class="headline"><h2>${clock(time)}</h2>${record && before ? `<span class="plate">New best, ${(before - time).toFixed(2)} s faster</span>` : record ? `<span class="plate">First finish</span>` : ""}</div>
-    <div class="big">${stars(got)}</div>
-    <div class="why">${got > had ? `${got - had === 1 ? "A new star" : `${got - had} new stars`}` : next ? `${(time - next).toFixed(2)} s from the next star` : "Every star"}${!record ? `. Your best is ${clock(before!)}` : ""}</div>
-    <div class="targets">${starTimes(sp).map((t, i) => `<div class="${time <= t ? "got" : ""}">${stars(i + 1)}<b>${clock(t)}</b></div>`).join("")}</div></div>${keys}`);
+  const time = d.score.time, before = save.sprints[sp.id];
+  const pay: SprintPay = scene || trial ? { lines: [], cash: 0, stars: 0, before: 0, record: false } : finishSprintRun(save, sp, d.score);
+  if (pay.record && recording) { recording.time = time; ghosts[sp.id] = recording; pal.storage.set("ghosts", ghosts).catch((e: unknown) => console.error("highway: ghost", e)); }
+  // the next stop to play is selected for the map
+  save.stop = (closed(sp, save.sprints) === null && pay.stars < 3 && !sp.boss ? sp : nextStop(save.sprints)).id;
+  persist();
+  const duel = pay.duel, next = starTimes(sp).find((t) => time > t);
+  const headline = duel ? (duel.won ? `You beat ${sp.boss!.rival}` : `${sp.boss!.rival} was ${(time - rivalTime(sp)).toFixed(2)} s faster`)
+    : pay.stars > pay.before ? (pay.stars - pay.before === 1 ? "A new star" : `${pay.stars - pay.before} new stars`)
+    : next ? `${(time - next).toFixed(2)} s from the next star` : "Every star";
+  const reward = duel?.car ? `<div class="reward">${duel.car.name} is yours${duel.opened ? `, and ${duel.opened} is open` : ""}</div>` : duel?.opened ? `<div class="reward">${duel.opened} is open</div>` : "";
+  card(`<div class="sprint-end">
+      <div class="headline"><h2>${clock(time)}</h2>${pay.record && before ? `<span class="plate">New best, ${(before - time).toFixed(2)} s faster</span>` : pay.record ? `<span class="plate">First finish</span>` : ""}</div>
+      <div class="big">${stars(pay.stars)}</div>
+      <div class="why">${headline}${!pay.record && before ? `. Your best is ${clock(before)}` : ""}</div>
+      ${reward}
+      <dl>${pay.lines.map((l) => `<dt>${l.label}</dt><dd>${money(l.amount)}</dd>`).join("")}<dt class="total">Earned</dt><dd class="total">${money(pay.cash)}</dd></dl>
+      ${targets(time)}</div>${keys}`);
+  if (duel?.won) sound.play("bell_ding", { gain: 0.7 });
 }
 
-/** The run to its mode's board; once it answers, where it stands under the points (and, signed out after a best, the offer to keep it). */
+/** A Free Drive run to its mode's board; once it answers, where it stands under the points (and, signed out after a best, the offer to keep it). */
 function post(points: number, record: boolean) {
   if (scene || trial || points <= 0) return;
   pal.score(save.mode, points).then((r) => {
@@ -548,70 +670,6 @@ function post(points: number, record: boolean) {
   }).catch((e: unknown) => console.error("highway: score", e));
 }
 document.addEventListener("click", (e) => { if ((e.target as HTMLElement).closest(".signin")) void pal.signIn().catch(() => {}); });
-
-/** Count the run's pay up line by line, then the XP bar fills, a level at a time. */
-function tally(res: Result) {
-  const dl = $("tally");
-  // the multipliers in one row, and the levels gained in another, so the card fits a panel
-  const mult = res.mults.reduce((a, m) => a * m.mult, 1);
-  const lv = res.levels, lvCash = lv.reduce((a, l) => a + l.cash, 0);
-  const rows: [string, string, number][] = [
-    ...res.lines.map((l) => [l.label, money(l.amount), l.amount] as [string, string, number]),
-    ...(res.mults.length ? [[res.mults.map((m) => m.label).join(", "), `×${+mult.toFixed(2)}`, 0] as [string, string, number]] : []),
-    ...(res.missionCash ? [["Missions", money(res.missionCash), res.missionCash] as [string, string, number]] : []),
-    ...(lv.length ? [[lv.length > 1 ? `Levels ${lv[0].level} to ${lv[lv.length - 1].level}` : `Level ${lv[0].level}`, money(lvCash), lvCash] as [string, string, number]] : []),
-  ];
-  const total = res.cash + res.missionCash + res.levels.reduce((a, l) => a + l.cash, 0);
-  let i = 0, timer = 0;
-  tallying = true;
-  const xpAnim = () => {
-    // the bar fills to the end of each level climbed, then to where it stops
-    let lvl = res.before.level, x = res.before.xp, left = res.xp;
-    const step = () => {
-      const need = xpFor(lvl), take = Math.min(left, need - x);
-      x += take; left -= take;
-      ($("xpbar") as HTMLElement).style.setProperty("--v", String(x / need));
-      $("xpn").textContent = `+${res.xp.toLocaleString("en-US")} XP`;
-      if (x >= need && lvl < MAX_LEVEL) {
-        lvl++; x = 0;
-        const got = res.levels.find((l) => l.level === lvl);
-        timer = window.setTimeout(() => {
-          $("lvl").textContent = `Level ${lvl}`;
-          $("lvlup").textContent = got?.unlocks.length ? `${got.unlocks.map((u) => u.name).join(", ")} ${got.unlocks.length > 1 ? "are" : "is"} open` : "";
-          ($("xpbar") as HTMLElement).style.setProperty("--v", "0");
-          sound.play("bell_ding", { gain: 0.6 });
-          if (left > 0) timer = window.setTimeout(step, 260); else tallying = false;
-        }, 420);
-      } else tallying = false;
-    };
-    step();
-  };
-  const next = () => {
-    if (i < rows.length) {
-      const [label, value, amount] = rows[i++];
-      dl.insertAdjacentHTML("beforeend", `<dt>${label}</dt><dd>${value}</dd>`);
-      dl.scrollTop = dl.scrollHeight;
-      if (amount) sound.play("coin", { gain: 0.35, rate: 0.9 + i * 0.04 });
-      timer = window.setTimeout(next, 170);
-    } else {
-      dl.insertAdjacentHTML("beforeend", `<dt class="total">Earned</dt><dd class="total">${money(total)}</dd>`);
-      dl.scrollTop = dl.scrollHeight;
-      sound.play("cash", { gain: 0.6 });
-      timer = window.setTimeout(xpAnim, 300);
-    }
-  };
-  skipTally = () => {
-    window.clearTimeout(timer);
-    dl.innerHTML = rows.map(([l, v]) => `<dt>${l}</dt><dd>${v}</dd>`).join("") + `<dt class="total">Earned</dt><dd class="total">${money(total)}</dd>`;
-    $("lvl").textContent = `Level ${res.after.level}`;
-    ($("xpbar") as HTMLElement).style.setProperty("--v", String(res.after.level >= MAX_LEVEL ? 1 : res.after.xp / xpFor(res.after.level)));
-    $("xpn").textContent = `+${res.xp.toLocaleString("en-US")} XP`;
-    const opened = res.levels.flatMap((l) => l.unlocks);
-    $("lvlup").textContent = opened.length ? `${opened.map((u) => u.name).join(", ")} ${opened.length > 1 ? "are" : "is"} open` : "";
-    tallying = false;
-  };
-  timer = window.setTimeout(next, 450);
-}
 
 // ---------------------------------------------------------------- HUD bits
 
@@ -630,8 +688,8 @@ function banner(text: string) {
   const el = document.createElement("div");
   el.className = "banner";
   el.textContent = text;
-  $("hud").append(el);
-  setTimeout(() => el.remove(), 950);
+  document.body.append(el);
+  setTimeout(() => el.remove(), 1400);
 }
 let hintTimer = 0;
 function hint(text: string) {
@@ -647,15 +705,17 @@ function veil(on: boolean, msg?: string) {
 }
 
 const rateOf = (k: number) => (k ** 3 * 1e-6 + (k >= 100 ? (k * k) / 3000 : 0)) * 25;
+const distance = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)}<small>km</small>` : `${Math.ceil(m / 10) * 10}<small>m</small>`);
 function hud() {
   if (!run) return;
-  const s = run.score, v = run.veh, k = v.kmh / FEEL.pace, sp = run.drive.sprint ? sprintNow() : null;
+  const s = run.score, v = run.veh, k = v.kmh / FEEL.pace, sp = sprintNow(), d = run.drive;
   if (sp) {
-    // the clock, and against your best run where it was at this point of the road
+    // the clock, and against the rival or your best where they were at this point of the road
     $("score").querySelector("b")!.textContent = clock(s.time);
-    const g = ghosts[sp.id], at = g ? ghostTimeAt(g, run.veh.z - z0) : null;
-    const split = at === null ? null : s.time - at;
-    $("rate").innerHTML = split === null ? "" : `<em class="${split <= 0 ? "ahead" : "behind"}">${split <= 0 ? "−" : "+"}${Math.abs(split).toFixed(2)}</em> on your best`;
+    const dz = run.veh.z - z0;
+    const against = rival ? { at: ghostTimeAt(rival.line, dz), scale: rival.time / rival.line.time, who: sp.boss!.rival } : ghosts[sp.id] ? { at: ghostTimeAt(ghosts[sp.id], dz), scale: 1, who: "your best" } : null;
+    const split = against && against.at !== null ? s.time - against.at * against.scale : null;
+    $("rate").innerHTML = split === null ? "" : `<em class="${split <= 0 ? "ahead" : "behind"}">${split <= 0 ? "−" : "+"}${Math.abs(split).toFixed(2)}</em> on ${against!.who}`;
   } else {
     $("score").querySelector("b")!.textContent = Math.round(s.points).toLocaleString("en-US");
     $("rate").textContent = k >= 60 ? `+${Math.round(rateOf(k))} a second` : "Faster for points";
@@ -667,30 +727,20 @@ function hud() {
   $("earn").textContent = s.misses ? `${s.misses} near miss${s.misses > 1 ? "es" : ""}` : "";
   const c = $("combo");
   c.hidden = !s.combo;
-  const d = run.drive;
   // the combo, and what it is worth past the top speed
   if (s.combo) { c.querySelector("b")!.innerHTML = `Combo ×${s.combo}${d.surge >= 1 ? ` <small>+${Math.round(kmh(d.surge))} ${unit()}</small>` : ""}`; c.style.setProperty("--left", String(s.comboLeft / 4)); }
   $("gauge").classList.toggle("surging", k > topOf(d.car, d.up) + 1);
-  // the mode's own clock or floor
-  // Time Attack: the clock and the road left to the next checkpoint, the same size side by side
   const cell = (value: string, label: string, low = false) => `<div><b class="${low ? "low" : ""}">${value}</b><span>${label}</span></div>`;
-  if (d.mode === "time") {
-    const left = Math.max(0, d.toCheckpoint);
-    $("modebox").innerHTML = cell(d.clock.toFixed(1), "seconds", d.clock < 10)
-      + cell(left >= 1000 ? `${(left / 1000).toFixed(1)}<small>km</small>` : `${Math.ceil(left / 10) * 10}<small>m</small>`, `to the next +${d.bonus} s`);
-  }
   if (sp) {
-    const left = d.toLine, want = starTimes(sp).slice().reverse().find((t) => t > s.time) ?? null, n = want === null ? 0 : starTimes(sp).indexOf(want) + 1;
-    $("modebox").innerHTML = cell(left >= 1000 ? `${(left / 1000).toFixed(1)}<small>km</small>` : `${Math.ceil(left / 10) * 10}<small>m</small>`, "to the line")
-      + cell(want === null ? "–" : clock(want), n ? `for ${"★".repeat(n)}` : "no stars left", want !== null && want - s.time < 5);
+    if (rival) { $("modebox").innerHTML = cell(distance(d.toLine), "to the line") + cell(clock(rival.time), `to beat ${sp.boss!.rival}`, rival.time - s.time < 5); return; }
+    const want = starTimes(sp).slice().reverse().find((t) => t > s.time) ?? null, n = want === null ? 0 : starTimes(sp).indexOf(want) + 1;
+    $("modebox").innerHTML = cell(distance(d.toLine), "to the line") + cell(want === null ? "–" : clock(want), n ? `for ${"★".repeat(n)}` : "no stars left", want !== null && want - s.time < 5);
     return;
   }
+  // Time Attack: the clock and the road left to the next checkpoint, the same size side by side
+  if (d.mode === "time") $("modebox").innerHTML = cell(d.clock.toFixed(1), "seconds", d.clock < 10) + cell(distance(Math.max(0, d.toCheckpoint)), `to the next +${d.bonus} s`);
   if (d.mode === "trap") $("modebox").innerHTML = cell(String(Math.round(kmh(d.floor))), d.under > 0 ? `Speed up: ${(3 - d.under).toFixed(1)} s` : `Stay above, ${unit()}`, d.under > 0);
-  // a mission finished mid-run says so at once
-  const st = statsOf(s, d.mode);
-  for (const m of save.missions) if (!done.has(m) && progressOf(m, st) >= 1) { done.add(m); pop(`Mission done<small>${m.text}</small>`, "mission"); sound.play("ui_confirm", { gain: 0.6 }); }
 }
-const done = new Set<object>();
 
 // ---------------------------------------------------------------- the loop
 
@@ -698,9 +748,9 @@ const STEP = 1 / 120;
 let acc = 0, last = performance.now(), t = 0, lastGear = 1;
 let drawn: State = "loading"; // the state the last frame was drawn in
 
-/** The garage's car drives itself: the lane with the most room, steered smoothly into. */
+/** Free Drive's car drives itself: the lane with the most room, steered smoothly into. */
 let autoLane = 1;
-/** The garage's driver, and a staged scene's (`bold`: it holds its speed, changes lanes sooner and never brakes; nothing touches in a scene). */
+/** Free Drive's driver, and a staged scene's (`bold`: it holds its speed, changes lanes sooner and never brakes; nothing touches in a scene). */
 function autopilot(target = 108, bold = false): Input {
   const rn = run!, v = rn.veh, L = rn.layout;
   // seconds until it would reach the car ahead in a lane (Infinity when the lane is clear), or -1 when
@@ -727,17 +777,27 @@ function autopilot(target = 108, bold = false): Input {
   return { throttle: !boxed && v.kmh / FEEL.pace < target ? 1 : 0, brake: boxed ? 1 : 0, steer };
 }
 
+/** A ghost car to where its line is `time` s in, fading as it nears your car. */
+function placeGhost(car: Car, p: { x: number; z: number; yaw: number }, mat: THREE.MeshBasicMaterial, full: number) {
+  car.root.position.set(p.x, 0, z0 + p.z);
+  car.root.rotation.y = p.yaw * FEEL.yaw;
+  const near = Math.hypot(p.x - run!.veh.x, z0 + p.z - run!.veh.z);
+  mat.opacity = full * THREE.MathUtils.clamp((near - 5) / 15, 0, 1);
+}
+
 function frame() {
   requestAnimationFrame(frame);
   const now = performance.now();
   let dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  if (!run || state === "loading") return;
+  if (state === "loading" || state === "map") return; // the map covers everything: nothing to draw under it
+  if (state === "garage") { garageScene?.frame(dt); drawTags(); return; }
+  if (!run) return;
   if (state === "paused") { r.render(world.scene, { dim: 0.35 }); return; }
   if (slowmo > 0) { slowmo -= dt; dt *= 0.25; if (slowmo <= 0 && state === "over") results(); }
   t += dt;
   acc += dt;
-  const inp = state === "garage" ? autopilot() : state === "run" || state === "over" ? (scene ? autopilot(scene.speed ?? 170, true) : input()) : { throttle: 0, brake: 0.2, steer: 0 };
+  const inp = state === "free" ? autopilot() : state === "run" || state === "over" ? (scene ? autopilot(scene.speed ?? 170, true) : input()) : { throttle: 0, brake: 0.2, steer: 0 };
   const t0 = performance.now();
   while (acc >= STEP) {
     run.step(STEP, inp);
@@ -745,17 +805,16 @@ function frame() {
     // a Sprint's run, kept as a line through time: the ghost of a new best
     if (recording && state === "run" && run.score.time >= recording.z.length * GHOST_DT) { const v = run.veh; recording.x.push(+v.x.toFixed(2)); recording.z.push(+(v.z - z0).toFixed(2)); recording.yaw.push(+v.yaw.toFixed(3)); }
   }
-  // your best run's ghost, beside you
+  const live = state === "run" || state === "over", at = run.score.time + acc;
+  // your best run's ghost, beside you; a duel's rival ahead or behind
   if (ghostCar) {
-    const g = run.drive.sprint && sprintNow() ? ghosts[sprintNow()!.id] : null;
-    ghostCar.root.visible = ghostOn && !!g && (state === "run" || state === "over") && run.score.time < g.time + 1;
-    if (g && ghostCar.root.visible) {
-      const p = ghostAt(g, run.score.time + (acc / STEP) * STEP);
-      ghostCar.root.position.set(p.x, 0, z0 + p.z);
-      ghostCar.root.rotation.y = p.yaw * FEEL.yaw;
-      const near = Math.hypot(p.x - run.veh.x, z0 + p.z - run.veh.z);
-      ghostMat.opacity = GHOST_OPACITY * THREE.MathUtils.clamp((near - 5) / 15, 0, 1);
-    }
+    const g = sprintNow() ? ghosts[sprintNow()!.id] : null;
+    ghostCar.root.visible = ghostOn && !!g && live && at < g.time + 1;
+    if (g && ghostCar.root.visible) placeGhost(ghostCar, ghostAt(g, at), ghostMat, GHOST_OPACITY);
+  }
+  if (rival) {
+    rival.car.root.visible = live && at < rival.time + 2;
+    if (rival.car.root.visible) placeGhost(rival.car, rivalAt(at), rivalMat, RIVAL_OPACITY);
   }
   const t1 = performance.now();
   run.draw(dt, acc / STEP);
@@ -763,7 +822,7 @@ function frame() {
   const t2 = performance.now();
   world.follow(pose.z);
   const t3 = performance.now();
-  if (state === "garage") {
+  if (state === "free") {
     // a car-advert orbit around your car as it drives
     const a = t * 0.1 + 2.4, d = 8.6;
     r.camera.position.set(pose.x + Math.sin(a) * d, 1.5 + Math.sin(t * 0.21) * 0.25, pose.z + Math.cos(a) * d);
@@ -779,7 +838,7 @@ function frame() {
   if (state === "run") hud();
   flash = Math.max(0, flash - dt * 1.6);
   if (state !== drawn) { r.finish.cut = true; drawn = state; } // a new view: the blur must not smear the old one into it
-  r.render(world.scene, { speed: state === "garage" ? 0 : Math.max(0, (v.u - 30) / 45), hit: flash, dim: state === "results" ? 0.3 : 0 });
+  r.render(world.scene, { speed: state === "free" ? 0 : Math.max(0, (v.u - 30) / 45), hit: flash, dim: state === "results" ? 0.3 : 0 });
   // ?perf: a frame over 20 ms says where its time went
   if (q.has("perf")) { const t4 = performance.now(); if (t4 - t0 > 20) console.warn(`slow frame, ${r.gl.info.programs?.length} shaders, ${(t4 - t0).toFixed(1)}ms: step ${(t1 - t0).toFixed(1)} draw ${(t2 - t1).toFixed(1)} world ${(t3 - t2).toFixed(1)} render ${(t4 - t3).toFixed(1)}`); }
 }
@@ -796,33 +855,33 @@ pal.onHidden(() => { if (state === "run") pause(); sound.suspend(); keepRun(); }
 document.addEventListener("visibilitychange", () => { if (document.hidden) keepRun(); });
 addEventListener("pagehide", keepRun);
 
-/** A fresh save, keeping the settings, and back to the garage. */
+/** A fresh save, keeping the settings, and back to the map. */
 async function startOver() {
   if (trial || scene) return;
   const settings = save.settings;
   save = fresh();
   save.settings = settings;
-  ended = null; crashInfo = null; done.clear();
+  ghosts = {};
+  pal.storage.set("ghosts", {}).catch(() => undefined);
+  ended = null; crashInfo = null;
   pal.storage.set("run", null).catch(() => undefined);
-  await garage(); // it deals the missions and saves
+  garageScene?.dispose(); garageScene = null;
+  openMap();
   hint("Started over");
 }
 
-/** A run being driven is kept in storage while the page is hidden, so closing pal (which may drop the page) loses nothing. */
-type Kept = Packed & { location: string; done: number[] };
+/** A Free Drive run being driven is kept in storage while the page is hidden, so closing pal (which may drop the page) loses
+ *  nothing. A Sprint is a minute: it is not kept. */
+type Kept = Packed & { location: string };
 function keepRun() {
   if (scene || trial) return;
-  const live = run && (state === "run" || state === "paused") && !run.over && !run.drive.sprint;
-  const kept: Kept | null = live ? { ...run!.drive.pack(), location: save.location, done: [...done].map((m) => save.missions.indexOf(m as never)) } : null;
+  const live = run && (state === "run" || state === "paused") && !run.over && !trip;
+  const kept: Kept | null = live ? { ...run!.drive.pack(), location: save.location } : null;
   pal.storage.set("run", kept).catch((e: unknown) => console.error("highway: keep", e));
 }
 /** Back on the road where a kept run left off, paused. */
 async function carryOn(k: Kept) {
-  await drive(() => {
-    run!.drive.unpack(k);
-    run!.settle();
-    for (const i of k.done) if (save.missions[i]) done.add(save.missions[i]);
-  });
+  await drive(() => { run!.drive.unpack(k); run!.settle(); });
   hint("");
   pause();
 }
@@ -834,8 +893,9 @@ pal.storage.onChange((k, v) => {
   const vol = save.settings.sound;
   save = load(v);
   save.settings.sound = vol; // the volume is this machine's setting (pal's Volume)
-  fillMissions(save);
+  if (state === "map") showMap(mapView());
   if (state === "garage") drawGarage();
+  if (state === "free") drawFree();
 });
 pal.onSettings((s: Record<string, unknown>) => {
   if (typeof s.volume === "number") { save.settings.sound = s.volume / 100; sound.setVolume(muted ? 0 : save.settings.sound); }
@@ -845,22 +905,23 @@ pal.onSettings((s: Record<string, unknown>) => {
 // `?dev`: the page's state on window.hw, so a headless check can look inside
 if (q.has("dev")) Object.assign(window, { hw: { get run() { return run; }, get save() { return save; }, get state() { return state; }, get camera() { return r.camera; }, get world() { return world; }, r, THREE } });
 
-/** Play a staged scene: set the place and car, then the garage, a run already going, or its end. */
+/** Play a staged scene: the map, the garage, a Free Drive run already going, or its end; a Sprint with `sprint`. */
 async function stage(sc: Scene) {
   if (sc.location) save.location = sc.location;
-  save.level = Math.max(save.level, 12); // a staged scene can show any place and mode
   if (sc.mode) save.mode = sc.mode;
   if (sc.car) {
     save.car = sc.car;
-    save.owned[sc.car] ??= { upgrades: { ...NO_UP }, paint: sc.paint ?? carOf(sc.car).paint, paints: [] };
+    save.owned[sc.car] ??= { upgrades: { ...NO_UP }, paint: sc.paint ?? carOf(sc.car).paint };
     if (sc.paint) save.owned[sc.car].paint = sc.paint;
   }
-  browse = CARS.findIndex((c) => c.id === save.car);
-  if (sc.show === "garage") return garage();
+  if (sc.show === "map") { if (sc.sprint) save.stop = sc.sprint; return openMap(); }
+  if (sc.show === "garage") return openGarage(sc.car);
+  const sp = sc.sprint ? sprintOf(sc.sprint) : null;
+  trip = sp ? { sprint: sp, car: carOf(save.car) } : null;
   await drive();
   // the run, played forward by the driver, then shown live
   run!.veh.launch(((sc.speed ?? 170) / 3.6) * 0.9 * FEEL.pace);
-  run!.director.time = 50; // a minute in: busy, with the gaps a driver at speed threads
+  if (!sp) run!.director.time = 50; // a minute in: busy, with the gaps a driver at speed threads
   run!.drive.ghost = true; // played forward and on while the picture is taken: no crash may end it
   for (let i = 0; i < (sc.warm ?? 6) * 120; i++) { run!.step(1 / 120, autopilot(sc.speed ?? 170, true)); if (i % 60 === 0) run!.draw(1 / 2); }
   run!.settle();
@@ -875,34 +936,31 @@ async function stage(sc: Scene) {
   ghosts = ((await pal.storage.get("ghosts").catch(() => null)) as Record<string, Ghost> | null) ?? {};
   account();
   let kept = scene ? null : ((await pal.storage.get("run").catch(() => null)) as Kept | null);
-  if (kept && save.owned[kept.car] && modes(save).some((m) => m.id === kept!.mode) && places(save).some((l) => l.id === kept!.location)) {
+  if (kept && save.owned[kept.car] && places(save).some((l) => l.id === kept!.location) && !(kept as { sprint?: unknown }).sprint) {
     save.car = kept.car; save.mode = kept.mode; save.location = kept.location;
   } else kept = null;
   if (q.has("test")) {
-    // a test drive: every car and place yours, a middling car by default, nothing written back
+    // a test drive: every car yours and every region open, nothing written back
     trial = true;
     save.cash = 2_000_000;
-    for (const c of CARS) save.owned[c.id] ??= { upgrades: { ...NO_UP }, paint: c.paint, paints: [c.paint] };
-    save.level = Math.max(save.level, 25);
-    const want = q.get("test");
-    save.car = CARS.some((c) => c.id === want) ? want! : "thunderbolt-96";
+    for (const c of CARS) save.owned[c.id] ??= { upgrades: { ...NO_UP }, paint: c.paint };
+    for (const [i] of REGIONS.entries()) save.sprints[bossOf(i).id] ??= 1;
   }
   const settings = (await pal.settings().catch(() => ({}))) as Record<string, unknown>;
   if (typeof settings.volume === "number") save.settings.sound = settings.volume / 100;
   if (typeof settings.ghost === "boolean") ghostOn = settings.ghost;
   sound.volume = save.settings.sound;
   names = new Map((await fetch("./cars/cars.json").then((x) => x.json())).map((c: { id: string; name: string }) => [c.id, c.name]));
-  browse = CARS.findIndex((c) => c.id === save.car);
-  fillMissions(save);
-  const loc = placeNow(), layout = layoutNow();
-  veil(true, `Driving to ${loc.name}`);
-  await world.build(loc.sky, loc.asphalt, layout);
-  builtFor = `${loc.id}/${layout.lanes}/${layout.oncoming}`;
+  const loc = placeOf(save.location);
+  veil(true, "Loading the road");
+  await world.build(loc.sky, loc.asphalt, layoutOf(save.mode));
+  builtFor = `${loc.id}/${layoutOf(save.mode).lanes}/${layoutOf(save.mode).oncoming}`;
   await preloadTraffic((f) => (($("loading").querySelector("em") as HTMLElement).style.width = `${Math.round(f * 100)}%`));
   chase.view = viewOf(save);
   frame(); // the loop runs behind the sign, so it lifts over a drawn road
+  veil(false);
   if (scene) await stage(scene);
   else if (kept) await carryOn(kept);
   else if (q.has("drive")) await drive();
-  else await garage();
+  else openMap();
 })();
