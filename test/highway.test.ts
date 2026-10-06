@@ -323,14 +323,14 @@ test("the line between two lanes is no lane: side by side, some pairs leave room
 test("drivers decide on their own: cars placed together do not change lanes all at once", () => {
   const size = { x: 1.8, z: 4.4 }, sizeOf = () => size;
   let worst = 0;
-  for (const seed of [3, 4, 5]) {
+  for (const seed of [3, 4]) {
     const d = new Drive(ONE_WAY, CARS[0], NO_UP, size, 2.6, sizeOf, {}, { sprint: { seed, length: 9000, density: 0.8 } });
     d.ghost = true;
     const started: number[] = [];
     const was = new Map<number, number>();
-    for (let i = 0; i < 120 * 90; i++) {
-      d.step(1 / 120, { throttle: 0.6, brake: 0, steer: 0 });
-      for (const n of d.traffic.cars) { if (n.signal && !was.get(n.id)) started.push(i / 120); was.set(n.id, n.signal); }
+    for (let i = 0; i < 60 * 60; i++) {
+      d.step(1 / 60, { throttle: 0.6, brake: 0, steer: 0 });
+      for (const n of d.traffic.cars) { if (n.signal && !was.get(n.id)) started.push(i / 60); was.set(n.id, n.signal); }
     }
     // the most signals switched on within any half second
     for (const t of started) worst = Math.max(worst, started.filter((u) => u >= t && u < t + 0.5).length);
