@@ -15,6 +15,13 @@ import type { Renderer } from "./render.ts";
 import type { SkyLook } from "./skylooks.ts";
 import { CARS, CLASSES, classOf } from "../game/content.ts";
 
+/** A showcase's moments, for the page to time a title card and sounds to: the cover starting off, the light
+ *  sweeping the car (headlamps flash, the ring flares), the camera settling back. */
+export type Beat = "reveal" | "sweep" | "settle";
+
+/** The showcase's timeline, seconds. */
+const SHOW = { cover: 0.15, light: 0.75, sweep: 1.05, settle: 3.35, end: 4.2 };
+
 export type Bay = { id: string; state: "owned" | "for-sale" | "locked"; paint: string };
 
 /** Each class's colour: the floor line, the drum's base strip, the ring round each table. */
@@ -78,6 +85,12 @@ export class Garage {
   private time = 0;
   private lastFrame = 0;
   private reveals: { bay: BayObj; t: number; done: () => void }[] = [];
+  /** The showcase playing (showcase()): its bay, time, the way it sweeps round, where the camera was, and its beats. */
+  private show: { bay: BayObj; t: number; dir: number; yaw0: number; from: { pos: THREE.Vector3; quat: THREE.Quaternion; fov: number }; beats: Set<Beat>; done: () => void } | null = null;
+  private beatCbs: ((b: Beat) => void)[] = [];
+  /** How far the room is dimmed for a showcase, 0..1 (eased). */
+  private hush = 0;
+  private glows: [THREE.MeshBasicMaterial, THREE.Color][] = [];
   private queue = false;
   private v = new THREE.Vector3();
 
@@ -174,7 +187,7 @@ export class Garage {
       const left = this.bays.filter((b) => !b.loading).sort((x, y) => this.dist(x, at) - this.dist(y, at));
       if (!left.length) { this.queue = false; return; }
       // not while the camera glides or a car is revealed: a hitch shows most then
-      if (this.cam.t < 1 || this.reveals.length) { setTimeout(next, 120); return; }
+      if (this.cam.t < 1 || this.reveals.length || this.show) { setTimeout(next, 120); return; }
       this.load(left[0]).finally(() => setTimeout(next, 60));
     };
     next();
@@ -197,6 +210,9 @@ export class Garage {
           let c = seen.get(x);
           if (!c) {
             c = Object.assign(s.clone(), { onBeforeCompile: s.onBeforeCompile, customProgramCacheKey: s.customProgramCacheKey });
+            // the room's light as its own map: three reads a material's envMapIntensity only then (lit by the
+            // scene's environment it takes the scene's intensity), and dimming a bay is that intensity
+            (c as THREE.MeshStandardMaterial).envMap ??= this.env;
             seen.set(x, c);
             bay.mats.push([c as THREE.MeshStandardMaterial, s.envMapIntensity]);
           }
@@ -263,7 +279,11 @@ export class Garage {
   /** The room: the floor, the drum with its strips and the classes' names, the ceiling's lights, the outer wall. */
   private room(span: Record<string, [number, number]>) {
     const S = this.scene, add = (o: THREE.Object3D) => { S.add(o); return o; };
-    const glow = (c: THREE.ColorRepresentation, k: number) => this.keep(new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(k) }));
+    const glow = (c: THREE.ColorRepresentation, k: number) => {
+      const m = this.keep(new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(k) }));
+      this.glows.push([m, m.color.clone()]);
+      return m;
+    };
 
     // the floor: dark polished resin, mirroring what stands on it
     const floor = add(new THREE.Mesh(this.keep(new THREE.CircleGeometry(OUTER, 128).rotateX(-Math.PI / 2)), floorMaterial(this.mirror, 0x0a0b0d, 0.34, 1))) as THREE.Mesh;
@@ -365,6 +385,63 @@ export class Garage {
     await new Promise<void>((done) => this.reveals.push({ bay, t: 0, done }));
   }
 
+  /** Whether a showcase is playing. */
+  get showing() { return !!this.show; }
+
+  /** Be told each beat of a showcase as it comes; returns the way to stop being told. */
+  onBeat(cb: (b: Beat) => void) {
+    this.beatCbs.push(cb);
+    return () => { this.beatCbs = this.beatCbs.filter((x) => x !== cb); };
+  }
+
+  /** A new car's moment (~4 s), for a car just bought or won, in place of reveal(): the room dims to a spot on
+   *  it, the camera leaves its place and flies low and slow round the car (front three-quarter, side, rear
+   *  three-quarter) as its table turns it to face the arc; its cover comes off as it starts, a light runs down
+   *  the body, the headlamps flash and its class ring flares; then the camera settles back to the bay's usual
+   *  framing. It stands owned after. Resolves when settled (or skipped). */
+  async showcase(id: string) {
+    const bay = this.byId.get(id);
+    if (!bay) return;
+    this.skip();
+    await this.load(bay);
+    bay.state = "owned";
+    // the car drawn for a couple of frames under its cover before anything moves: its first draws (the shadow's
+    // shapes, the textures' first use) cost a frame's time, paid here where nothing is seen to stall
+    if (bay.car) bay.car.root.visible = true;
+    await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
+    // the bay becomes the one looked at; the camera flies from wherever it stands now
+    this.want = id;
+    const c = this.cam, cam = this.r.camera;
+    c.angle = c.from = c.to = c.angle + wrap(bay.angle - c.angle); c.t = 1;
+    // the arc starts on the camera's side (left of the bay, seen from outside) and runs right: the table turns
+    // the car nose left to meet it
+    const dir = 1;
+    await new Promise<void>((done) => {
+      this.show = { bay, t: 0, dir, yaw0: bay.yaw, from: { pos: cam.position.clone(), quat: cam.quaternion.clone(), fov: cam.fov }, beats: new Set(), done };
+    });
+  }
+
+  /** End a showcase at once, as it ends: the cover gone, the light back, the camera at the bay's framing. */
+  skip() {
+    const sh = this.show;
+    if (!sh) return;
+    const b = sh.bay;
+    if (b.cover) { b.cover.mesh.removeFromParent(); b.cover.mesh.geometry.dispose(); b.cover = null; }
+    b.flash = 0; this.sweep.intensity = 0; this.hush = 0;
+    b.yaw = wrap(sh.dir * -Math.PI / 2);
+    this.show = null;
+    this.r.finish.cut = true;
+    this.apply(b, true);
+    this.beat(sh, "settle");
+    sh.done();
+  }
+
+  private beat(sh: NonNullable<Garage["show"]>, b: Beat) {
+    if (sh.beats.has(b)) return;
+    sh.beats.add(b);
+    for (const cb of this.beatCbs) try { cb(b); } catch (e) { console.error("garage: beat", e); }
+  }
+
   paint(id: string, color: string) {
     const bay = this.byId.get(id);
     if (!bay) return;
@@ -383,7 +460,8 @@ export class Garage {
   }
 
   private dim(b: BayObj) {
-    const k = Math.min(1.6, b.lit + b.flash * 0.6);
+    const shown = this.show?.bay === b;
+    const k = Math.min(1.6, b.lit + b.flash * 0.6) * (shown ? 1 + 0.3 * this.hush : 1 - 0.6 * this.hush);
     for (const [m, base] of b.mats) m.envMapIntensity = base * k;
     if (b.car) {
       const l = b.lamps;
@@ -415,48 +493,63 @@ export class Garage {
 
     // the bays: the one looked at turns, the others turn back to parked; light and lamps ease to their state
     for (const b of this.bays) {
-      if (b === focus) b.yaw += SPIN * dt;
+      if (this.show?.bay === b) { /* the showcase turns it */ }
+      else if (b === focus) b.yaw += SPIN * dt;
       else { const d = wrap(PARK - b.yaw); b.yaw += d * Math.min(1, dt * 2.2); }
       b.table.rotation.y = b.yaw;
       const lit = this.litFor(b) + (b === focus ? 0.12 : 0), lamps = b.state === "owned" ? 1 : 0;
       const k = Math.min(1, dt * 4);
       const was = b.lit + b.lamps + b.flash;
       b.lit += (lit - b.lit) * k; b.lamps += (lamps - b.lamps) * k;
-      if (Math.abs(was - b.lit - b.lamps - b.flash) > 1e-4) this.dim(b);
+      if (Math.abs(was - b.lit - b.lamps - b.flash) > 1e-4 || this.hush > 0) this.dim(b);
       const ring = b.state === "owned" ? 2.4 : b.state === "for-sale" ? 0.9 : 0.35;
-      b.ring.color.copy(b.accent).multiplyScalar(ring * (b === focus ? 1.5 : 1) + b.flash * 6);
+      b.ring.color.copy(b.accent).multiplyScalar((ring * (b === focus ? 1.5 : 1) + b.flash * (this.show?.bay === b ? 3.5 : 6)) * (this.show?.bay === b ? 1 : 1 - 0.75 * this.hush));
       b.car?.setShadow(b === focus);
       if (b.cover) b.cover.mesh.castShadow = b === focus;
     }
 
     // reveals
     for (const rv of [...this.reveals]) {
-      const b = rv.bay;
       rv.t += dt;
-      const t = rv.t;
-      if (b.cover) {
-        b.cover.pull.value = Math.min(1, t / 0.85);
-        if (t >= 0.85) { b.cover.mesh.removeFromParent(); b.cover.mesh.geometry.dispose(); b.cover = null; }
-      }
-      b.flash = Math.max(0, Math.sin(Math.min(1, Math.max(0, (t - 0.35) / 0.85)) * Math.PI)) ** 1.5;
-      this.dim(b);
-      // the sweep: a narrow light run over the car from its nose to its tail
-      const s = ease((t - 0.3) / 0.8);
-      const fwd = this.v.set(Math.sin(b.yaw), 0, Math.cos(b.yaw)).applyQuaternion(b.root.quaternion);
-      const half = b.size.z * 0.75;
-      b.root.getWorldPosition(this.sweep.target.position).addScaledVector(fwd, half - 2 * half * s);
-      this.sweep.position.copy(this.sweep.target.position).add(this.v.set(0, 4.2, 0));
-      this.sweep.intensity = 90 * Math.sin(Math.min(1, Math.max(0, (t - 0.25) / 0.95)) * Math.PI);
-      if (t >= 1.25) { b.flash = 0; this.sweep.intensity = 0; this.dim(b); this.reveals.splice(this.reveals.indexOf(rv), 1); rv.done(); }
+      this.uncover(rv.bay, rv.t);
+      this.lightUp(rv.bay, rv.t, 90);
+      if (rv.t >= 1.25) { rv.bay.flash = 0; this.sweep.intensity = 0; this.dim(rv.bay); this.reveals.splice(this.reveals.indexOf(rv), 1); rv.done(); }
     }
 
-    // the key light over the bay looked at
+    // the showcase: its light and the room dimmed round it (the camera is placed below)
+    const sh = this.show;
+    this.hush += ((sh && sh.t < SHOW.settle ? 1 : 0) - this.hush) * Math.min(1, dt * (sh && sh.t < SHOW.settle ? 3 : 2.2));
+    if (this.hush < 1e-3) this.hush = 0;
+    if (sh) {
+      sh.t += dt;
+      const t = sh.t, b = sh.bay;
+      if (t >= SHOW.cover) { this.beat(sh, "reveal"); this.uncover(b, t - SHOW.cover); }
+      if (t >= SHOW.sweep) this.beat(sh, "sweep");
+      if (t >= SHOW.light) this.lightUp(b, t - SHOW.light, 120, 1.35);
+      if (t >= SHOW.settle) this.beat(sh, "settle");
+      // the table turns the car to face the arc, then drifts on with it
+      b.yaw = sh.yaw0 + wrap(sh.dir * -Math.PI / 2 - sh.yaw0) * ease(t / 1.3) + sh.dir * 0.05 * Math.max(0, t - 1.3);
+      b.table.rotation.y = b.yaw;
+      if (t >= SHOW.end) {
+        b.flash = 0; this.sweep.intensity = 0;
+        this.show = null;
+        this.dim(b);
+        sh.done();
+      }
+    }
+    for (const [m, c] of this.glows) m.color.copy(c).multiplyScalar(1 - 0.65 * this.hush);
+    this.scene.environmentIntensity = 1 - 0.5 * this.hush;
+    LOOK.grade.vignette = 0.32 + 0.16 * this.hush;
+
+    // the key light over the bay looked at; for a showcase a tighter, brighter spot from in front
     if (focus) {
       const p = focus.root.position;
       this.key.target.position.copy(p);
-      this.key.position.set(p.x, CEIL - 0.4, p.z).addScaledVector(this.v.set(Math.sin(focus.angle), 0, Math.cos(focus.angle)), -0.6);
-      this.key.intensity = 45;
+      this.key.position.set(p.x, CEIL - 0.4, p.z).addScaledVector(this.v.set(Math.sin(focus.angle), 0, Math.cos(focus.angle)), -0.6 + 1.6 * this.hush);
+      this.key.intensity = 45 + 45 * this.hush;
+      this.key.angle = 0.62 - 0.12 * this.hush;
     }
+    if (this.show) this.fly(this.show);
 
     // draw: the mirror under the floor, then the room through the finishing at the garage's exposure
     const gl = this.r.gl, exposure = gl.toneMappingExposure;
@@ -464,6 +557,55 @@ export class Garage {
     this.mirror.update(this.r, this.scene, this.hidden);
     this.r.render(this.scene, {});
     gl.toneMappingExposure = exposure;
+  }
+
+  /** A cover coming off, `t` seconds in. */
+  private uncover(b: BayObj, t: number) {
+    if (!b.cover) return;
+    b.cover.pull.value = Math.min(1, t / 0.85);
+    if (t >= 0.85) { b.cover.mesh.removeFromParent(); b.cover.mesh.geometry.dispose(); b.cover = null; }
+  }
+
+  /** The light coming up on a car, `t` seconds in: the bay's flash (headlamps, ring), and a narrow light run
+   *  over the car from its nose to its tail; `slow` stretches it. */
+  private lightUp(b: BayObj, t: number, power: number, slow = 1) {
+    t /= slow;
+    b.flash = Math.max(0, Math.sin(Math.min(1, Math.max(0, (t - 0.35) / 0.85)) * Math.PI)) ** 1.5;
+    this.dim(b);
+    const s = ease((t - 0.3) / 0.8);
+    const fwd = this.v.set(Math.sin(b.yaw), 0, Math.cos(b.yaw)).applyQuaternion(b.root.quaternion);
+    const half = b.size.z * 0.75;
+    b.root.getWorldPosition(this.sweep.target.position).addScaledVector(fwd, half - 2 * half * s);
+    this.sweep.position.copy(this.sweep.target.position).add(this.v.set(0, 4.2, 0));
+    this.sweep.intensity = power * Math.max(0, Math.sin(Math.min(1, Math.max(0, (t - 0.25) / 0.95)) * Math.PI));
+  }
+
+  /** The showcase's camera: from where it stood round into a low arc about the car, then round into the bay's
+   *  framing (which place() has just set). Every leg is an orbit about the bay (angle, distance, height, and
+   *  the point looked at blended), so the camera never cuts across the car. */
+  private fly(sh: NonNullable<Garage["show"]>) {
+    const cam = this.r.camera, t = sh.t, b = sh.bay, a = b.angle;
+    const out = new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), right = new THREE.Vector3(Math.cos(a), 0, -Math.sin(a));
+    const centre = b.root.position;
+    // a pose as (angle from straight out, distance, height, the point looked at)
+    type Pose = { beta: number; dist: number; h: number; look: THREE.Vector3; fov: number };
+    const pose = (pos: THREE.Vector3, quat: THREE.Quaternion, fov: number): Pose => {
+      const rel = pos.clone().sub(centre), x = rel.dot(right), z = rel.dot(out), dist = Math.hypot(x, z);
+      const look = pos.clone().add(new THREE.Vector3(0, 0, -1).applyQuaternion(quat).multiplyScalar(dist));
+      return { beta: Math.atan2(x, z), dist, h: pos.y, look, fov };
+    };
+    // the arc: -58 to +58 degrees round from the camera's side, closing in at the side view and rising a little
+    const u = ease((t - 0.2) / (SHOW.settle + 0.5 - 0.2));
+    const arc: Pose = { beta: THREE.MathUtils.degToRad(-58 + 116 * u), dist: 7.2 - 1.1 * Math.sin(u * Math.PI) - 0.3 * u, h: 0.6 + 0.45 * u, look: new THREE.Vector3(centre.x, 0.5 + 0.1 * u, centre.z), fov: 34 };
+    const from = pose(sh.from.pos, sh.from.quat, sh.from.fov), settled = pose(cam.position, cam.quaternion, cam.fov);
+    const into = ease(t / 1.0), back = ease((t - SHOW.settle) / (SHOW.end - SHOW.settle));
+    const mix = (p: Pose, q: Pose, k: number): Pose => ({ beta: p.beta + wrap(q.beta - p.beta) * k, dist: p.dist + (q.dist - p.dist) * k, h: p.h + (q.h - p.h) * k, look: p.look.clone().lerp(q.look, k), fov: p.fov + (q.fov - p.fov) * k });
+    const m = mix(mix(from, arc, into), settled, back);
+    cam.position.copy(centre).addScaledVector(out, Math.cos(m.beta) * m.dist).addScaledVector(right, Math.sin(m.beta) * m.dist).setY(m.h);
+    cam.lookAt(m.look);
+    cam.fov = m.fov;
+    cam.updateProjectionMatrix();
+    cam.updateMatrixWorld();
   }
 
   /** The camera where the orbit has it: outside the ring, left of the bay, the car framed right of the sign. */
@@ -503,7 +645,7 @@ export class Garage {
       const hid = Math.hypot(c.x + dx * t, c.z + dz * t) < DRUM;
       p.project(cam);
       const x = (p.x + 1) / 2 * w, y = (1 - p.y) / 2 * h;
-      return { id: b.id, x, y, visible: near(b) && ahead && !hid && p.x > -1.02 && p.x < 1.02 && p.y > -1 && p.y < 1.02 };
+      return { id: b.id, x, y, visible: !this.show && near(b) && ahead && !hid && p.x > -1.02 && p.x < 1.02 && p.y > -1 && p.y < 1.02 };
     });
   }
 
@@ -512,6 +654,7 @@ export class Garage {
     for (const d of this.disposables) d.dispose();
     for (const g of this.geos.values()) g.dispose();
     this.mirror.dispose();
+    this.skip();
     for (const rv of this.reveals) rv.done();
     this.reveals = [];
     this.bays = [];
