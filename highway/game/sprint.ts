@@ -107,6 +107,7 @@ const BEST: Record<string, number> = {
   "long-straight": 79.24,
   "white-lines": 53.07,
   "overtaker": 61.32,
+  "glare": 70.38,
   "duel-ines": 65.17,
   "duel-mika": 70.65,
 };

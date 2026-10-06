@@ -50,6 +50,8 @@ export const onRegion = (cb: (region: number) => void) => { regionCb = cb; };
 function build() {
   const link = document.createElement("link");
   link.rel = "stylesheet"; link.href = new URL("./trip.css", import.meta.url).href;
+  // the first map is drawn before its sheet arrives, with no size to lay the road out in: once it is in, again
+  link.onload = () => { if (view) { layout(); place(true); } };
   document.head.append(link);
   root = el("div", "trip-map gone");
   root.innerHTML = `<div class="world"></div><div class="shade"></div><div class="region sign"></div>

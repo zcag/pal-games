@@ -639,6 +639,7 @@ function sprintResults() {
     card(`<div class="sprint-end"><h2>${crashInfo ? "Crashed" : "Stopped"}</h2>
       <div class="why crash">${crashInfo ? (crashInfo.oncoming ? `Head-on with ${article(what)} ${what}` : `Into ${article(what)} ${what}`) + `, ${((sp.length - d.toLine) / 1000).toFixed(1)} of ${(sp.length / 1000).toFixed(1)} km` : ""}</div>
       ${targets()}</div>${keys}`);
+    showBoard(sp);
     return;
   }
   const time = d.score.time, before = save.sprints[sp.id];
@@ -660,15 +661,29 @@ function sprintResults() {
       <dl>${pay.lines.map((l) => `<dt>${l.label}</dt><dd>${money(l.amount)}</dd>`).join("")}<dt class="total">Earned</dt><dd class="total">${money(pay.cash)}</dd></dl>
       ${targets(time)}</div>${keys}`);
   if (duel?.won) sound.play("bell_ding", { gain: 0.7 });
-  post(`sprint/${sp.id}`, Math.round(time * 100) / 100, pay.record);
+  // your time on its board first, so the board read after it has it
+  void post(`sprint/${sp.id}`, Math.round(time * 100) / 100, pay.record).then(() => showBoard(sp));
   if (pay.stars > pay.before) post("stars", totalStars(save.sprints), true, false);
+}
+
+/** A Sprint's board beside its results: the five best times, and yours below them if it is not among them. */
+function showBoard(sp: Sprint) {
+  if (scene || trial) return;
+  pal.leaderboard(`sprint/${sp.id}`).then((b) => {
+    const at = document.querySelector("#card .sign");
+    if (state !== "results" || trip?.sprint !== sp || !at || !b.board) return;
+    const row = (r: { rank: number; name: string; value: number; me: boolean }) => `<li class="${r.me ? "me" : ""}"><b>${r.rank}</b><span>${r.me ? "You" : r.name}</span><em>${clock(r.value)}</em></li>`;
+    const top = b.rows.slice(0, 5), me = b.me && !top.some((r) => r.me) ? b.me : null;
+    at.classList.add("with-board");
+    at.insertAdjacentHTML("beforeend", `<aside class="board"><h3>Best times</h3>${top.length ? `<ol>${top.map(row).join("")}${me ? `<li class="gap">…</li>${row(me)}` : ""}</ol>` : `<p>No times yet. Finish it to be the first.</p>`}</aside>`);
+  }).catch(() => {});
 }
 
 /** A score to its board (a Free Drive mode's points, a Sprint's time, the trip's stars); once the board answers, where it
  *  stands under the results card's headline (and, signed out after a best, the offer to keep it). */
 function post(board: string, value: number, record: boolean, show = true) {
-  if (scene || trial || value <= 0) return;
-  pal.score(board, value).then((r) => {
+  if (scene || trial || value <= 0) return Promise.resolve();
+  return pal.score(board, value).then((r) => {
     if (!show || state !== "results" || !r?.rank || !r.total) return;
     const keep = !signedIn && record ? ` · <a class="signin">Sign in to keep your scores</a>` : "";
     document.querySelector("#card .headline")?.insertAdjacentHTML("beforeend", `<span class="standing">#${r.rank.toLocaleString("en-US")} of ${r.total.toLocaleString("en-US")}${keep}</span>`);
