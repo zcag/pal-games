@@ -126,14 +126,17 @@ test("a loadout locks unopened weapons and falls back from a locked hero", () =>
   expect(loadout(s, 1).omen).toBe(3);
 });
 
+// Stored a while into the night, with the minute's bat swarm still to come, and played on through it: the two nights match in
+// every field a night stores (its random stream, the crowd, the build), not only the score.
 test("a night stored partway plays on exactly as the one left open", () => {
-  const a = play(night(7), undefined, 60);
+  const a = play(night(7), undefined, 45), level = a.p.level;
   const b = unpackRun(JSON.parse(JSON.stringify(packRun(a))))!;
   expect(b.banished).toBeInstanceOf(Set);
   expect(b.groups).toBeInstanceOf(Map);
-  play(a, undefined, 150);
-  play(b, undefined, 150);
-  expect([b.t, b.p.kills, b.p.level, b.p.hp, b.p.xp, b.enemies.length]).toEqual([a.t, a.p.kills, a.p.level, a.p.hp, a.p.xp, a.enemies.length]);
+  play(a, undefined, 75);
+  play(b, undefined, 75);
+  expect(a.p.level).toBeGreaterThan(level); // level-ups picked on both sides, from the stored random stream
+  expect(packRun(b)).toEqual(packRun(a));
   a.phase = "dead";
   expect(unpackRun(packRun(a))).toBeUndefined();
   expect(unpackRun(null)).toBeUndefined();
