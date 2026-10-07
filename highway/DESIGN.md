@@ -113,6 +113,10 @@ one strong run bought the top car.
   the next class's first, and the next region opens with it.
 - **The last duel** (Kaz, Night Run) ends the trip; every region stays open
   to collect its stars.
+- **A Legend** waits past each duel: the region's hardest road (packed, narrow,
+  about a minute), open once the duel has three stars. Its first finish gives
+  a Legend paint every car can wear (gold, chrome, copper, pearl, obsidian):
+  something to show for it, with no money back in the game.
 
 ### Your car and the stars
 

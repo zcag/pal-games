@@ -21,7 +21,7 @@ import type { Miss } from "../game/score.ts";
 import { ROLLING_START, type End, type Packed } from "../game/drive.ts";
 import { acrossAt, type Input } from "../game/vehicle.ts";
 import { REGIONS, SPRINTS, BOSS_STARS, sprintOf, sprintsOf, starTimes, rivalTime, clock, GHOST_DT, ghostAt, ghostTimeAt, type Ghost, type Sprint } from "../game/sprint.ts";
-import { carNeeds, carsHad, closed, nextStop, regionOfCar, regionOpen, starsForCar, starsIn, starsOf, totalStars, type SprintResult } from "../game/trip.ts";
+import { carNeeds, carsHad, legendPaints, closed, nextStop, regionOfCar, regionOpen, starsForCar, starsIn, starsOf, totalStars, type SprintResult } from "../game/trip.ts";
 
 declare const pal: SurfaceKit;
 const $ = (id: string) => document.getElementById(id)!;
@@ -304,6 +304,7 @@ function mapView(): MapView {
     stops: sprintsOf(mapRegion).map((s) => ({
       id: s.id, name: s.boss ? `Duel: ${s.name}` : s.name, about: s.about, facts: factsOf(s),
       boss: s.boss && { rival: s.boss.rival, car: carOf(s.boss.car).name, time: rivalTime(s) },
+      legend: s.legend && { ...s.legend, got: !!times[s.id] },
       stars: starsOf(s, times), best: times[s.id], times: s.best ? starTimes(s) : [],
       closed: closed(s, times),
     })),
@@ -424,6 +425,8 @@ const shownCar = () => CARS[browse];
 function bayOf(car: PlayerCar): Bay {
   return { id: car.id, state: has(save, car) ? "owned" : "locked", paint: paintOf(save, car) };
 }
+/** The colours a car can wear: every ordinary one, and the Legend paints you have earned. */
+const paintsHad = () => [...PAINTS, ...legendPaints(save.sprints).map((l) => l.paint)];
 /** A car you have that the garage has not shown off yet (the first car aside): its showcase is due. */
 const unseen = (c: PlayerCar) => c !== CARS[0] && has(save, c) && !save.seen.includes(`car:${c.id}`);
 
@@ -483,7 +486,7 @@ function drawGarage() {
   const picked = mine && inUse === car;
   const carTag = mine ? `<em>${picked ? "In use" : "Yours"}</em>` : `<em class="lock">Locked</em>`;
   // the colours either side of the one it wears, nine at a time
-  const at = Math.max(0, PAINTS.indexOf(paintOf(save, car))), win = Array.from({ length: 9 }, (_, i) => PAINTS[(at - 4 + i + PAINTS.length) % PAINTS.length]);
+  const paints = paintsHad(), at = Math.max(0, paints.indexOf(paintOf(save, car))), win = Array.from({ length: Math.min(9, paints.length) }, (_, i) => paints[(at - 4 + i + paints.length) % paints.length]);
   const swatches = win.map((c) => `<i style="background:${c}" class="${paintOf(save, car) === c ? "on" : ""}"></i>`).join("");
   const action = !mine ? carNeeds(car) : picked ? `Your car for ${REGIONS[region].name}` : `Drive it in ${REGIONS[region].name}`;
   $("garage").innerHTML = `
@@ -529,7 +532,8 @@ async function garageKey(k: string) {
     const d = dir(k);
     if (what === "car") { browse = (browse + d + CARS.length) % CARS.length; garageScene?.focus(shownCar().id); sound.play("ui_select", { gain: 0.5 }); }
     else if (what === "paint" && mine) {
-      save.paint[car.id] = PAINTS[(PAINTS.indexOf(paintOf(save, car)) + d + PAINTS.length) % PAINTS.length];
+      const paints = paintsHad();
+      save.paint[car.id] = paints[(paints.indexOf(paintOf(save, car)) + d + paints.length) % paints.length];
       garageScene?.paint(car.id, paintOf(save, car));
       persist();
     } else return;
@@ -723,7 +727,8 @@ function sprintResults() {
     : next ? `${(time - next).toFixed(2)} s from the next star` : "Every star";
   wonCar = pay.cars[0]?.id ?? null;
   const got = pay.cars.map((c) => c.name).join(" and ");
-  const reward = got ? `<div class="reward">${got} ${pay.cars.length > 1 ? "are" : "is"} yours${duel?.opened ? `, and ${duel.opened} is open` : ""}</div>` : duel?.opened ? `<div class="reward">${duel.opened} is open</div>` : "";
+  const reward = got ? `<div class="reward">${got} ${pay.cars.length > 1 ? "are" : "is"} yours${duel?.opened ? `, and ${duel.opened} is open` : ""}</div>` : duel?.opened ? `<div class="reward">${duel.opened} is open</div>`
+    : pay.paint ? `<div class="reward">A Legend: ${pay.paint.name} is yours, for every car</div>` : "";
   card(`<div class="sprint-end">
       <div class="headline"><h2>${clock(time)}</h2>${pay.record && before ? `<span class="plate">New best, ${(before - time).toFixed(2)} s faster</span>` : pay.record ? `<span class="plate">First finish</span>` : ""}</div>
       <div class="big">${stars(pay.stars)}</div>

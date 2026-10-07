@@ -80,7 +80,7 @@ test("cars come with the trip: a region's first with it, its others by its stars
 describe("the road trip", () => {
   test("a region's first three stops are open, each finish opens one more, the duel opens at its stars", () => {
     const times: Record<string, number> = {}, list = sprintsOf(0);
-    expect(list.map((x) => closed(x, times) === null)).toEqual([true, true, true, false, false, false, false, false, false]);
+    expect(list.map((x) => closed(x, times) === null)).toEqual([true, true, true, false, false, false, false, false, false, false]); // eight Sprints, the duel, the Legend
     times[list[0].id] = 999;
     expect(closed(list[3], times)).toBeNull();
     expect(closed(list[4], times)).not.toBeNull();
@@ -358,4 +358,17 @@ test("momentum pushes only on the gas: lift with a full surge and the car slows;
   expect(d.kmh).toBeLessThan(fast - 10); // lifted: it slows, the combo still alive
   for (let i = 0; i < 120; i++) step({ throttle: 0, brake: 1, steer: 0 });
   expect(d.surge).toBe(0);
+});
+
+test("a Legend opens with three stars on its region's duel, and its first finish gives a paint every car can wear", () => {
+  const s = fresh(), list = sprintsOf(0), legend = list[list.length - 1], boss = bossOf(0);
+  expect(legend.legend).toBeDefined();
+  for (const sp of list.slice(0, 8)) s.sprints[sp.id] = starTimes(sp)[2];
+  s.sprints[boss.id] = starTimes(boss)[1]; // won, two stars
+  expect(closed(legend, s.sprints)).toContain(boss.boss!.rival);
+  s.sprints[boss.id] = starTimes(boss)[2];
+  expect(closed(legend, s.sprints)).toBeNull();
+  const first = finishSprintRun(s, legend, timed(starTimes(legend)[0]));
+  expect(first.paint).toEqual(legend.legend);
+  expect(finishSprintRun(s, legend, timed(starTimes(legend)[2])).paint).toBeUndefined();
 });

@@ -11,16 +11,19 @@ import type { World } from "./world.ts";
 import type { Renderer } from "./render.ts";
 import { bridgeNear } from "./terrain.ts";
 import { laneX, type Layout } from "../game/layout.ts";
+import { sprintsOf } from "../game/sprint.ts";
 
-/** Metres between stops, and the extra run-up to the duel at the end. */
+/** Metres between stops, and the extra run-up to each of the special ones at the end (the duel, the Legend). */
 const GAP = 44, DUEL = 12;
+/** A region's stops, as metres along its stretch of road. */
+const offsetsOf = (region: number) => { let extra = 0; return sprintsOf(region).map((s, k) => { if (s.boss || s.legend) extra += DUEL; return k * GAP + extra; }); };
 /** The camera: how high, how far back and out to the side of the stop it frames, and its lens. */
 const HIGH = 100, BACK = 145, SIDE = -34, FOV = 30;
 
 /** Where a region's road starts: a different stretch of land for each, its stops clear of the overpasses. */
 function startOf(region: number) {
   let z = 700 + region * 2600;
-  const clear = (z0: number) => [...Array(9).keys()].every((k) => Math.abs(bridgeNear(z0 + k * GAP) - (z0 + k * GAP)) > 30);
+  const clear = (z0: number) => offsetsOf(region).every((o) => Math.abs(bridgeNear(z0 + o) - (z0 + o)) > 30);
   while (!clear(z)) z += 20;
   return z;
 }
@@ -53,7 +56,8 @@ export class MapWorld {
   async enter(region: number, stop: number, car: { id: string; paint: string } | null, warm?: () => Promise<void>) {
     const fresh = region !== this.region || !this.active;
     this.region = region;
-    this.stops = [...Array(9).keys()].map((k) => startOf(region) + k * GAP + (k === 8 ? DUEL : 0));
+    const z0 = startOf(region);
+    this.stops = offsetsOf(region).map((o) => z0 + o);
     const key = car ? `${car.id}/${car.paint}` : "";
     if (key !== this.carKey) {
       this.car?.dispose(); this.car = null; this.carKey = key;
@@ -70,7 +74,7 @@ export class MapWorld {
     await warm?.(); // the car and its lights in the scene, the traffic's cars all in the pool
     if (fresh || !this.flow) {
       this.flow?.dispose();
-      this.flow = new Flow(this.world, this.layout, this.stops[0] - 160, this.stops[8] + 280, 1, this.layout.oncoming ? 16 : 22);
+      this.flow = new Flow(this.world, this.layout, this.stops[0] - 160, this.stops[this.stops.length - 1] + 280, 1, this.layout.oncoming ? 16 : 22);
     }
     this.active = true;
     if (fresh) this.jump(stop);

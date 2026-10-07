@@ -20,6 +20,9 @@ export type Sprint = {
   /** A region's last Sprint: a duel with a rival, who drives the search's best line (surface/rivals/<id>.json) to
    *  finish in `rivalTime`; beating it opens the next region and gives you the rival's car. */
   boss?: { rival: string; car: string };
+  /** A region's Legend: its hardest road, open once its duel has three stars; the first finish gives a paint every car
+   *  can wear. */
+  legend?: { paint: string; name: string };
 };
 
 /** The road trip: five regions, one a car class, each under its own sky. A region opens when the one before it is
@@ -86,6 +89,12 @@ const ROWS: Row[] = [
   [1, "duel-mika", "Mika", "Mika has a Thunderbolt and no patience. Beat him and it is yours.", 4, 2.95, 0.6, 2909],
   [2, "duel-rook", "Rook", "Rook's Stinger has never been passed. Be the first.", 4, 3.35, 0.7, 3909],
   [3, "duel-vega", "Vega", "Vega races a Roadster for money. Take hers.", 4, 3.75, 0.8, 4909],
+  // the Legends: each region's hardest road, open with three stars on its duel
+  [0, "legend-harvest", "Harvest Rush", "The Countryside at its worst: three lanes, packed tight.", 3, 2.4, 0.9, 1990],
+  [1, "legend-mirage", "Mirage", "Two-Way at noon, packed on both sides.", 2, 2.9, 0.85, 2990],
+  [2, "legend-red-sky", "Red Sky", "Three packed lanes with the sun in your eyes.", 3, 3.35, 0.95, 3990],
+  [3, "legend-storm", "The Storm", "Two-Way in the grey, nose to tail both ways.", 2, 3.7, 0.9, 4990],
+  [4, "legend-long-night", "The Long Night", "Everything the trip has thrown at you, at once.", 3, 4.2, 1, 5990],
   [4, "duel-kaz", "Kaz", "Kaz is the fastest driver on the road. The last race.", 4, 4.2, 0.9, 5909],
 ];
 /** The best times scripts/sprint.ts found, each on the region's first car, stock (beam 150). */
@@ -134,6 +143,11 @@ const BEST: Record<string, number> = {
   "duel-mika": 70.84,
   "duel-rook": 70.95,
   "duel-vega": 70.89,
+  "legend-harvest": 68.42,
+  "legend-mirage": 69.75,
+  "legend-red-sky": 72.33,
+  "legend-storm": 69.7,
+  "legend-long-night": 71.12,
   "duel-kaz": 70.28,
 };
 const RIVALS: Record<string, { rival: string; car: string }> = {
@@ -141,13 +155,22 @@ const RIVALS: Record<string, { rival: string; car: string }> = {
   "duel-rook": { rival: "Rook", car: "stinger-96" }, "duel-vega": { rival: "Vega", car: "roadster-00" }, "duel-kaz": { rival: "Kaz", car: "saba-v12-95" },
 };
 
+const LEGENDS: Record<string, { paint: string; name: string }> = {
+  "legend-harvest": { paint: "#d4af37", name: "Legend gold" }, "legend-mirage": { paint: "#cfd3d8", name: "Legend chrome" },
+  "legend-red-sky": { paint: "#b5651d", name: "Legend copper" }, "legend-storm": { paint: "#f4f1e6", name: "Legend pearl" },
+  "legend-long-night": { paint: "#101114", name: "Legend obsidian" },
+};
+
 export const SPRINTS: Sprint[] = ROWS.map(([region, id, name, about, lanes, km, density, seed]) => ({
   id, name, about, car: CLASSES.find((c) => c.id === REGIONS[region].cls)!.from, location: REGIONS[region].place,
-  layout: LANES[lanes], length: km * 1000, density, seed, best: BEST[id] ?? 0, region, boss: RIVALS[id],
+  layout: LANES[lanes], length: km * 1000, density, seed, best: BEST[id] ?? 0, region, boss: RIVALS[id], legend: LEGENDS[id],
 }));
 
-/** A region's Sprints in order, its boss last. */
-export const sprintsOf = (region: number) => SPRINTS.filter((s) => s.region === region && !s.boss).concat(SPRINTS.filter((s) => s.region === region && s.boss));
+/** A region's stops in order: its Sprints, its duel, its Legend. */
+export const sprintsOf = (region: number) => {
+  const here = SPRINTS.filter((s) => s.region === region);
+  return [...here.filter((s) => !s.boss && !s.legend), ...here.filter((s) => s.boss), ...here.filter((s) => s.legend)];
+};
 /** A boss's rival finishes here: between the one- and two-star times. */
 export const rivalTime = (s: Sprint) => Math.round(((starTimes(s)[0] + starTimes(s)[1]) / 2) * 10) / 10;
 

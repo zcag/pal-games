@@ -11,6 +11,7 @@ import { clock } from "../game/sprint.ts";
 export type Stop = {
   id: string; name: string; about: string; facts: string;   // facts e.g. "3 lanes · 2.1 km · busy"
   boss?: { rival: string; car: string; time: number };      // a duel: the rival, the car you win, the time to beat (s)
+  legend?: { paint: string; name: string; got: boolean };    // a Legend: the paint its first finish gives, and whether you have it
   stars: number; best?: number; times: number[];            // stars earned 0..3, your best (s), the three star times (s)
   closed: string | null;                                    // why it is closed, or null
 };
@@ -19,6 +20,7 @@ export type MapView = { region: number; regions: Region[]; stops: Stop[]; select
 
 const STAR = `<svg viewBox="0 0 24 24"><path d="M12 1.8l3 6.6 7.2.7-5.4 4.8 1.6 7.1L12 17.3 5.6 21l1.6-7.1L1.8 9.1l7.2-.7z"/></svg>`;
 const LOCK = `<svg viewBox="0 0 24 24"><path d="M7 10V7.5a5 5 0 0 1 10 0V10h1.2c.7 0 1.3.6 1.3 1.3v8.4c0 .7-.6 1.3-1.3 1.3H5.8c-.7 0-1.3-.6-1.3-1.3v-8.4c0-.7.6-1.3 1.3-1.3zm2.4 0h5.2V7.5a2.6 2.6 0 0 0-5.2 0z"/></svg>`;
+const CROWN = `<svg viewBox="0 0 24 24"><path d="M3 7.5l4.6 3.6L12 4l4.4 7.1L21 7.5l-1.8 10H4.8zM5 19.2h14V21H5z"/></svg>`;
 const FLAG = `<svg viewBox="0 0 24 24"><path d="M5 2.5h1.8v19H5z"/><path d="M7.5 3.5h12.5v10H7.5z" fill="#fff"/><path d="M7.5 3.5h3.1v2.5H7.5zm6.2 0h3.1v2.5h-3.1zm-3.1 2.5h3.1v2.5h-3.1zm6.2 0H20v2.5h-3.2zM7.5 8.5h3.1V11H7.5zm6.2 0h3.1V11h-3.1zm-3.1 2.5h3.1v2.5h-3.1zm6.2 0H20v2.5h-3.2z" fill="#16181c"/></svg>`;
 const CAR = `<svg viewBox="0 0 24 24"><path d="M5.2 10.2 7 5.8A2 2 0 0 1 8.9 4.5h6.2A2 2 0 0 1 17 5.8l1.8 4.4A2.6 2.6 0 0 1 20.5 12.6v4.2c0 .5-.4.9-.9.9h-1.1v1.4a1.2 1.2 0 0 1-2.4 0v-1.4H7.9v1.4a1.2 1.2 0 0 1-2.4 0v-1.4H4.4a.9.9 0 0 1-.9-.9v-4.2a2.6 2.6 0 0 1 1.7-2.4zm2.2-.3h9.2l-1.3-3.3a.7.7 0 0 0-.7-.5H9.4a.7.7 0 0 0-.7.5zM7 15a1.4 1.4 0 1 0 0-2.8A1.4 1.4 0 0 0 7 15zm10 0a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8z"/></svg>`;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -107,8 +109,8 @@ export function reveal() {
 
 function badge(s: Stop, k: number) {
   const won = !!s.boss && s.best !== undefined && s.best < s.boss.time;
-  const cls = ["stop", s.boss ? "duel" : "", s.closed ? "closed" : s.best !== undefined ? "played" : "fresh", s.stars === 3 || won ? "gold" : ""];
-  const face = s.closed ? LOCK : s.boss ? (won ? FLAG : `<b>${esc(s.boss.rival)}</b>`) : `<b>${k + 1}</b>`;
+  const cls = ["stop", s.boss ? "duel" : "", s.legend ? "duel legend" : "", s.closed ? "closed" : s.best !== undefined ? "played" : "fresh", s.stars === 3 || won ? "gold" : ""];
+  const face = s.closed ? LOCK : s.boss ? (won ? FLAG : `<b>${esc(s.boss.rival)}</b>`) : s.legend ? CROWN : `<b>${k + 1}</b>`;
   const before = prevStars.get(s.id) ?? s.stars;
   const stars = [0, 1, 2].map((n) => `<i class="${n < s.stars ? "f" : ""}${n >= before && n < s.stars ? " new" : ""}" style="--n:${n}">${STAR}</i>`).join("");
   return { cls: cls.filter(Boolean).join(" "), html: `<i class="foot"></i><i class="stem"></i><span class="head"><span class="disc">${face}</span><span class="st">${stars}</span></span>` };
@@ -154,11 +156,11 @@ function drawCard(v: MapView) {
   const best = s.best !== undefined ? `Your best <b>${clock(s.best)}</b>` : `Not driven yet`;
   const body = s.boss
     ? `<div class="duelbox"><div><span>Rival</span><b>${esc(s.boss.rival)}</b></div><div><span>Time to beat</span><b>${clock(s.boss.time)}</b></div><div><span>Win</span><b>${esc(s.boss.car)}</b></div></div>`
-    : `<div class="times">${times}</div>`;
+    : `<div class="times">${times}</div>` + (s.legend ? `<div class="legendpaint"><i style="background:${s.legend.paint}"></i><span>${s.legend.got ? "Yours:" : "Finish it for"} <b>${esc(s.legend.name)}</b>, a paint for every car</span></div>` : "");
   const foot = s.closed ? `<div class="why">${LOCK}<span>${esc(s.closed)}</span></div>`
     : `<button class="go" data-key="enter"><kbd>enter</kbd><span>${s.boss ? "Race" : "Drive"}</span></button>`;
   card.innerHTML = `<div class="sign card${s.boss ? " is-duel" : ""}${s.closed ? " is-closed" : ""}">
-    <div class="eyebrow">${dotted([s.boss ? "The duel" : `Stop ${k + 1} of ${v.stops.length - 1}`, esc(R.name)])}</div>
+    <div class="eyebrow">${dotted([s.boss ? "The duel" : s.legend ? "The Legend" : `Stop ${k + 1} of ${v.stops.filter((x) => !x.boss && !x.legend).length}`, esc(R.name)])}</div>
     <div class="title"><h2>${esc(s.name)}</h2><span class="st">${[0, 1, 2].map((n) => `<i class="${n < s.stars ? "f" : ""}">${STAR}</i>`).join("")}</span></div>
     <p class="blurb">${esc(s.about)}</p>
     <div class="spec">${dotted(esc(s.facts).split("·"))}</div>

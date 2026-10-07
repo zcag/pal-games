@@ -181,3 +181,11 @@
 .trip-map .hints button { display: flex; align-items: center; gap: 0.35em; border-radius: 0.35em; }
 .trip-map .hints button:hover { color: var(--white); }
 .trip-map .hints kbd { font-size: 0.85em; min-width: 1.6em; }
+
+/* a Legend: its stop crowned, and on its card the paint it gives */
+.trip-map .stop.legend .disc { background: linear-gradient(145deg, #2b2410, #6b5414); border-color: #e8c45a; color: #f4d77a; }
+.trip-map .stop.legend .disc svg { width: 58%; height: 58%; fill: currentColor; }
+.trip-map .legendpaint { display: flex; align-items: center; gap: 0.5em; margin-top: 0.5em; font-size: 0.82em; color: var(--dim, rgba(243,245,241,.62)); }
+.trip-map .legendpaint span { min-width: 0; white-space: normal; line-height: 1.25; }
+.trip-map .legendpaint i { flex: none; width: 1.3em; height: 1.3em; border-radius: 50%; box-shadow: 0 0 0 2px rgba(255,255,255,.7), 0 2px 6px rgba(0,0,0,.5); }
+.trip-map .legendpaint b { color: var(--white, #f3f5f1); }

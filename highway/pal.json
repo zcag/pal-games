@@ -145,7 +145,7 @@
       "order": "desc",
       "format": "points",
       "min": 0,
-      "max": 135
+      "max": 150
     },
     {
       "id": "sprint/first-light",
@@ -500,6 +500,46 @@
       "max": 900
     },
     {
+      "id": "sprint/legend-harvest",
+      "title": "Legend: Harvest Rush (Countryside)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/legend-mirage",
+      "title": "Legend: Mirage (High Noon)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/legend-red-sky",
+      "title": "Legend: Red Sky (Golden Hour)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/legend-storm",
+      "title": "Legend: The Storm (Grey Day)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
+      "id": "sprint/legend-long-night",
+      "title": "Legend: The Long Night (Night Run)",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 900
+    },
+    {
       "id": "sprint/duel-kaz",
       "title": "Duel: Kaz (Night Run)",
       "order": "asc",
@@ -550,6 +590,7 @@
       "A road trip across five regions, from a quiet countryside morning to a night run, each with its own sky, its own car class and busier roads",
       "Sprints: about a minute to a finish line on a road that is the same every try, so it can be learned; three stars for the time, your best run beside you as a ghost, R tries again at once",
       "A duel at the end of every region against a rival driving the best line; win it for their car and the next region",
+      "A Legend in every region, its hardest road, open once you have three stars on its duel: finish it for a Legend paint every car can wear",
       "Handling built for feel: the car goes where your thumb says and stops where you let go, leaning and diving on its springs; every class turns in sharper, settles sooner and brakes harder",
       "Traffic with drivers: they keep their distance, brake, signal and change lanes when it's safe, placed so a lane is always open",
       "Near misses graded by the gap you left; near misses within four seconds build a combo, and a combo carries you past your top speed",

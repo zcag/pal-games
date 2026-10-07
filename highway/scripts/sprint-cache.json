@@ -178,5 +178,25 @@
  "duel-kaz": {
   "key": "5b5b1e597f77d4fc",
   "best": 70.28
+ },
+ "legend-harvest": {
+  "key": "105195305964b77e",
+  "best": 68.42
+ },
+ "legend-mirage": {
+  "key": "bb826cb42dce34b5",
+  "best": 69.75
+ },
+ "legend-storm": {
+  "key": "1026d41dd25dcb96",
+  "best": 69.7
+ },
+ "legend-red-sky": {
+  "key": "9cb093c7ae45a9c5",
+  "best": 72.33
+ },
+ "legend-long-night": {
+  "key": "37b1b21c0d84004e",
+  "best": 71.12
  }
 }
