@@ -1,182 +1,182 @@
 {
- "farm-road": {
-  "key": "4392a2219213381c",
-  "best": 50.99
- },
  "first-light": {
-  "key": "4dff1850c84a38fa",
-  "best": 60.32
+  "key": "ea0401cf2ae9c00f",
+  "best": 54.99
  },
- "three-lanes": {
-  "key": "22fba5902ae1da16",
-  "best": 60.32
- },
- "squeeze": {
-  "key": "e9b1168881c498e9",
-  "best": 51.02
- },
- "last-light": {
-  "key": "6342054deca5d957",
-  "best": 60.32
- },
- "old-road": {
-  "key": "d6e4823a4f7b31f8",
-  "best": 67.63
- },
- "hedgerows": {
-  "key": "43d7d118dc228512",
-  "best": 69.67
- },
- "heat-haze": {
-  "key": "ca6f9cb9e62aa8a7",
-  "best": 67.55
+ "farm-road": {
+  "key": "14374791f230c390",
+  "best": 54.99
  },
  "commuters": {
-  "key": "776c9008d49682e3",
-  "best": 70.03
+  "key": "05bd05db7a5f58fd",
+  "best": 51.35
  },
- "dry-run": {
-  "key": "e97f5c7a13e31cf7",
-  "best": 67.62
+ "old-road": {
+  "key": "4058e5f9495ed121",
+  "best": 51.17
  },
- "long-haul": {
-  "key": "d7676cfb773743ba",
-  "best": 79
+ "three-lanes": {
+  "key": "c6a8be31f9589f6f",
+  "best": 60.34
  },
- "noon-rush": {
-  "key": "e6178c0b3fa3fd78",
-  "best": 67.56
+ "squeeze": {
+  "key": "586a9f3829f97286",
+  "best": 59.02
  },
- "white-lines": {
-  "key": "6be13162e09c3594",
-  "best": 59.62
- },
- "overtaker": {
-  "key": "ef0dc8c732909bd3",
-  "best": 67.62
- },
- "long-straight": {
-  "key": "a27882403b4ad236",
-  "best": 85.21
- },
- "canyon-run": {
-  "key": "70c05287b6fc694b",
-  "best": 76.57
- },
- "head-on": {
-  "key": "10b9ba631b72ef3a",
-  "best": 66.62
- },
- "big-block": {
-  "key": "8226b6ce1814c348",
-  "best": 75.4
- },
- "glare": {
-  "key": "42b640bbb32b56b5",
-  "best": 76.33
- },
- "low-sun": {
-  "key": "6a9d257768190a04",
-  "best": 75.9
- },
- "sundown": {
-  "key": "5179ed490431eb47",
-  "best": 75.43
- },
- "dust": {
-  "key": "e4eee2dcaf78fe32",
-  "best": 66.6
- },
- "the-mile": {
-  "key": "c6984c842814640e",
-  "best": 93.05
- },
- "drizzle": {
-  "key": "5354f4f38e99630a",
-  "best": 72.25
- },
- "b-road": {
-  "key": "4c77c9b0df54e653",
-  "best": 71.36
- },
- "rush-hour": {
-  "key": "7777824345a59c9d",
-  "best": 84.08
- },
- "convoy": {
-  "key": "94a84122eb783a97",
-  "best": 71.93
- },
- "overcast": {
-  "key": "cc1d64d57886c9e2",
-  "best": 80.18
- },
- "fog-line": {
-  "key": "2c357b982c10cc8c",
-  "best": 71.45
- },
- "grand-tour": {
-  "key": "5363c5d9483e0b9d",
-  "best": 96.38
- },
- "motorway": {
-  "key": "6d8699c1eadb8f7a",
-  "best": 80.51
- },
- "high-beams": {
-  "key": "0aeee6438ad62272",
-  "best": 66.95
- },
- "neon": {
-  "key": "4d047ed42e07fd94",
-  "best": 74.94
- },
- "midnight": {
-  "key": "3299b5b48c5632aa",
-  "best": 75.43
- },
- "slipstream": {
-  "key": "c53886b2ddfb5e3f",
-  "best": 90.12
- },
- "red-lights": {
-  "key": "49aa752ca27f053a",
-  "best": 83.02
- },
- "tunnel-vision": {
-  "key": "b91ddc91eb4740a3",
-  "best": 76.18
- },
- "duel-ines": {
-  "key": "c14426b09b38ab5d",
+ "hedgerows": {
+  "key": "abae654502722f20",
   "best": 69.67
  },
+ "last-light": {
+  "key": "4081f2c759db4638",
+  "best": 64.47
+ },
+ "heat-haze": {
+  "key": "ef7393777490bd3c",
+  "best": 56.57
+ },
+ "dry-run": {
+  "key": "ebd33f7b9c3ce299",
+  "best": 61.1
+ },
+ "long-haul": {
+  "key": "57f7c2027574c546",
+  "best": 80.33
+ },
+ "noon-rush": {
+  "key": "5d12720d342322e0",
+  "best": 65.34
+ },
+ "overtaker": {
+  "key": "902f5e920dc75efd",
+  "best": 60.94
+ },
+ "canyon-run": {
+  "key": "9efa285b0c8bf131",
+  "best": 60.07
+ },
+ "white-lines": {
+  "key": "1286673f21b48095",
+  "best": 68.41
+ },
+ "head-on": {
+  "key": "98fac6fa98ce0402",
+  "best": 51.17
+ },
+ "big-block": {
+  "key": "a8194f17971dbef2",
+  "best": 57.05
+ },
+ "long-straight": {
+  "key": "eaf1162edd4774bb",
+  "best": 80.82
+ },
+ "low-sun": {
+  "key": "93da220e2060e989",
+  "best": 69.92
+ },
+ "glare": {
+  "key": "97e915ba4d7cfa73",
+  "best": 66.45
+ },
+ "sundown": {
+  "key": "812615b17386a782",
+  "best": 65.77
+ },
+ "dust": {
+  "key": "d0faca6d2c4439d3",
+  "best": 60.81
+ },
+ "the-mile": {
+  "key": "0d5af31d6922cbd9",
+  "best": 80.49
+ },
+ "b-road": {
+  "key": "3c67549d50e5064a",
+  "best": 51.58
+ },
+ "drizzle": {
+  "key": "3062cdd27a5a40e0",
+  "best": 61.04
+ },
+ "overcast": {
+  "key": "325fac6227f365cd",
+  "best": 56.92
+ },
+ "rush-hour": {
+  "key": "b0bc4e541e9b10c2",
+  "best": 66.64
+ },
+ "convoy": {
+  "key": "f2f129e4f4b44cd1",
+  "best": 70.21
+ },
+ "fog-line": {
+  "key": "161e5405a55994da",
+  "best": 61.13
+ },
+ "motorway": {
+  "key": "a936b696fbcd22ca",
+  "best": 65.84
+ },
+ "grand-tour": {
+  "key": "e8ede616991f3361",
+  "best": 80.89
+ },
+ "neon": {
+  "key": "82ae5ff8f9a8c471",
+  "best": 55.91
+ },
+ "midnight": {
+  "key": "88aa8e06d564855c",
+  "best": 61.05
+ },
+ "slipstream": {
+  "key": "69c1ac48c1e558fa",
+  "best": 67.67
+ },
+ "high-beams": {
+  "key": "b5d240cc652d77cf",
+  "best": 51.11
+ },
+ "tunnel-vision": {
+  "key": "ba6e49105f84f0af",
+  "best": 70.49
+ },
+ "red-lights": {
+  "key": "3e843093fedf6404",
+  "best": 65.53
+ },
  "graveyard": {
-  "key": "4f7e6cc0243c724b",
-  "best": 74.79
- },
- "duel-mika": {
-  "key": "3b205785b52726df",
-  "best": 76.33
- },
- "duel-rook": {
-  "key": "aa1fca8e082873af",
-  "best": 84.53
+  "key": "5565dfe2a27c630a",
+  "best": 60.53
  },
  "all-night": {
-  "key": "b94d25b5d0d06016",
-  "best": 99.22
+  "key": "59fbb1d521ed1e25",
+  "best": 80.86
+ },
+ "duel-ines": {
+  "key": "16181e6d1cf85f3a",
+  "best": 69.67
+ },
+ "duel-mika": {
+  "key": "cf470eacc84b9142",
+  "best": 70.84
+ },
+ "duel-rook": {
+  "key": "d9c9aedc3eb74f12",
+  "best": 70.95
  },
  "afterburn": {
-  "key": "1e9d5c935f21db94",
-  "best": 91.12
+  "key": "f14d5e61383ca4c6",
+  "best": 65.71
  },
  "duel-vega": {
-  "key": "b89dee09a16ba667",
-  "best": 88.25
+  "key": "75b323b08ed70d48",
+  "best": 70.89
  },
  "duel-kaz": {
-  "key": "02bec42df97d34e1",
-  "best": 91.47
+  "key": "5b5b1e597f77d4fc",
+  "best": 70.28
  }
 }
