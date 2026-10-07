@@ -108,8 +108,8 @@ kbd { display: inline-block; min-width: 18px; padding: 1px 5px 0; border-radius:
 #card .keys { display: flex; gap: 14px; margin-top: 4px; }
 
 /* the three places, on top of each: the road trip, the garage, Free Drive */
-/* centred in the room right of the garage's and Free Drive's signs (12 + 262 px) */
-#tabs { position: fixed; left: calc(50% + 137px); top: 10px; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(12, 14, 17, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); white-space: nowrap; }
+/* centred in the room right of the garage's and Free Drive's signs (12 + 262 px); over the map's layer (z 20, trip.css) and its pins */
+#tabs { position: fixed; left: calc(50% + 137px); top: 10px; transform: translateX(-50%); z-index: 25; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(12, 14, 17, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); white-space: nowrap; }
 #tabs button[data-key] { margin: 0; padding: 5px 11px 3px; border-radius: 7px; font-size: 13px; font-weight: 800; color: var(--dim); transition: background 200ms ease, color 200ms ease; }
 #tabs button[data-key]:hover { color: var(--white); }
 #tabs button.on { background: var(--sign); color: var(--white); box-shadow: inset 0 0 0 1.5px var(--white); }
