@@ -416,7 +416,7 @@ async function stageMap() {
   mapWorld.frame = framing();
   mapWorld.render(0);
   r.upload(world.scene);
-  requestAnimationFrame(() => { if (state === "map" && !staging) reveal(); });
+  requestAnimationFrame(() => { if (state === "map" && !staging) { reveal(); veil(false); } });
 }
 
 function mapKey(k: string) {
@@ -1133,7 +1133,8 @@ async function stage(sc: Scene) {
   await preloadTraffic((f) => (($("loading").querySelector("em") as HTMLElement).style.width = `${Math.round(f * 100)}%`));
   chase.view = viewOf(save);
   frame(); // the loop runs behind the sign, so it lifts over a drawn road
-  veil(false);
+  // the map lifts it itself once its world is staged and drawn (its shaders take a second or two): not over a black page
+  if (!home) veil(false); else veil(true, "Setting out the map");
   if (scene) await stage(scene);
   else if (kept) await carryOn(kept);
   else if (q.has("drive")) await drive();
