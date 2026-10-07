@@ -940,7 +940,10 @@ function frame() {
   if (slowmo > 0) { slowmo -= dt; dt *= 0.25; if (slowmo <= 0 && state === "over") results(); }
   t += dt;
   acc += dt;
-  const inp = state === "free" ? autopilot() : state === "run" || state === "over" ? (scene ? autopilot(scene.speed ?? 170, true) : input()) : { throttle: 0, brake: 0.2, steer: 0 };
+  // past the line the autopilot takes the car, easing off and keeping clear, so a finish never ends in a pile-up
+  const finished = run.drive.ended === "line";
+  const inp = state === "free" || ((state === "over" || state === "results") && finished) ? autopilot(finished ? Math.min(100, run.drive.kmh) : 108)
+    : state === "run" || state === "over" ? (scene ? autopilot(scene.speed ?? 170, true) : input()) : { throttle: 0, brake: 0.2, steer: 0 };
   const t0 = performance.now();
   while (acc >= STEP) {
     run.step(STEP, inp);

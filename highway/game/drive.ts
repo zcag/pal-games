@@ -210,7 +210,8 @@ export class Drive {
 
   step(dt: number, input: Input) {
     const v = this.veh, L = this.layout, ev = this.events;
-    if (this.over) input = { throttle: 0, brake: 0.3, steer: 0 };
+    // a run that is over coasts to a stop, except past the line, where whoever drives (the page's autopilot) carries on
+    if (this.over && this.ended !== "line") input = { throttle: 0, brake: 0.3, steer: 0 };
     const rolling = this.intro > 0;
     if (rolling) { this.intro = Math.max(0, this.intro - dt); input = { throttle: this.kmh < START_KMH ? 1 : 0, brake: 0, steer: 0 }; }
     // momentum: the combo's surge pushes the car on past its top speed; a broken combo lets it fade
