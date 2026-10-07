@@ -101,9 +101,11 @@ export function hold(canvas?: HTMLCanvasElement) {
   still.classList.remove("going"); still.classList.add("on");
   pinsAt(null);
 }
-export function reveal() {
+/** The still faded off the drawn world; `at once` under something else fading (the loading sign), which would
+ *  otherwise fade into the still's black and the black into the map. */
+export function reveal(atOnce = false) {
   if (!root || !still.classList.contains("on")) return;
-  still.classList.add("going"); still.classList.remove("on");
+  still.classList.toggle("going", !atOnce); still.classList.remove("on");
   root.classList.remove("dark");
 }
 

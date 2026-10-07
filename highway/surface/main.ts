@@ -416,7 +416,7 @@ async function stageMap() {
   mapWorld.frame = framing();
   mapWorld.render(0);
   r.upload(world.scene);
-  requestAnimationFrame(() => { if (state === "map" && !staging) { reveal(); veil(false); } });
+  requestAnimationFrame(() => { if (state === "map" && !staging) { reveal(!$("loading").classList.contains("gone")); veil(false); } });
 }
 
 function mapKey(k: string) {
