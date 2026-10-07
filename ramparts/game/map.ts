@@ -65,18 +65,39 @@ export function laneNearest(l: Lane, x: number, y: number): { s: number; d: numb
   return { s: bs, d: Math.sqrt(best) };
 }
 
-function segDist(px: number, py: number, a: Vec, b: Vec): number {
+function segDist2(px: number, py: number, a: Vec, b: Vec): number {
   const dx = b.x - a.x, dy = b.y - a.y, len2 = dx * dx + dy * dy;
   let t = len2 > 0 ? ((px - a.x) * dx + (py - a.y) * dy) / len2 : 0;
   t = t < 0 ? 0 : t > 1 ? 1 : t;
   const qx = a.x + dx * t - px, qy = a.y + dy * t - py;
-  return Math.sqrt(qx * qx + qy * qy);
+  return qx * qx + qy * qy;
 }
 
+/** The nearest distance to a polyline: the least square, rooted once (the root keeps order, so it is the least distance). */
 export function distToPolyline(pts: Vec[], x: number, y: number): number {
   let best = Infinity;
-  for (let i = 0; i < pts.length - 1; i++) { const d = segDist(x, y, pts[i]!, pts[i + 1]!); if (d < best) best = d; }
-  return best;
+  for (let i = 0; i < pts.length - 1; i++) { const d = segDist2(x, y, pts[i]!, pts[i + 1]!); if (d < best) best = d; }
+  return Math.sqrt(best);
+}
+
+/** The nearest distance from a spot to some lanes, where it is under `reach` (Infinity past it), for a grid walked a column at a
+ *  time: `nearest(lanes, r)(x)(y)`. A column keeps the segments whose box, grown by the reach, spans its x, and a spot measures
+ *  those whose grown box spans its y: every segment nearer than the reach is among them, so the least of them is the same
+ *  least distToPolyline finds. */
+function nearest(lanes: Lane[], reach: number) {
+  const r = reach + 0.01, segs: { a: Vec; b: Vec; x0: number; x1: number; y0: number; y1: number }[] = [];
+  for (const l of lanes) for (let i = 0; i < l.points.length - 1; i++) {
+    const a = l.points[i]!, b = l.points[i + 1]!;
+    segs.push({ a, b, x0: Math.min(a.x, b.x) - r, x1: Math.max(a.x, b.x) + r, y0: Math.min(a.y, b.y) - r, y1: Math.max(a.y, b.y) + r });
+  }
+  return (x: number) => {
+    const col = segs.filter((g) => x >= g.x0 && x <= g.x1);
+    return (y: number) => {
+      let d2 = Infinity;
+      for (const g of col) if (y >= g.y0 && y <= g.y1) { const d = segDist2(x, y, g.a, g.b); if (d < d2) d2 = d; }
+      return Math.sqrt(d2);
+    };
+  };
 }
 
 /** Samples every `step` u from s0 to s1. */
@@ -328,32 +349,45 @@ export function airRoute(id: number, l: Lane): Lane {
   const base: Vec[] = [];
   for (let k = 0; k <= n; k++) { const v = { x: 0, y: 0 }; laneAt(l, (l.length * k) / n, v); base.push(v); }
   const A = base[0]!, B = base[n]!;
-  const pull = (al: number): Vec[] => base.map((p, k) => {
-    const t = k / n, qx = A.x + (B.x - A.x) * t, qy = A.y + (B.y - A.y) * t;
-    return { x: p.x + (qx - p.x) * al, y: p.y + (qy - p.y) * al };
-  });
-  const smooth = (pts: Vec[]): Vec[] => {
-    let p = pts;
-    for (let it = 0; it < 3; it++) {
-      const q: Vec[] = [p[0]!];
-      for (let k = 0; k < p.length - 1; k++) {
-        const a = p[k]!, b = p[k + 1]!;
-        q.push({ x: a.x * 0.75 + b.x * 0.25, y: a.y * 0.75 + b.y * 0.25 }, { x: a.x * 0.25 + b.x * 0.75, y: a.y * 0.25 + b.y * 0.75 });
-      }
-      q.push(p[p.length - 1]!);
-      p = q;
+  // Pulled and smoothed in flat arrays, the 25 tries of the search sharing two buffers (a Vec per point per try was a quarter
+  // of a map's making); the same sums in the same order, so the same route.
+  const bufs = [new Float64Array((n + 1) * 16), new Float64Array((n + 1) * 16)]; // three halvings: 8 points a point, x and y
+  const pullSmooth = (al: number): { p: Float64Array; m: number } => {
+    let p = bufs[0]!, m = n + 1;
+    for (let k = 0; k <= n; k++) {
+      const b = base[k]!, t = k / n, qx = A.x + (B.x - A.x) * t, qy = A.y + (B.y - A.y) * t;
+      p[k * 2] = b.x + (qx - b.x) * al; p[k * 2 + 1] = b.y + (qy - b.y) * al;
     }
-    return p;
+    for (let it = 0; it < 3; it++) {
+      const q = p === bufs[0] ? bufs[1]! : bufs[0]!;
+      let o = 0;
+      q[o++] = p[0]!; q[o++] = p[1]!;
+      for (let k = 0; k < m - 1; k++) {
+        const ax = p[k * 2]!, ay = p[k * 2 + 1]!, bx = p[k * 2 + 2]!, by = p[k * 2 + 3]!;
+        q[o++] = ax * 0.75 + bx * 0.25; q[o++] = ay * 0.75 + by * 0.25;
+        q[o++] = ax * 0.25 + bx * 0.75; q[o++] = ay * 0.25 + by * 0.75;
+      }
+      q[o++] = p[(m - 1) * 2]!; q[o++] = p[(m - 1) * 2 + 1]!;
+      p = q; m = o / 2;
+    }
+    return { p, m };
   };
-  const len = (pts: Vec[]) => { let s = 0; for (let k = 1; k < pts.length; k++) s += dist(pts[k - 1]!, pts[k]!); return s; };
-  let lo = 0, hi = 1, best = smooth(pull(1));
-  if (len(best) < 0.72 * l.length) {
+  const len = ({ p, m }: { p: Float64Array; m: number }) => {
+    let s = 0;
+    for (let k = 1; k < m; k++) { const dx = p[(k - 1) * 2]! - p[k * 2]!, dy = p[(k - 1) * 2 + 1]! - p[k * 2 + 1]!; s += Math.sqrt(dx * dx + dy * dy); }
+    return s;
+  };
+  let lo = 0, hi = 1, al = 1;
+  if (len(pullSmooth(1)) < 0.72 * l.length) {
     for (let it = 0; it < 24; it++) {
-      const mid = (lo + hi) / 2, p = smooth(pull(mid)), L = len(p);
-      best = p;
+      const mid = (lo + hi) / 2, L = len(pullSmooth(mid));
+      al = mid;
       if (L > 0.72 * l.length) lo = mid; else hi = mid;
     }
   }
+  const { p, m } = pullSmooth(al);
+  const best: Vec[] = [];
+  for (let k = 0; k < m; k++) best.push({ x: p[k * 2]!, y: p[k * 2 + 1]! });
   // thin to ~1 u spacing
   const thin: Vec[] = [best[0]!];
   for (let k = 1; k < best.length - 1; k++) if (dist(thin[thin.length - 1]!, best[k]!) >= 0.8) thin.push(best[k]!);
@@ -362,7 +396,7 @@ export function airRoute(id: number, l: Lane): Lane {
 }
 
 // ---------------------------------------------------------------- pads
-interface Cand { x: number; y: number; score: number; d: number; air: number }
+interface Cand { x: number; y: number; score: number; air: number }
 
 /** Coverage samples: shared road parts once. */
 function unionSamples(lanes: Lane[], unique: [number, number][]): Vec[] {
@@ -387,18 +421,25 @@ function placePads(rng: Rng, act: Act, lanes: Lane[], unique: [number, number][]
   const r2 = PAD.cover * PAD.cover;
   const near2 = (s: Vec, c: Vec) => (s.x - c.x) * (s.x - c.x) + (s.y - c.y) * (s.y - c.y) <= r2;
   const cands: Cand[] = [];
-  for (let x = 1.0; x <= MAP_W - 1.0 + 1e-9; x += 0.5) for (let y = 1.0; y <= MAP_H - 1.0 + 1e-9; y += 0.5) {
-    let d = Infinity;
-    for (const l of lanes) d = Math.min(d, distToPolyline(l.points, x, y));
-    if (d < PAD.clear) continue;
-    const c = { x, y };
-    if (entry.some((s) => near2(s, c))) continue;
-    const score = scoreAt(x, y, samples);
-    if (score > 16 || score < 3) continue;
-    if (score < 6 && d < PAD.backDist) continue;
-    let a = Infinity;
-    for (const l of air) a = Math.min(a, distToPolyline(l.points, x, y));
-    cands.push({ x, y, score, d, air: a });
+  // Each test below is a distance under a reach (the road's under PAD.backDist, a sample's under PAD.cover, the air route's under
+  // PAD.air), so a spot looks only at what lies within that reach of its column, taken once per column as the grid is walked:
+  // the same answers, without measuring the whole map from every spot (a map is placed many times over before one passes, and
+  // this loop was most of a battle's start). A distance past its reach comes back Infinity, which no test tells apart.
+  const road = nearest(lanes, PAD.backDist), sky = nearest(air, PAD.air);
+  const cover = (pts: Vec[]) => { const r = PAD.cover + 0.01; return (x: number) => pts.filter((s) => s.x >= x - r && s.x <= x + r); };
+  const sampleCol = cover(samples), entryCol = cover(entry);
+  for (let x = 1.0; x <= MAP_W - 1.0 + 1e-9; x += 0.5) {
+    const roadAt = road(x), skyAt = sky(x), near = sampleCol(x), ent = entryCol(x);
+    for (let y = 1.0; y <= MAP_H - 1.0 + 1e-9; y += 0.5) {
+      const d = roadAt(y);
+      if (d < PAD.clear) continue;
+      const c = { x, y };
+      if (ent.some((s) => near2(s, c))) continue;
+      const score = scoreAt(x, y, near);
+      if (score > 16 || score < 3) continue;
+      if (score < 6 && d < PAD.backDist) continue;
+      cands.push({ x, y, score, air: skyAt(y) });
+    }
   }
   const [cMin, cMax] = PAD_COUNT[act];
   const n = rng.int(cMin, cMax);
@@ -448,8 +489,9 @@ function placePads(rng: Rng, act: Act, lanes: Lane[], unique: [number, number][]
   const others = cands.filter((c) => !isPrime(c));
   // 3. exit guards: >= 2 pads cover the last 8 u of each lane
   for (const ex of exits) {
+    const guards = others.filter((q) => ex.some((s) => near2(s, q)));
     while (chosen.filter((c) => ex.some((s) => near2(s, c))).length < 2) {
-      const c = best(others.filter((q) => ex.some((s) => near2(s, q))), (q) => q.score);
+      const c = best(guards, (q) => q.score);
       if (!c) return miss("exit");
       add(c);
     }
