@@ -14,6 +14,7 @@ export type Stop = {
   legend?: { paint: string; name: string; got: boolean };    // a Legend: the paint its first finish gives, and whether you have it
   stars: number; best?: number; times: number[];            // stars earned 0..3, your best (s), the three star times (s)
   closed: string | null;                                    // why it is closed, or null
+  watch: { best: boolean; mine?: number };                  // runs to watch: the best run, your best (its time, s)
 };
 export type Region = { name: string; about: string; open: boolean; why?: string; stars: number; max: number; duelAt: number; next?: string }; // next: the car its stars open next, "Kiri '10 at 8 ★"
 export type MapView = { region: number; regions: Region[]; stops: Stop[]; selected: string; stars: number; car: string };
@@ -22,6 +23,7 @@ const STAR = `<svg viewBox="0 0 24 24"><path d="M12 1.8l3 6.6 7.2.7-5.4 4.8 1.6 
 const LOCK = `<svg viewBox="0 0 24 24"><path d="M7 10V7.5a5 5 0 0 1 10 0V10h1.2c.7 0 1.3.6 1.3 1.3v8.4c0 .7-.6 1.3-1.3 1.3H5.8c-.7 0-1.3-.6-1.3-1.3v-8.4c0-.7.6-1.3 1.3-1.3zm2.4 0h5.2V7.5a2.6 2.6 0 0 0-5.2 0z"/></svg>`;
 const CROWN = `<svg viewBox="0 0 24 24"><path d="M3 7.5l4.6 3.6L12 4l4.4 7.1L21 7.5l-1.8 10H4.8zM5 19.2h14V21H5z"/></svg>`;
 const FLAG = `<svg viewBox="0 0 24 24"><path d="M5 2.5h1.8v19H5z"/><path d="M7.5 3.5h12.5v10H7.5z" fill="#fff"/><path d="M7.5 3.5h3.1v2.5H7.5zm6.2 0h3.1v2.5h-3.1zm-3.1 2.5h3.1v2.5h-3.1zm6.2 0H20v2.5h-3.2zM7.5 8.5h3.1V11H7.5zm6.2 0h3.1V11h-3.1zm-3.1 2.5h3.1v2.5h-3.1zm6.2 0H20v2.5h-3.2z" fill="#16181c"/></svg>`;
+export const PLAY = `<svg viewBox="0 0 24 24"><path d="M8 5.2v13.6a.8.8 0 0 0 1.2.7l10.7-6.8a.8.8 0 0 0 0-1.4L9.2 4.5a.8.8 0 0 0-1.2.7z"/></svg>`;
 const CAR = `<svg viewBox="0 0 24 24"><path d="M5.2 10.2 7 5.8A2 2 0 0 1 8.9 4.5h6.2A2 2 0 0 1 17 5.8l1.8 4.4A2.6 2.6 0 0 1 20.5 12.6v4.2c0 .5-.4.9-.9.9h-1.1v1.4a1.2 1.2 0 0 1-2.4 0v-1.4H7.9v1.4a1.2 1.2 0 0 1-2.4 0v-1.4H4.4a.9.9 0 0 1-.9-.9v-4.2a2.6 2.6 0 0 1 1.7-2.4zm2.2-.3h9.2l-1.3-3.3a.7.7 0 0 0-.7-.5H9.4a.7.7 0 0 0-.7.5zM7 15a1.4 1.4 0 1 0 0-2.8A1.4 1.4 0 0 0 7 15zm10 0a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8z"/></svg>`;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 /** Words with a dot between, each kept whole on a line. */
@@ -159,6 +161,10 @@ function drawCard(v: MapView) {
   const body = s.boss
     ? `<div class="duelbox"><div><span>Rival</span><b>${esc(s.boss.rival)}</b></div><div><span>Time to beat</span><b>${clock(s.boss.time)}</b></div><div><span>Win</span><b>${esc(s.boss.car)}</b></div></div>`
     : `<div class="times">${times}</div>` + (s.legend ? `<div class="legendpaint"><i style="background:${s.legend.paint}"></i><span>${s.legend.got ? "Yours:" : "Finish it for"} <b>${esc(s.legend.name)}</b>, a paint for every car</span></div>` : "");
+  // runs to watch: the best run (how the stars' time is driven: lit on a stop you have tried short of three) and yours
+  const watch = !s.closed && (s.watch.best || s.watch.mine !== undefined) ? `<div class="watch">
+    ${s.watch.best ? `<button data-key="b"${s.best !== undefined && s.stars < 3 ? ` class="hot"` : ""}>${PLAY}<span>The best run</span><kbd>b</kbd></button>` : ""}
+    ${s.watch.mine !== undefined ? `<button data-key="v">${PLAY}<span>Your best</span><kbd>v</kbd></button>` : ""}</div>` : "";
   const foot = s.closed ? `<div class="why">${LOCK}<span>${esc(s.closed)}</span></div>`
     : `<button class="go" data-key="enter"><kbd>enter</kbd><span>${s.boss ? "Race" : "Drive"}</span></button>`;
   card.innerHTML = `<div class="sign card${s.boss ? " is-duel" : ""}${s.closed ? " is-closed" : ""}">
@@ -168,6 +174,7 @@ function drawCard(v: MapView) {
     <div class="spec">${dotted(esc(s.facts).split("·"))}</div>
     <div class="you"><span>${CAR}Your car <b>${esc(v.car)}</b>${R.open && v.car ? `<button class="change" data-key="c"><kbd>c</kbd> change</button>` : ""}</span><span class="mine">${best}</span></div>
     ${body}
+    ${watch}
     ${foot}</div>`;
   if (cardFor !== s.id) { const c = card.firstElementChild!; c.classList.add(cardFor ? "swap" : "rise"); cardFor = s.id; }
 }

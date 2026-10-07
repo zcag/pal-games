@@ -162,6 +162,13 @@
 .trip-map .card .sep { display: inline-block; width: 0.26em; height: 0.26em; margin: 0 0.15em; border-radius: 50%; background: currentColor; opacity: 0.6; vertical-align: 0.22em; }
 .trip-map .card span, .trip-map .card b { white-space: nowrap; }
 .trip-map .card .blurb, .trip-map .card .why span { white-space: normal; }
+.trip-map .card .watch { display: flex; gap: 0.3em; margin-top: 0.4em; }
+.trip-map .card .watch button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.35em; padding: 0.3em 0.4em 0.22em; border-radius: 0.45em; background: rgba(0, 0, 0, 0.2); color: var(--dim); font: inherit; font-size: 0.78em; font-weight: 700; border: 0; cursor: pointer; transition: background 150ms, color 150ms; }
+.trip-map .card .watch button:hover { background: rgba(0, 0, 0, 0.32); color: var(--white); }
+.trip-map .card .watch button.hot { background: var(--yellow); color: #1a1a14; }
+.trip-map .card .watch button.hot kbd { background: rgba(0, 0, 0, 0.18); color: #1a1a14; box-shadow: none; }
+.trip-map .card .watch svg { width: 1em; height: 1em; fill: currentColor; }
+.trip-map .card .watch kbd { font-size: 0.85em; min-width: 1.4em; }
 .trip-map .card .go { display: flex; align-items: center; justify-content: center; gap: 0.5em; width: 100%; margin-top: 0.55em; padding: 0.38em 0 0.3em; border-radius: 0.5em; background: var(--white); color: var(--sign); font-weight: 800; font-size: 1em; transition: transform 150ms, background 150ms; }
 .trip-map .card .go:hover { background: #fff; transform: translateY(-1px); }
 .trip-map .card .go kbd { background: var(--sign); color: var(--white); box-shadow: none; font-size: 0.72em; }

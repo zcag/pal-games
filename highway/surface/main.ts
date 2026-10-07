@@ -12,14 +12,15 @@ import { Chase, VIEWS } from "./camera.ts";
 import { Car } from "./car.ts";
 import { Sound } from "./audio.ts";
 import { Garage, type Bay } from "./garage.ts";
-import { showMap, hideMap, onPick, onRegion, pinsAt, hold, reveal, framing, type MapView } from "./trip.ts";
+import { showMap, hideMap, onPick, onRegion, pinsAt, hold, reveal, framing, PLAY, type MapView } from "./trip.ts";
 import { MapWorld } from "./mapworld.ts";
 import { ONE_WAY, TWO_WAY, laneX, type Layout } from "../game/layout.ts";
 import { CARS, LOCATIONS, MODES, PAINTS, FEEL, stats, classOf, type PlayerCar, type Location } from "../game/content.ts";
 import { load, stored, fresh, carOf, paintOf, has, places, pickFor, finishSprintRun, finishFree, countRun, type Save, type Scene } from "../game/meta.ts";
 import type { Miss } from "../game/score.ts";
-import { ROLLING_START, type End, type Packed } from "../game/drive.ts";
+import { ROLLING_START, type Drive, type End, type Packed } from "../game/drive.ts";
 import { acrossAt, type Input } from "../game/vehicle.ts";
+import { bestDrive, chooser, decode, type Hulls } from "../game/bestrun.ts";
 import { REGIONS, SPRINTS, BOSS_STARS, sprintOf, sprintsOf, starTimes, rivalTime, clock, GHOST_DT, ghostAt, ghostTimeAt, type Ghost, type Sprint } from "../game/sprint.ts";
 import { bossOf, carNeeds, carsHad, legendPaints, closed, nextStop, regionOfCar, regionOpen, starsForCar, starsIn, starsOf, totalStars, type SprintResult } from "../game/trip.ts";
 
@@ -85,7 +86,8 @@ async function road(demo: boolean, ready?: () => void, intro = 0) {
   const car = sp ? trip!.car : carOf(save.car);
   const player = await Car.load(car.id, paintOf(save, car));
   run = new Run(world, layout, player, car, events, loc.density, demo || sp ? "endless" : save.mode,
-    sp ? { seed: sp.seed, length: sp.length, density: sp.density } : undefined, intro);
+    sp ? { seed: sp.seed, length: sp.length, density: sp.density } : undefined, intro, !demo && watching?.tape ? watching.tape.seed : undefined);
+  if (!demo && sp && watching) startWatching(sp);
   if (demo) run.veh.launch((105 / 3.6) * FEEL.pace);
   run.settle();
   await sprintProps(sp);
@@ -258,6 +260,7 @@ function onKey(k: string) {
   if (state === "map") { mapKey(k); return; }
   if (state === "garage") { garageKey(k); return; }
   if (state === "free") { freeKey(k); return; }
+  if (watching && watchKey(k)) return;
   // a Sprint is tried again at once, from anywhere in it
   if (k === "r" && trip && (state === "run" || state === "paused" || state === "over" || state === "results")) { drive(); return; }
   if (state === "run" && run && run.drive.intro > 0 && k !== "p") { while (run.drive.intro > 0) run.step(STEP, input()); run.settle(); return; }
@@ -278,6 +281,8 @@ function onKey(k: string) {
       if ((k === "enter" || k === " ") && wonCar) { const id = wonCar; wonCar = null; openGarage(id); return; }
       if (k === "enter" || k === " " || k === "backspace") openMap();
       if (k === "g") openGarage(trip.car.id, { region: trip.sprint.region, back: "map" });
+      if (k === "v" && lastTape) watchTape(trip.sprint, lastTape, "Your run");
+      if (k === "b") watchBest(trip.sprint);
       return;
     }
     if (k === "enter" || k === " ") drive();
@@ -315,6 +320,115 @@ function drawTabs() {
   for (const b of $("tabs").querySelectorAll<HTMLElement>("button")) b.classList.toggle("on", b.dataset.key === `tab:${on}`);
 }
 
+// ---------------------------------------------------------------- watching a run
+
+/** A Sprint run's inputs, as changes: each the steps since the last (base 36) and a digit for the keys held
+ *  (gas 1, brake 2, steer: 0 right, 4 none, 8 left), joined by commas: a minute's driving is a kilobyte or two. */
+type Tape = { sprint: string; car: string; paint: string; seed: number; time: number; tape: string };
+const packTape = (t: [number, number, number, number][]) => t.map(([n, th, br, st], i) => `${(n - (i ? t[i - 1][0] : 0)).toString(36)}${(th + 2 * br + 4 * (st + 1)).toString(36)}`).join(",");
+function unpackTape(s: string) {
+  let n = 0;
+  return s.split(",").map((x) => { n += parseInt(x.slice(0, -1) || "0", 36); const c = parseInt(x.slice(-1), 36); return [n, c & 1, (c >> 1) & 1, (c >> 2) - 1] as const; });
+}
+
+/** A run being watched: your own (its tape) or a Sprint's best (the best-time search's choices, game/bestrun.ts),
+ *  re-driven step by step, so the traffic does what it did. `next` is the input of the step to come. */
+type Watch = { label: string; time: number; tape?: Tape; choices?: string; next?: () => Input };
+let watching: Watch | null = null, watchSpeed = 1;
+let tapes: Record<string, Tape> = {}; // your best run of each Sprint as its inputs, this machine's
+let lastTape: Tape | null = null; // the Sprint run just driven, finished or not
+let bestRuns: Record<string, string> | null = null; // each Sprint's best run (best.json, written by the search)
+let hullsNow: Hulls = {};
+
+/** A Sprint's best run's choices: undefined until best.json is in, false when it has none. */
+const bestRunOf = (s: Sprint): string | false | undefined => (bestRuns ? (bestRuns[s.id] as string | undefined) ?? false : undefined);
+const bestRunsIn = fetch("./best.json").then((r) => r.json()).then((b: Record<string, string>) => { bestRuns = b; }).catch(() => { bestRuns = {}; });
+
+/** The cars' outlines the search drove them as (cars/hulls.json), fetched the first time a best run is watched. */
+let hulls: Promise<Hulls> | null = null;
+async function watchBest(s: Sprint) {
+  await bestRunsIn;
+  hullsNow = await (hulls ??= fetch("./cars/hulls.json").then((r) => r.json()));
+  const choices = bestRunOf(s);
+  if (!choices || !s.best) { sound.play("ui_error", { gain: 0.5 }); return; }
+  watch(s, { label: "The best run", time: s.best, choices }, carOf(s.car));
+}
+function watchTape(s: Sprint, tape: Tape, label: string) {
+  const car = CARS.find((c) => c.id === tape.car);
+  if (!car) return;
+  watch(s, { label, time: tape.time, tape }, car);
+}
+function watch(s: Sprint, w: Watch, car: PlayerCar) {
+  watching = w; watchSpeed = 1;
+  trip = { sprint: s, car };
+  sound.play("ui_confirm", { gain: 0.5 });
+  void drive();
+}
+/** The run just built (road()) as the one watched: the best run in the car the search drove, from its choices;
+ *  your own from its tape, on the road its seed made. */
+function startWatching(sp: Sprint) {
+  const w = watching!, d = run!.drive;
+  if (w.choices) {
+    run!.drive = bestDrive(sp, hullsNow, events);
+    run!.settle();
+    w.next = chooser(sp, run!.drive, decode(w.choices));
+  } else if (w.tape) {
+    const t = unpackTape(w.tape.tape);
+    let j = 0, cur: Input = { throttle: 0, brake: 0, steer: 0 };
+    w.next = () => {
+      while (j < t.length && t[j][0] <= d.steps) { cur = { throttle: t[j][1], brake: t[j][2], steer: t[j][3] }; j++; }
+      return cur;
+    };
+  }
+}
+function stopWatching() { watching = null; watchSpeed = 1; $("replay").hidden = true; }
+/** The replay strip: the run watched, its speed. */
+function drawReplay() {
+  $("replay").hidden = !watching;
+  if (!watching) return;
+  $("replay").querySelector(".name")!.textContent = watching.label;
+  $("replay").querySelector(".speed")!.innerHTML = `${watchSpeed === 0.5 ? "½" : watchSpeed}× <kbd>f</kbd>`;
+}
+
+/** Keys while a run is watched: whether they were its. */
+function watchKey(k: string): boolean {
+  const sp = trip!.sprint;
+  if (state === "results") {
+    if (k === "enter" || k === " ") { const w = watching!; watch(sp, { label: w.label, time: w.time, tape: w.tape, choices: w.choices }, trip!.car); return true; }
+    if (k === "backspace") { stopWatching(); openMap(sp); return true; }
+    if (k === "r") { stopWatching(); trip = { sprint: sp, car: pickFor(save, sp.region) ?? trip!.car }; void drive(); return true; }
+    return k !== "q";
+  }
+  if (state === "paused") {
+    if (k === "backspace" || k === "q") { stopWatching(); openMap(sp); return true; }
+    return false; // enter carries on
+  }
+  if (state !== "run" && state !== "over") return false;
+  if (k === "f") { watchSpeed = watchSpeed === 1 ? 2 : watchSpeed === 2 ? 0.5 : 1; drawReplay(); sound.play("ui_select", { gain: 0.4 }); return true; }
+  if (k === "backspace") { stopWatching(); openMap(sp); return true; }
+  if (k === "p" || k === " " || k === "enter") { if (state === "run") pause(); return true; }
+  return k !== "c"; // the view changes as in a run; nothing else steers a watched run
+}
+
+/** A watched run's end: its time, or how it went wrong if the replay strayed from the run (a change to the game
+ *  since it was driven). */
+function watchEnd() {
+  const w = watching!, d = run!.drive, sp = trip!.sprint;
+  state = "results";
+  $("hud").hidden = true;
+  const drifted = d.ended !== "line" ? w.tape && w.tape.time === d.score.time ? "" : "This replay strayed from the run: the game has changed since"
+    : Math.abs(d.score.time - w.time) > 0.01 ? "This replay strayed from the run: the game has changed since" : "";
+  // set against yours: the best run's margin over your best, or your run's to the next star
+  const mine = save.sprints[sp.id], next = starTimes(sp).find((t) => d.score.time > t);
+  const against = d.ended !== "line" ? "" : w.choices ? (mine ? `${(mine - d.score.time).toFixed(2)} s quicker than your best` : "The run the stars are measured from")
+    : next ? `${(d.score.time - next).toFixed(2)} s from the next star` : "Every star";
+  const what = d.ended === "line" ? `<h2>${clock(d.score.time)}</h2>` : `<h2>${crashInfo ? "Crashed" : "Stopped"}</h2>`;
+  card(`<div class="sprint-end"><div class="eyebrow">${w.label}</div>${what}
+      <div class="why${d.ended === "line" ? "" : " crash"}">${drifted || against || crashLine(sp, d)}</div>
+      ${targetsRow(sp, d.ended === "line" ? d.score.time : undefined)}</div>
+    <div class="keys"><button data-key="enter"><kbd>enter</kbd> watch again</button><button data-key="r"><kbd>r</kbd> drive it</button><button data-key="backspace"><kbd>⌫</kbd> map</button></div>`);
+}
+
 // ---------------------------------------------------------------- the map (home)
 
 let mapRegion = 0;
@@ -337,6 +451,7 @@ function mapView(): MapView {
       legend: s.legend && { ...s.legend, got: !!times[s.id] },
       stars: starsOf(s, times), best: times[s.id], times: s.best ? starTimes(s) : [],
       closed: closed(s, times),
+      watch: { best: !!s.best && bestRunOf(s) !== false, mine: tapes[s.id] ? tapes[s.id].time : undefined },
     })),
     selected: sel.region === mapRegion ? sel.id : sprintsOf(mapRegion)[0].id,
     stars: totalStars(times), car: car?.name ?? "none yet",
@@ -431,6 +546,11 @@ function mapKey(k: string) {
     const open = sprintsOf(mapRegion).find((s) => !closed(s, save.sprints) && starsOf(s, save.sprints) < 3);
     save.stop = (open ?? sprintsOf(mapRegion)[0]).id;
     sound.play("ui_select", { gain: 0.4 });
+  } else if (k === "b" || k === "v") {
+    const s = sprintOf(save.stop)!;
+    if (closed(s, save.sprints)) { sound.play("ui_error", { gain: 0.5 }); return; }
+    if (k === "b") watchBest(s); else if (tapes[s.id]) watchTape(s, tapes[s.id], "Your best run"); else sound.play("ui_error", { gain: 0.5 });
+    return;
   } else if (k === "c") {
     const car = pickFor(save, mapRegion);
     if (!car) { sound.play("ui_error", { gain: 0.5 }); return; }
@@ -724,8 +844,17 @@ async function drive(prep?: () => void) {
   sound.setEngine(car.engine);
   if (!musicOn) { musicOn = true; sound.playMusic(); }
   $("unit").textContent = unit();
+  if (sp && watching) {
+    recording = null;
+    $("modebox").hidden = false;
+    banner(watching.label);
+    hint("");
+    drawReplay();
+    return;
+  }
   if (sp) {
     recording = { x: [], z: [], yaw: [], time: 0 };
+    run!.drive.tape = [];
     z0 = run!.veh.z;
     $("modebox").hidden = false;
     hint(sp.boss ? `Beat ${sp.boss.rival} to the line` : save.sprints[sp.id] ? "" : save.totals.runs < 2 ? "Arrows to drive. Chain near misses to go past your top speed; R tries again" : "");
@@ -742,6 +871,11 @@ function pause() {
   state = "paused";
   sound.suspend();
   const sp = sprintNow();
+  if (watching) {
+    card(`<h2>Paused</h2><div class="why">${watching.label}</div>
+      <div class="keys" style="margin-top:12px"><button data-key="enter"><kbd>enter</kbd> carry on</button><button data-key="backspace"><kbd>⌫</kbd> map</button></div>`);
+    return;
+  }
   card(`<h2>Paused</h2><div class="why">${!run ? "" : sp ? `${clock(run.score.time)}, ${(run.drive.toLine / 1000).toFixed(1)} km to go` : `${Math.round(run.score.points).toLocaleString("en-US")} points so far`}</div>
     <div class="keys" style="margin-top:12px"><button data-key="enter"><kbd>enter</kbd> carry on</button>${sp ? `<button data-key="r"><kbd>r</kbd> try again</button>` : ""}<button data-key="q"><kbd>q</kbd> ${sp ? "back to the map" : "end the run"}</button></div>`);
 }
@@ -750,6 +884,7 @@ function giveUp() { if (trip) { if (run) { countRun(save, run.score); persist();
 
 function results() {
   if (!run) return;
+  if (watching) { watchEnd(); return; }
   if (trip) { sprintResults(); return; }
   state = "results";
   keepRun(); // a finished run is not carried over
@@ -771,26 +906,40 @@ function whyEnded() {
     : "You pulled over";
 }
 
+/** How a Sprint run that did not finish ended: what it hit, and how far it got. */
+function crashLine(sp: Sprint, d: Drive) {
+  const what = crashInfo ? names.get(crashInfo.kind) ?? "car" : "";
+  return crashInfo ? (crashInfo.oncoming ? `Head-on with ${article(what)} ${what}` : `Into ${article(what)} ${what}`) + `, ${((sp.length - d.toLine) / 1000).toFixed(1)} of ${(sp.length / 1000).toFixed(1)} km` : "";
+}
+
+/** A Sprint's three star times, the ones `time` makes lit. */
+const targetsRow = (sp: Sprint, time?: number) => `<div class="targets">${starTimes(sp).map((t, i) => `<div class="${time !== undefined && time <= t ? "got" : ""}">${stars(i + 1)}<b>${clock(t)}</b></div>`).join("")}</div>`;
+
 /** The end of a Sprint: the time, its stars and what they paid, a duel's outcome; or how far it got. */
 function sprintResults() {
   const sp = trip!.sprint, d = run!.drive;
   state = "results";
   $("hud").hidden = true;
-  const keys = `<div class="keys"><button data-key="r"><kbd>r</kbd> try again</button><button data-key="enter"><kbd>enter</kbd> map</button><button data-key="g"><kbd>g</kbd> garage</button></div>`;
-  const wonKeys = `<div class="keys"><button data-key="enter"><kbd>enter</kbd> see your new car</button><button data-key="backspace"><kbd>⌫</kbd> map</button><button data-key="r"><kbd>r</kbd> race again</button></div>`;
-  const targets = (time?: number) => `<div class="targets">${starTimes(sp).map((t, i) => `<div class="${time !== undefined && time <= t ? "got" : ""}">${stars(i + 1)}<b>${clock(t)}</b></div>`).join("")}</div>`;
+  // the run just driven and the best run, to watch; the one worth it most is offered as the nudge, not twice
+  const hasBest = !!sp.best && bestRunOf(sp) !== false;
+  const nudge = (k: "v" | "b", text: string) => `<div class="nudge"><button data-key="${k}">${PLAY}${text}<kbd>${k}</kbd></button></div>`;
+  const watchKeys = (except?: string) => (except === "v" ? "" : `<button data-key="v"><kbd>v</kbd> watch it</button>`) + (hasBest && except !== "b" ? `<button data-key="b"><kbd>b</kbd> the best run</button>` : "");
+  const keys = (except?: string) => `<div class="keys"><button data-key="r"><kbd>r</kbd> try again</button><button data-key="enter"><kbd>enter</kbd> map</button>${watchKeys(except)}</div>`;
+  const wonKeys = `<div class="keys"><button data-key="enter"><kbd>enter</kbd> see your new car</button><button data-key="backspace"><kbd>⌫</kbd> map</button><button data-key="r"><kbd>r</kbd> race again</button>${watchKeys()}</div>`;
+  const targets = (time?: number) => targetsRow(sp, time);
+  lastTape = d.tape && { sprint: sp.id, car: trip!.car.id, paint: paintOf(save, trip!.car), seed: d.seed, time: d.score.time, tape: packTape(d.tape) };
   if (d.ended !== "line") {
     if (!scene && !trial) { countRun(save, run!.score); persist(); }
-    const what = crashInfo ? names.get(crashInfo.kind) ?? "car" : "";
     card(`<div class="sprint-end"><h2>${crashInfo ? "Crashed" : "Stopped"}</h2>
-      <div class="why crash">${crashInfo ? (crashInfo.oncoming ? `Head-on with ${article(what)} ${what}` : `Into ${article(what)} ${what}`) + `, ${((sp.length - d.toLine) / 1000).toFixed(1)} of ${(sp.length / 1000).toFixed(1)} km` : ""}</div>
-      ${targets()}</div>${keys}`);
+      <div class="why crash">${crashLine(sp, d)}</div>
+      ${targets()}</div>${lastTape ? nudge("v", "Watch what happened") : ""}${keys(lastTape ? "v" : undefined)}`);
     showBoard(sp);
     return;
   }
   const time = d.score.time, before = save.sprints[sp.id];
   const pay: SprintResult = scene || trial ? { stars: 0, before: 0, record: false, cars: [] } : finishSprintRun(save, sp, d.score);
   if (pay.record && recording) { recording.time = time; ghosts[sp.id] = recording; pal.storage.set("ghosts", ghosts).catch((e: unknown) => console.error("highway: ghost", e)); }
+  if (pay.record && lastTape && !scene && !trial) { tapes[sp.id] = lastTape; pal.storage.set("tapes", tapes).catch((e: unknown) => console.error("highway: tape", e)); }
   // the next stop to play is selected for the map
   save.stop = (closed(sp, save.sprints) === null && pay.stars < 3 && !sp.boss ? sp : nextStop(save.sprints)).id;
   persist();
@@ -807,7 +956,7 @@ function sprintResults() {
       <div class="big">${stars(pay.stars)}</div>
       <div class="why">${headline}${!pay.record && before ? `. Your best is ${clock(before)}` : ""}</div>
       ${reward}
-      ${targets(time)}</div>${wonCar ? wonKeys : keys}`);
+      ${targets(time)}</div>${wonCar ? wonKeys : hasBest && (next || (duel && !duel.won)) ? nudge("b", "See how the best run drives it") + keys("b") : keys()}`);
   if (duel?.won) sound.play("bell_ding", { gain: 0.7 });
   // your time on its board first, so the board read after it has it
   void post(`sprint/${sp.id}`, Math.round(time * 100) / 100, pay.record).then(() => showBoard(sp));
@@ -1012,6 +1161,7 @@ function frame() {
   if (state === "paused") { r.render(world.scene, { dim: 0.35 }); return; }
   if (state === "run" && resuming > 0) { resumeCount(dt); return; }
   if (slowmo > 0) { slowmo -= dt; dt *= 0.25; if (slowmo <= 0 && state === "over") results(); }
+  if (watching) { dt *= watchSpeed; ($("replay").querySelector(".bar i") as HTMLElement).style.width = `${(100 * (1 - run.drive.toLine / trip!.sprint.length)).toFixed(1)}%`; }
   t += dt;
   acc += dt;
   // past the line the autopilot takes the car, easing off and keeping clear, so a finish never ends in a pile-up
@@ -1020,7 +1170,7 @@ function frame() {
     : state === "run" || state === "over" ? (scene ? autopilot(scene.speed ?? 170, true) : input()) : { throttle: 0, brake: 0.2, steer: 0 };
   const t0 = performance.now();
   while (acc >= STEP) {
-    run.step(STEP, inp);
+    run.step(STEP, watching?.next && state === "run" ? watching.next() : inp);
     acc -= STEP;
     // a Sprint's run, kept as a line through time: the ghost of a new best
     if (recording && state === "run" && run.drive.intro <= 0 && run.score.time >= recording.z.length * GHOST_DT) { const v = run.veh; recording.x.push(+v.x.toFixed(2)); recording.z.push(+(v.z - z0).toFixed(2)); recording.yaw.push(+v.yaw.toFixed(3)); }
@@ -1029,7 +1179,7 @@ function frame() {
   // your best run's ghost, beside you; a duel's rival ahead or behind
   if (ghostCar) {
     const g = sprintNow() ? ghosts[sprintNow()!.id] : null;
-    ghostCar.root.visible = ghostOn && !!g && live && run.drive.intro <= 0 && at < g.time + 1;
+    ghostCar.root.visible = ghostOn && !!g && !watching?.tape && live && run.drive.intro <= 0 && at < g.time + 1;
     if (g && ghostCar.root.visible) placeGhost(ghostCar, ghostAt(g, at), ghostMat, GHOST_OPACITY);
   }
   if (rival) {
@@ -1086,6 +1236,8 @@ async function startOver() {
   save.settings = settings;
   ghosts = {};
   pal.storage.set("ghosts", {}).catch(() => undefined);
+  tapes = {};
+  pal.storage.set("tapes", {}).catch(() => undefined);
   ended = null; crashInfo = null;
   pal.storage.set("run", null).catch(() => undefined);
   garageScene?.dispose(); garageScene = null; garageBuilt = null;
@@ -1156,6 +1308,7 @@ async function stage(sc: Scene) {
   scene = ((await pal.storage.get("scene").catch(() => null)) as Scene | null) ?? null;
   save = load(await pal.storage.get("save").catch(() => null));
   ghosts = ((await pal.storage.get("ghosts").catch(() => null)) as Record<string, Ghost> | null) ?? {};
+  tapes = ((await pal.storage.get("tapes").catch(() => null)) as Record<string, Tape> | null) ?? {};
   account();
   let kept = scene ? null : ((await pal.storage.get("run").catch(() => null)) as Kept | null);
   if (kept && has(save, carOf(kept.car)) && places(save).some((l) => l.id === kept!.location) && !(kept as { sprint?: unknown }).sprint) {

@@ -104,7 +104,7 @@
     },
     "run": "local",
     "scene": "local",
-    "ghosts": "local"
+    "ghosts": "local", "tapes": "local"
   },
   "leaderboards": [
     {

@@ -241,7 +241,7 @@ map was built on them.
 - **Stars are margins over a searched best.** `scripts/sprint.ts` plays a
   beam of runs headless, choosing every 0.25 s where across the road to
   steer for (half-lane steps) and gas, lift or brake, colliding as the
-  game's outlines (`scripts/hulls.json`), and keeps the best
+  game's outlines (`surface/cars/hulls.json`), and keeps the best
   of each kind of place to be; it knows the road as someone who has learned
   it does, driving the region's first car stock. One star is +20% on its
   time (a good first try), two +9% (the road learned), three +3%
@@ -251,3 +251,28 @@ map was built on them.
 - **Trying again is instant.** R, from the run, the pause or the end; your
   best run drives beside you as a ghost, and the clock shows how far ahead
   or behind it you are at that point of the road.
+
+## Replays
+
+A Sprint can be watched again, because it is deterministic: its road and
+traffic come from its seeds and it steps at a fixed 1/120 s, so the inputs
+alone drive the same run again, the traffic doing what it did.
+
+- **Your runs.** A Sprint keeps its inputs as a tape of changes (the keys
+  held, and the step they changed at: a kilobyte or two a minute). The run
+  just driven can be watched from its results ("Watch what happened" after
+  a crash); a new best's tape is kept, this machine's, for the map card's
+  "Your best".
+- **The best run.** The best-time search keeps its winning run's choices,
+  and `--write` ships them (`surface/best.json`); the page drives them as
+  the search did (`game/bestrun.ts`), in the car it drove, so "The best run"
+  is the run the stars are margins over. The map card offers it, lit on a
+  stop you have tried short of three stars, and a finish short of the next
+  star offers it as the thing to do next.
+- **Watching** is a run with the keys taken away: a strip says what it is,
+  F changes speed (1×, 2×, ½×), P pauses, Backspace goes to the map; its
+  end says how it compares (the best run's margin over yours, your run's to
+  the next star). A replay that strays from its run (the game changed since
+  it was driven) says so rather than pretending.
+- **Other players' runs** need a replay kept with a score on a board, which
+  pal's leaderboards do not do yet.

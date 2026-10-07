@@ -66,6 +66,10 @@ export class Drive {
   scraping = 0;
   ended: End | null = null;
   ghost = false; // nothing touches: a staged scene for the store's pictures
+  /** The inputs it was driven with up to its end, as changes [step, throttle, brake, steer], kept when set (the
+   *  page's Sprints): a run replays from them (surface/main.ts, "watch"). `steps` counts every step. */
+  tape: [number, number, number, number][] | null = null;
+  steps = 0;
   /** A rolling start, s left of it: the car holds its lane and its starting speed while the traffic flows, nothing
    *  counts and nothing touches; the clock and the distance start when it ends. The same for everyone, the search too. */
   intro = 0;
@@ -77,7 +81,7 @@ export class Drive {
   spring = { pitch: 0, pitchV: 0, roll: 0, rollV: 0 };
   /** A Sprint's road, else the open road. */
   sprint: SprintRoad | null;
-  private seed: number;
+  seed: number; // the run's own randomness: a replay of its tape drives it again (surface/main.ts)
   private pace = FEEL.pace; // the pace the car's physics were made at
 
   constructor(public layout: Layout, public car: PlayerCar, public size: Size, wheelbase: number,
@@ -214,6 +218,11 @@ export class Drive {
 
   step(dt: number, input: Input) {
     const v = this.veh, L = this.layout, ev = this.events;
+    if (this.tape && !this.over) {
+      const l = this.tape[this.tape.length - 1];
+      if (!l || l[1] !== input.throttle || l[2] !== input.brake || l[3] !== input.steer) this.tape.push([this.steps, input.throttle, input.brake, input.steer]);
+    }
+    this.steps++;
     // a run that is over coasts to a stop, except past the line, where whoever drives (the page's autopilot) carries on
     if (this.over && this.ended !== "line") input = { throttle: 0, brake: 0.3, steer: 0 };
     const rolling = this.intro > 0;

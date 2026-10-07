@@ -10,6 +10,9 @@ import { fresh, load, stored, has, pickFor, finishSprintRun, type Save } from ".
 import { REGIONS, BOSS_STARS, sprintsOf, rivalTime } from "../highway/game/sprint.ts";
 import { closed, regionOpen, starsIn, bossOf, nextStop, carNeeds, CAR_STARS } from "../highway/game/trip.ts";
 import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
+import { bestDrive, chooser, decode, encode, type Hulls } from "../highway/game/bestrun.ts";
+import hulls from "../highway/surface/cars/hulls.json";
+import best from "../highway/surface/best.json";
 
 
 test("every car reaches about its top speed, and brakes from 100 km/h to a crawl in about a second", () => {
@@ -371,4 +374,29 @@ test("a Legend opens with three stars on its region's duel, and its first finish
   const first = finishSprintRun(s, legend, timed(starTimes(legend)[0]));
   expect(first.paint).toEqual(legend.legend);
   expect(finishSprintRun(s, legend, timed(starTimes(legend)[2])).paint).toBeUndefined();
+});
+
+describe("replays", () => {
+  const hullsOf = hulls as unknown as Hulls, sp = SPRINTS[0];
+  test("a run's tape drives it again to the same end, step for step", () => {
+    const a = bestDrive(sp, hullsOf);
+    a.tape = [];
+    for (let i = 0; i < 120 * 12 && !a.over; i++) a.step(1 / 120, { throttle: 1, brake: 0, steer: Math.floor(i / 90) % 3 - 1 });
+    expect(a.tape.length).toBeGreaterThan(3);
+    const b = bestDrive(sp, hullsOf);
+    let j = 0, cur = { throttle: 0, brake: 0, steer: 0 };
+    for (let i = 0; i < a.steps; i++) {
+      while (j < a.tape.length && a.tape[j][0] <= i) { const [, throttle, brake, steer] = a.tape[j++]; cur = { throttle, brake, steer }; }
+      b.step(1 / 120, cur);
+    }
+    expect([b.ended, b.score.time, b.veh.x, b.veh.z]).toEqual([a.ended, a.score.time, a.veh.x, a.veh.z]);
+  });
+  test("a Sprint's best run, as shipped, finishes in its best time", () => {
+    const runs = best as Record<string, string>, s = SPRINTS.find((x) => runs[x.id])!;
+    expect(decode(runs[s.id]).map((c) => encode([c])).join("")).toBe(runs[s.id]);
+    const d = bestDrive(s, hullsOf), next = chooser(s, d, decode(runs[s.id]));
+    for (let i = 0; i < 120 * 120 && !d.over; i++) d.step(1 / 120, next());
+    expect(d.ended).toBe("line");
+    expect(+d.score.time.toFixed(2)).toBe(s.best!);
+  });
 });
