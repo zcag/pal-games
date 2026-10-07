@@ -1,202 +1,202 @@
 {
  "first-light": {
-  "key": "6a60118a97c957ab",
+  "key": "916dcdbddd5a1eb4",
   "best": 54.99
  },
  "farm-road": {
-  "key": "b527975ecd2b8931",
+  "key": "a4fccb5c893d100d",
   "best": 54.99
  },
  "commuters": {
-  "key": "d1e22d231948aa5e",
+  "key": "6fda037d1f2c4afe",
   "best": 51.35
  },
  "old-road": {
-  "key": "c96f4aa2c8012b9b",
-  "best": 51.17
+  "key": "141aec2aaa6ab38b",
+  "best": 51.15
  },
  "three-lanes": {
-  "key": "0e14a1f7c2695816",
+  "key": "b9fe92a5b1040ee7",
   "best": 60.34
  },
  "squeeze": {
-  "key": "ec59145ed26c55ff",
+  "key": "21196420f4c1cd26",
   "best": 59.02
  },
  "hedgerows": {
-  "key": "8f66c294b4a96523",
+  "key": "191953276b379cb3",
   "best": 69.67
  },
  "last-light": {
-  "key": "85538203b08a2f67",
+  "key": "71ebb17bfa7e7074",
   "best": 64.47
  },
  "heat-haze": {
-  "key": "8c1976772a725e42",
+  "key": "52371a9dfb195952",
   "best": 56.57
  },
  "dry-run": {
-  "key": "3bcc3c48f5a6d737",
+  "key": "dabee850151dd845",
   "best": 61.1
  },
  "long-haul": {
-  "key": "a812d2f594233568",
+  "key": "1caae6d601c7b9fb",
   "best": 80.33
  },
  "noon-rush": {
-  "key": "e3f8dee7363ff39a",
+  "key": "26b6b57e6bf5a3c7",
   "best": 65.34
  },
  "overtaker": {
-  "key": "8af7787d29ce2efb",
+  "key": "2e1e278361ecee48",
   "best": 60.94
  },
  "canyon-run": {
-  "key": "8a6ecf87eeea79d8",
+  "key": "be6f5326cac4b8b4",
   "best": 60.07
  },
  "white-lines": {
-  "key": "9dad7d81c9e5e545",
+  "key": "a55ad9f875f59ce5",
   "best": 68.41
  },
  "head-on": {
-  "key": "464f77f2c5adcf03",
+  "key": "ae3a469ebdf1f84d",
   "best": 51.17
  },
  "big-block": {
-  "key": "29feeeeb1cf70b8c",
+  "key": "add5338f0a250924",
   "best": 57.05
  },
  "long-straight": {
-  "key": "8008da7cf0972391",
+  "key": "93aecd54e3e3744f",
   "best": 80.82
  },
  "low-sun": {
-  "key": "6d48356394ec52dd",
+  "key": "a4537948eacd6b98",
   "best": 69.92
  },
  "glare": {
-  "key": "763d439191510c73",
+  "key": "05dbaf96310c21ed",
   "best": 66.45
  },
  "sundown": {
-  "key": "c62b387d0acaec08",
+  "key": "703f7ca48fe78d7f",
   "best": 65.77
  },
  "dust": {
-  "key": "a0a512a6ce371f62",
-  "best": 60.81
+  "key": "f618139d358349dc",
+  "best": 60.84
  },
  "the-mile": {
-  "key": "b8e9da057d68ca70",
+  "key": "d2d27a54fdc70cb8",
   "best": 80.49
  },
  "b-road": {
-  "key": "a9cceb79b607ba06",
-  "best": 51.58
+  "key": "3ce97db448702aee",
+  "best": 51.65
  },
  "drizzle": {
-  "key": "426e24d74a2f0b08",
+  "key": "3ae5784c02468c65",
   "best": 61.04
  },
  "overcast": {
-  "key": "8444709c318148cb",
+  "key": "5370e7055da446ba",
   "best": 56.92
  },
  "rush-hour": {
-  "key": "e52a60ebf0aad009",
+  "key": "463d6f9e3e03f0ec",
   "best": 66.64
  },
  "convoy": {
-  "key": "717566fd9c2a340e",
+  "key": "3d72e6fc315c394f",
   "best": 70.21
  },
  "fog-line": {
-  "key": "050f34e3003e5779",
-  "best": 61.13
+  "key": "eb91d9fec989b0c4",
+  "best": 61.04
  },
  "motorway": {
-  "key": "7f919e605903e92f",
+  "key": "06e728c8820373bc",
   "best": 65.84
  },
  "grand-tour": {
-  "key": "8da3c0a7b2082be6",
+  "key": "4bc8b981b3afb40c",
   "best": 80.89
  },
  "neon": {
-  "key": "ccedd8f2774e8433",
+  "key": "a8f076fda3032982",
   "best": 55.91
  },
  "midnight": {
-  "key": "7a27f6db9c6f0c09",
+  "key": "e30b9b0a4dd08110",
   "best": 61.05
  },
  "slipstream": {
-  "key": "3ef7218659b01e9c",
+  "key": "b9ae8e689cc48d08",
   "best": 67.67
  },
  "high-beams": {
-  "key": "6278964ef9bad33e",
+  "key": "79345e694152c659",
   "best": 51.11
  },
  "tunnel-vision": {
-  "key": "8c9def70149f4415",
+  "key": "67e6a54d14a2dec7",
   "best": 70.49
  },
  "red-lights": {
-  "key": "4b3325bee8e10b6c",
+  "key": "7fc07b2e755963c5",
   "best": 65.53
  },
  "graveyard": {
-  "key": "71658ab3cbdad15c",
-  "best": 60.53
+  "key": "4af3fe7703ad2816",
+  "best": 60.56
  },
  "all-night": {
-  "key": "301c5c3a460f3e24",
+  "key": "9ea7a8950a0aff90",
   "best": 80.86
  },
  "duel-ines": {
-  "key": "63db0216b93cfee6",
+  "key": "0195d38de72d72c8",
   "best": 69.67
  },
  "duel-mika": {
-  "key": "ccb6532b3a3132c2",
+  "key": "bc6f156401a884b8",
   "best": 70.84
  },
  "duel-rook": {
-  "key": "5e5f107a6cce8052",
+  "key": "a229640349771e10",
   "best": 70.95
  },
  "afterburn": {
-  "key": "e1285ed64dfef395",
+  "key": "96facaa3313c2a89",
   "best": 65.71
  },
  "duel-vega": {
-  "key": "e2fea957d0a6da0f",
+  "key": "07afd7b01b2df235",
   "best": 70.89
  },
  "duel-kaz": {
-  "key": "31f48e68b6a9d02f",
+  "key": "9fd9f6296a3d86f6",
   "best": 70.28
  },
  "legend-harvest": {
-  "key": "79f51b3a29c41d48",
+  "key": "19baf82d8aa876c4",
   "best": 68.42
  },
  "legend-mirage": {
-  "key": "6c9702b13e86b2f8",
-  "best": 69.75
+  "key": "485b8e2de6762a9d",
+  "best": 69.78
  },
  "legend-storm": {
-  "key": "b879ab6520c366b7",
-  "best": 69.7
+  "key": "b497c370018eaacf",
+  "best": 69.66
  },
  "legend-red-sky": {
-  "key": "ca47c086345f1d59",
+  "key": "667f3f2700c91821",
   "best": 72.33
  },
  "legend-long-night": {
-  "key": "714e5bec6d02558b",
+  "key": "45b19b532e637c66",
   "best": 71.12
  }
 }

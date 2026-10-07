@@ -48,6 +48,9 @@ const START_KMH = 100;
 export const ROLLING_START = 2.5;
 /** How far off its lane's centre a driver keeps (at most, m), and how far it drifts about that. */
 const SIDE = 0.33, DRIFT = 0.12;
+/** On a two-way road the lanes either side of the centre line keep this much toward it, m, as a fast lane keeps to
+ *  the middle: without it their cars left a strip down the line that a car could sit in, flat out, and meet nothing. */
+const HUG = 0.3;
 /** Time Attack's checkpoints are this far apart on the dial, m. */
 const CHECKPOINT_M = 2500;
 
@@ -201,7 +204,8 @@ export class Drive {
     const L = this.layout;
     for (const n of this.traffic.cars) {
       if (n.hit) continue;
-      const at = (l: number) => (n.oncoming ? oncomingX(L, l) : laneX(L, l));
+      const inner = n.oncoming ? L.oncoming - 1 : L.lanes - 1, toward = n.oncoming ? -HUG : HUG; // +x is left: the line is left of us
+      const at = (l: number) => (n.oncoming ? oncomingX(L, l) : laneX(L, l)) + (L.oncoming && l === inner ? toward : 0);
       // nobody drives dead centre: each keeps to its own side of its lane and drifts about it, so the line between two
       // lanes is open between some pairs and shut between others, never a lane of its own
       n.x = at(n.from) + (at(n.lane) - at(n.from)) * crossing(n) + n.side + DRIFT * Math.sin(this.score.time * 0.35 + n.phase);
