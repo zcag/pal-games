@@ -19,10 +19,16 @@ const PAD = 0.035;
 /** How often it looks again. */
 const EVERY = 1 / 120;
 
-/** Which bins walls cover, step by step over the horizon. */
+/** The planner's grid, cleared and reused on each look (it looks every other step). */
+const GRID = Array.from({ length: STEPS + 1 }, () => new Uint8Array(B));
+
+/** Which bins walls cover, step by step over the horizon: the shared grid, good until the next call. */
 function blocks(s: State) {
   const v = speed(s), pad = v * PAD;
-  const block = Array.from({ length: STEPS + 1 }, () => new Uint8Array(B));
+  const block = GRID;
+  for (const row of block) row.fill(0);
+  // One wall moved on, reused: a fresh object per wall and horizon step was a tenth of the planner's time.
+  const moved = { id: 0, a0: 0, a1: 0, r: 0, len: 0 };
   for (const w of s.walls) {
     const span = w.a1 - w.a0, low = FEEL.orbit * Math.cos(span / 2);
     const b0 = Math.floor(w.a0 / W), b1 = Math.ceil(w.a1 / W);
@@ -31,7 +37,7 @@ function blocks(s: State) {
       if (r > FEEL.orbit) continue;
       if (r + w.len < low) break;
       // Walls count as a little early and a little long: it moves in good time.
-      const moved = { ...w, r: r - pad, len: w.len + pad * 2 };
+      moved.a0 = w.a0; moved.a1 = w.a1; moved.r = r - pad; moved.len = w.len + pad * 2;
       // A little wider than the wall: the bot stays off its edges.
       for (let b = b0 - 1; b <= b1; b++) {
         const k = ((b % B) + B) % B, a = (k + 0.5) * W;
@@ -58,13 +64,16 @@ function lasting(block: Uint8Array[], reach: number) {
   let next = new Int16Array(B).map((_, b) => (block[STEPS][b] ? STEPS - 1 : STEPS));
   let cur = new Int16Array(B);
   for (let j = STEPS - 1; j >= 1; j--) {
-    for (let b = 0; b < B; b++) cur[b] = block[j][b] ? j - 1 : best(next, block[j], block[j + 1], b, reach).depth;
+    for (let b = 0; b < B; b++) cur[b] = block[j][b] ? j - 1 : next[best(next, block[j], block[j + 1], b, reach)];
     [next, cur] = [cur, next];
   }
   return next;
 }
 /** Where to be a step from now. */
-const route = (block: Uint8Array[], here: number, reach: number) => best(lasting(block, reach), block[0], block[1], here, reach);
+function route(block: Uint8Array[], here: number, reach: number) {
+  const depth = lasting(block, reach), bin = best(depth, block[0], block[1], here, reach);
+  return { depth: depth[bin], bin };
+}
 
 /** The angle that lasts longest from here on, for a player set down mid-run (a practice start). */
 export function safest(s: State) {
@@ -74,17 +83,22 @@ export function safest(s: State) {
   return (top + 0.5) * W;
 }
 
-/** The deepest bin reachable from b within one step's turn, not crossing a blocked one; the nearest among equals. */
+/** The deepest bin reachable from b within one step's turn, not crossing a blocked one; the nearest among equals (clockwise first). Allocates nothing: it runs for every bin at every step of the horizon. */
 function best(depth: Int16Array, nowBlock: Uint8Array, thenBlock: Uint8Array, b: number, reach: number) {
+  // Nothing lasts past the horizon, so a bin that reaches it is the answer.
   let top = depth[b], bin = b;
-  for (const way of [1, -1]) {
-    for (let i = 1; i <= reach; i++) {
-      const k = (b + way * i + B) % B;
-      if (nowBlock[k] || thenBlock[k]) break;
-      if (depth[k] > top) { top = depth[k]; bin = k; }
-    }
+  if (top === STEPS) return b;
+  for (let i = 1; i <= reach; i++) {
+    const k = (b + i) % B;
+    if (nowBlock[k] || thenBlock[k]) break;
+    if (depth[k] > top) { top = depth[k]; bin = k; if (top === STEPS) return k; }
   }
-  return { depth: top, bin };
+  for (let i = 1; i <= reach; i++) {
+    const k = (b - i + B) % B;
+    if (nowBlock[k] || thenBlock[k]) break;
+    if (depth[k] > top) { top = depth[k]; bin = k; }
+  }
+  return bin;
 }
 
 /** Plays a run forward with the bot for `seconds` (or to its end); answers the state. */
