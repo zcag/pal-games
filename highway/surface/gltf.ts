@@ -8,6 +8,23 @@ import { GLTFLoader } from "./vendor/three.js";
 
 const loader = new GLTFLoader();
 
+// A texture file several models use (most cars share their interiors, glass, tyres and plates) is decoded and
+// sent to the GPU once. GLTFLoader keeps textures per file it loads, so each car brought its own copies: 174
+// images uploaded for 46 files, a second of the map's first frame in WebKit. Safe to share: a car never
+// changes or frees a texture (its materials are cloned, Car.dispose leaves the GPU's alone).
+const shared = new Map<string, Promise<THREE.Texture | null>>();
+loader.register((parser) => ({
+  name: "shared_textures",
+  loadTexture(i: number) {
+    const def = parser.json.textures[i], img = parser.json.images?.[def.source];
+    if (!img?.uri) return null;
+    const key = `${parser.options.path}${img.uri}|${JSON.stringify(parser.json.samplers?.[def.sampler] ?? {})}`;
+    let t = shared.get(key);
+    if (!t) shared.set(key, (t = parser.loadTextureImage(i, def.source, parser.textureLoader)));
+    return t;
+  },
+}) as never);
+
 function glb(json: { buffers?: { uri?: string; byteLength: number }[] }): ArrayBuffer {
   let bin = new Uint8Array(0);
   const buf = json.buffers?.[0];
