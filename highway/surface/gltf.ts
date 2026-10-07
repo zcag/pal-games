@@ -7,9 +7,32 @@ import * as THREE from "./vendor/three.js";
 import { GLTFLoader } from "./vendor/three.js";
 
 const loader = new GLTFLoader();
-// Textures are not shared across files, though most cars use the same few (interiors, glass, tyres, plates) and
-// each brings its own copies, a second of upload in WebKit: one Texture handed to several files' materials left
-// holes in cars in WebKit (the Kiri '10's bumper and grille), fine in Chrome (8cb5d1f, reverted). Find why first.
+// A texture file several models use (most cars share their interiors, glass, tyres and plates) is decoded and
+// sent to the GPU once: GLTFLoader keeps textures per file it loads, so each car brought its own copies, 174
+// images uploaded for 46 files, two seconds of the opening in WebKit. Safe to share: a car never changes or
+// frees a texture (its materials are cloned, Car.dispose leaves the GPU's alone). One thing sharing changes: a
+// texture transform's copy (the paint's flake, scaled ×20) flags the image to be sent again, and a shared one
+// was flagged by every later file that used it (129 times for the paint's), re-sending textures already on
+// screen whenever a car loaded mid-run. The copy's flag is taken back: the image is the same, only its UV scale differs.
+const shared = new Map<string, Promise<THREE.Texture | null>>();
+type Transform = { extendTexture(t: THREE.Texture, x: unknown): THREE.Texture; quiet?: boolean };
+loader.register((parser) => ({
+  name: "shared_textures",
+  loadTexture(i: number) {
+    const def = parser.json.textures[i], img = parser.json.images?.[def.source];
+    if (!img?.uri) return null;
+    const tt = (parser as unknown as { extensions: Record<string, Transform | undefined> }).extensions.KHR_texture_transform;
+    if (tt && !tt.quiet) {
+      const extend = tt.extendTexture.bind(tt);
+      tt.extendTexture = (t, x) => { const v = t.source.version, c = extend(t, x); if (c !== t) c.source.version = v; return c; };
+      tt.quiet = true;
+    }
+    const key = `${parser.options.path}${img.uri}|${JSON.stringify(parser.json.samplers?.[def.sampler] ?? {})}`;
+    let t = shared.get(key);
+    if (!t) shared.set(key, (t = parser.loadTextureImage(i, def.source, parser.textureLoader)));
+    return t;
+  },
+}) as never);
 
 function glb(json: { buffers?: { uri?: string; byteLength: number }[] }): ArrayBuffer {
   let bin = new Uint8Array(0);
