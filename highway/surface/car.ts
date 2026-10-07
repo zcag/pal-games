@@ -280,6 +280,18 @@ function physical(src: THREE.Material) {
   return m;
 }
 
+const BAY = new THREE.MeshBasicMaterial({ color: 0x050607, side: THREE.DoubleSide });
+/** Behind the grilles: a dark block inside the lower body, the car's outline from above drawn in, from just off the
+ *  ground to below the windows. The models leave a grille or a vent open onto nothing (the Kiri '10's, the Tozzo's,
+ *  the Roadster's), so the road showed through the front of a car. */
+function bay(m: Model) {
+  const cx = m.hull.reduce((a, p) => a + p[0], 0) / m.hull.length, cz = m.hull.reduce((a, p) => a + p[1], 0) / m.hull.length;
+  const shape = new THREE.Shape(m.hull.map(([x, z]) => new THREE.Vector2(cx + (x - cx) * 0.86, cz + (z - cz) * 0.92)));
+  const lo = 0.15, hi = Math.max(lo + 0.2, m.size.y * 0.5);
+  // the outline is drawn in x and z; extruded along z, turned up so it stands from lo to hi
+  return new THREE.ExtrudeGeometry(shape, { depth: hi - lo, bevelEnabled: false }).rotateX(Math.PI / 2).translate(0, hi, 0);
+}
+
 const rubbers = new Map<THREE.Material, THREE.MeshStandardMaterial>();
 /** The wheel atlas: tyres matte rubber (the model calls the whole wheel metal), rims and discs metal. */
 function rubber(src: THREE.Material) {
@@ -453,6 +465,7 @@ export class Car {
       model.add(mesh);
       for (const [m] of list) m.removeFromParent();
     });
+    model.add(new THREE.Mesh(cached(info, "bay", () => bay(info)), BAY));
     // every part of the car writes alpha 0: the motion blur (looks.ts) leaves cars sharp
     this.body.traverse((o) => { const m = (o as THREE.Mesh).material; if (m) for (const x of Array.isArray(m) ? m : [m]) carAlpha(x); });
 
