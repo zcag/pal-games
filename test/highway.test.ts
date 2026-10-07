@@ -218,10 +218,11 @@ describe("Sprints", () => {
     expect(d.score.time).toBeGreaterThan(5);
   });
 
-  test("stars are margins over the best time (three, the best itself: a person's pace), and a ghost says its time at any point of the road", () => {
+  test("stars are margins over the best time, the run it comes from making three, and a ghost says its time at any point of the road", () => {
     const sp = { ...SPRINTS[1], best: 60 };
     const [one, two, three] = starTimes(sp);
-    expect(one > two && two > three && three === sp.best).toBe(true);
+    expect(one > two && two > three && three > sp.best).toBe(true);
+    for (const s of SPRINTS) expect(starsFor(s, s.best)).toBe(3);
     expect([starsFor(sp, three), starsFor(sp, two), starsFor(sp, one), starsFor(sp, one + 0.1)]).toEqual([3, 2, 1, 0]);
     const g = { x: [0, 1, 2], z: [0, 10, 30], yaw: [0, 0, 0], time: 2 * GHOST_DT };
     expect(ghostTimeAt(g, 20)).toBeCloseTo(GHOST_DT * 1.5, 6);

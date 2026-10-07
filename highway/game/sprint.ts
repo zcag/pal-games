@@ -177,11 +177,14 @@ export const rivalTime = (s: Sprint) => Math.round(((starTimes(s)[0] + starTimes
 export const sprintOf = (id: string) => SPRINTS.find((s) => s.id === id);
 
 /** How much slower than the best time each star allows: one for a clean finish, two once the road is learned,
- *  three for the best time itself. The best time is a person's pace (game/bestrun.ts, HUMAN), not the machine's:
- *  three stars ask for driving a person can do, on a road they have learned. */
-export const STAR_MARGIN = [0.15, 0.06, 0] as const;
-/** The times for one, two and three stars, s (to the tenth, rounded down so the shown time is enough). */
-export const starTimes = (s: Sprint) => STAR_MARGIN.map((m) => Math.floor(s.best * (1 + m) * 10) / 10);
+ *  three for the best time's own driving. The best time is a person's pace (game/bestrun.ts, HUMAN), not the
+ *  machine's: three stars ask for driving a person can do, on a road they have learned. Three is +0.5%, not 0: on a
+ *  road with nothing to slow for (First Light) every run flat out finishes within hundredths of the best, and a
+ *  player 0.02 s off it could not get three. */
+export const STAR_MARGIN = [0.15, 0.06, 0.005] as const;
+/** The times for one, two and three stars, s: to the tenth, rounded up, so the run they come from makes them (rounded
+ *  down, three stars on First Light were 54.9 s against its best 54.99). */
+export const starTimes = (s: Sprint) => STAR_MARGIN.map((m) => Math.ceil(s.best * (1 + m) * 10 - 1e-9) / 10);
 /** Stars a time earns: 0 to 3. */
 export const starsFor = (s: Sprint, time: number) => starTimes(s).filter((t) => time <= t).length;
 

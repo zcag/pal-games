@@ -249,8 +249,12 @@ map was built on them.
   kind of place to be; it knows the road as someone who has learned it
   does, driving the region's first car stock. It chooses at a person's pace
   (`HUMAN` in `game/bestrun.ts`): 2.5 times a second, each choice felt
-  0.15 s late, at most a lane's width each. Three stars are that time, two
-  +6% (the road learned), one +15% (a good first try).
+  0.15 s late, at most a lane's width each. Three stars are that time
+  +0.5%, two +6% (the road learned), one +15% (a good first try), each
+  rounded up to the tenth. Three began at +0%, rounded down: on First Light
+  (nothing to slow for, so every flat-out run is within hundredths of the
+  best) that was 54.9 s against a best of 54.99, and a player at 55.01
+  could not get it.
   - The search at a machine's pace (four choices a second, at once, two
     slots each) drove a TAS: watched, Dry Run's three-star run was inhuman.
     Its margins were +20%, +9%, +3%; before them +30%, +12%, +4% over a
