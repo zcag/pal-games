@@ -93,7 +93,9 @@ one strong run bought the top car.
   will drive, the times its stars need and your best. Enter drives.
 - **Up and down change region**, the next region's world cross-faded in.
   A region not yet open shows dimmed, with what opens it ("Beat Ines").
-- **G is the garage, F is Free Drive**, from the map, and Escape comes back.
+- **Three tabs on top: Road trip, Garage, Free Drive**, on all three, so
+  Free Drive is never a hidden key away. Tab steps through them (shift+tab
+  back), a click or G and F go straight there, Backspace comes back to the map.
   A run's end offers the next stop, another try (R), the map and the garage.
 - **A first launch drops you on the first stop** with one line: Enter to
   drive. Nothing else is explained until it matters.

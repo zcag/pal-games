@@ -107,26 +107,19 @@ kbd { display: inline-block; min-width: 18px; padding: 1px 5px 0; border-radius:
 #card dt.total, #card dd.total { color: var(--yellow); font-weight: 800; font-size: 15px; }
 #card .keys { display: flex; gap: 14px; margin-top: 4px; }
 
+/* the three places, on top of each: the road trip, the garage, Free Drive */
+/* centred in the room right of the garage's and Free Drive's signs (12 + 262 px) */
+#tabs { position: fixed; left: calc(50% + 137px); top: 10px; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(12, 14, 17, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); white-space: nowrap; }
+#tabs button[data-key] { margin: 0; padding: 5px 11px 3px; border-radius: 7px; font-size: 13px; font-weight: 800; color: var(--dim); transition: background 200ms ease, color 200ms ease; }
+#tabs button[data-key]:hover { color: var(--white); }
+#tabs button.on { background: var(--sign); color: var(--white); box-shadow: inset 0 0 0 1.5px var(--white); }
+#tabs kbd { margin: 0 4px 0 6px; opacity: 0.7; }
+
 /* key hints you can also click */
 button[data-key] { font: inherit; color: inherit; background: none; border: 0; padding: 2px 4px; margin: -2px -4px; border-radius: 6px; cursor: pointer; }
 button[data-key]:hover { background: rgba(255, 255, 255, 0.12); }
 .row { cursor: pointer; }
 
-/* ---- the driver's level and missions, right of the garage sign ---- */
-#side { position: fixed; right: 12px; top: 12px; width: 220px; display: flex; flex-direction: column; gap: 8px; }
-.driver, .missions { background: var(--asphalt); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 10px; padding: 9px 11px; }
-.driver b { font-size: 15px; font-weight: 800; margin-right: 6px; }
-.driver span { font-size: 11px; color: var(--dim); }
-.driver i { display: block; height: 4px; margin: 5px 0 3px; border-radius: 2px; background: rgba(255,255,255,0.18); overflow: hidden; }
-.driver i::after { content: ""; display: block; height: 100%; width: calc(var(--v) * 100%); background: var(--yellow); transition: width 400ms ease; }
-.driver small { display: block; font-size: 10.5px; color: var(--yellow); }
-.missions > div { padding: 3px 0; font-size: 11.5px; line-height: 1.25; }
-.missions > div + div { border-top: 1px solid rgba(255,255,255,0.1); }
-.missions em { display: block; font-style: normal; font-size: 10.5px; color: var(--dim); }
-.missions i { display: block; height: 3px; margin: 3px 0 2px; border-radius: 2px; background: rgba(255,255,255,0.15); overflow: hidden; }
-.missions i::after { content: ""; display: block; height: 100%; width: calc(var(--v) * 100%); background: var(--white); }
-.missions .done em { color: var(--yellow); font-weight: 700; }
-.missions .done i::after { background: var(--yellow); }
 .row .val em.lock { color: rgba(255,255,255,0.5); font-weight: 600; }
 
 /* ---- nitro and the modes' clocks in the HUD ---- */
@@ -148,7 +141,6 @@ button[data-key]:hover { background: rgba(255, 255, 255, 0.12); }
 .result .standing a { color: var(--white); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .result dl { margin: 8px 0 6px; gap: 1px 16px; overflow-y: auto; min-height: 0; scrollbar-width: none; }
 .result .right { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
-.result .driver, .result .missions { background: rgba(0, 0, 0, 0.18); }
 
 /* Sprints */
 .stars { display: inline-flex; gap: 1px; font-size: 13px; letter-spacing: 0; }
@@ -171,8 +163,6 @@ button[data-key]:hover { background: rgba(255, 255, 255, 0.12); }
 #rate em { font-style: normal; font-weight: 800; font-variant-numeric: tabular-nums; }
 #rate em.ahead { color: #7be08a; }
 #rate em.behind { color: #ff8a7a; }
-.missions .stars i { display: inline; height: auto; margin: 0; background: none; overflow: visible; }
-.missions .stars i::after { content: none; }
 #combo b small { font-size: 0.8em; color: rgba(26, 26, 20, 0.7); margin-left: 4px; }
 #gauge.surging #speed { color: var(--yellow); text-shadow: 0 0 12px rgba(255, 190, 60, 0.7); }
 

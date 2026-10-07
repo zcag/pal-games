@@ -222,7 +222,8 @@ window.addEventListener("keydown", (e: KeyboardEvent) => {
   const k = e.key.toLowerCase();
   if (e.metaKey || e.ctrlKey) return;
   sound.start();
-  if (["arrowup", "arrowdown", "arrowleft", "arrowright", " ", "backspace"].includes(k)) e.preventDefault();
+  if (["arrowup", "arrowdown", "arrowleft", "arrowright", " ", "backspace", "tab"].includes(k)) e.preventDefault();
+  if (k === "tab" && e.shiftKey) { if (!e.repeat) onKey("shift+tab"); return; }
   if (!e.repeat) onKey(k);
   keys.add(k);
 });
@@ -252,8 +253,9 @@ const vdir = (k: string) => (k === "arrowup" || k === "w" ? -1 : k === "arrowdow
 
 function onKey(k: string) {
   if (k === "m") { muted = !muted; sound.setVolume(muted ? 0 : save.settings.sound); return; }
-  if (state === "map") { mapKey(k); return; }
   if (state === "garage" && garageScene?.showing) { garageScene.skip(); return; }
+  if (PLACES.includes(state as Place) && tabKey(k)) return;
+  if (state === "map") { mapKey(k); return; }
   if (state === "garage") { garageKey(k); return; }
   if (state === "free") { freeKey(k); return; }
   // a Sprint is tried again at once, from anywhere in it
@@ -283,6 +285,33 @@ function onKey(k: string) {
     if (k === "f") openFree();
     if (k === "g") openGarage();
   }
+}
+
+// ---------------------------------------------------------------- the tabs
+
+type Place = "map" | "garage" | "free";
+const PLACES: Place[] = ["map", "garage", "free"];
+const OPEN: Record<Place, () => unknown> = { map: () => openMap(), garage: () => openGarage(), free: () => openFree() };
+
+/** The tabs' keys: tab and shift+tab step through the three, g and f go straight to the garage and Free Drive, a
+ *  clicked tab to its place. Whether the key was theirs. */
+function tabKey(k: string): boolean {
+  const at = PLACES.indexOf(state as Place);
+  const to: Place | undefined = k === "tab" ? PLACES[(at + 1) % 3] : k === "shift+tab" ? PLACES[(at + 2) % 3]
+    : k === "g" ? "garage" : k === "f" ? "free" : k.startsWith("tab:") ? (k.slice(4) as Place) : undefined;
+  if (!to) return false;
+  if (to !== state) { sound.play("ui_select", { gain: 0.5 }); OPEN[to](); }
+  return true;
+}
+
+/** The tabs show on the three places (not while the garage shows a car off), the one you are on lit. */
+let tabsFor = "";
+function drawTabs() {
+  const on = PLACES.includes(state as Place) && !garageScene?.showing ? state : "";
+  if (on === tabsFor) return;
+  tabsFor = on;
+  $("tabs").hidden = !on;
+  for (const b of $("tabs").querySelectorAll<HTMLElement>("button")) b.classList.toggle("on", b.dataset.key === `tab:${on}`);
 }
 
 // ---------------------------------------------------------------- the map (home)
@@ -407,8 +436,7 @@ function mapKey(k: string) {
     persist();
     drive();
     return;
-  } else if (k === "g") { openGarage(); return; }
-  else if (k === "f") { openFree(); return; }
+  }
   else return;
   persist();
   mapShow();
@@ -541,8 +569,7 @@ async function garageKey(k: string) {
     const ok = mine && pickFor(save, regionOfCar(car)) !== car;
     if (ok) { save.pick[REGIONS[regionOfCar(car)].cls] = car.id; persist(); }
     sound.play(ok ? "ui_confirm" : "ui_error", { gain: 0.6 });
-  } else if (k === "backspace" || k === "g") { openMap(); return; }
-  else if (k === "f") { openFree(); return; }
+  } else if (k === "backspace") { openMap(); return; }
   else return;
   drawGarage();
 }
@@ -610,8 +637,7 @@ async function freeKey(k: string) {
     sound.play("ui_select", { gain: 0.5 });
     persist();
   } else if (k === " " || k === "enter") { drive(); return; }
-  else if (k === "backspace" || k === "f") { openMap(); return; }
-  else if (k === "g") { openGarage(save.car); return; }
+  else if (k === "backspace") { openMap(); return; }
   else return;
   drawFree();
 }
@@ -930,6 +956,7 @@ function frame() {
   const now = performance.now();
   let dt = Math.min(0.1, (now - last) / 1000);
   last = now;
+  drawTabs();
   if (state === "loading") return;
   // the map: the world from above, its pins over it (none while the next region's world is built)
   if (state === "map") { if (staging) return; mapWorld.frame = framing(); mapWorld.render(dt); pinsAt(mapWorld.pins()); return; }

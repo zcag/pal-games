@@ -325,7 +325,7 @@ export class Garage {
       const name = CLASSES.find((c) => c.id === k)!.name;
       const label = add(new THREE.Mesh(this.keep(new THREE.PlaneGeometry(3.2, 0.8)), this.keep(new THREE.MeshBasicMaterial({ map: this.keep(nameTexture(name, accent)), transparent: true, depthWrite: false }))));
       const am = (a0 + a1) / 2;
-      label.position.set(Math.sin(am) * (DRUM + 0.03), 3.6, Math.cos(am) * (DRUM + 0.03));
+      label.position.set(Math.sin(am) * (DRUM + 0.03), 2.55, Math.cos(am) * (DRUM + 0.03));
       label.rotation.y = am;
     }
 
