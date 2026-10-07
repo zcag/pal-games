@@ -166,7 +166,7 @@ function drawCard(v: MapView) {
     <div class="title"><h2>${esc(s.name)}</h2><span class="st">${[0, 1, 2].map((n) => `<i class="${n < s.stars ? "f" : ""}">${STAR}</i>`).join("")}</span></div>
     <p class="blurb">${esc(s.about)}</p>
     <div class="spec">${dotted(esc(s.facts).split("·"))}</div>
-    <div class="you"><span>${CAR}Your car <b>${esc(v.car)}</b></span><span class="mine">${best}</span></div>
+    <div class="you"><span>${CAR}Your car <b>${esc(v.car)}</b>${R.open && v.car ? `<button class="change" data-key="c"><kbd>c</kbd> change</button>` : ""}</span><span class="mine">${best}</span></div>
     ${body}
     ${foot}</div>`;
   if (cardFor !== s.id) { const c = card.firstElementChild!; c.classList.add(cardFor ? "swap" : "rise"); cardFor = s.id; }

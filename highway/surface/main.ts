@@ -21,7 +21,7 @@ import type { Miss } from "../game/score.ts";
 import { ROLLING_START, type End, type Packed } from "../game/drive.ts";
 import { acrossAt, type Input } from "../game/vehicle.ts";
 import { REGIONS, SPRINTS, BOSS_STARS, sprintOf, sprintsOf, starTimes, rivalTime, clock, GHOST_DT, ghostAt, ghostTimeAt, type Ghost, type Sprint } from "../game/sprint.ts";
-import { carNeeds, carsHad, legendPaints, closed, nextStop, regionOfCar, regionOpen, starsForCar, starsIn, starsOf, totalStars, type SprintResult } from "../game/trip.ts";
+import { bossOf, carNeeds, carsHad, legendPaints, closed, nextStop, regionOfCar, regionOpen, starsForCar, starsIn, starsOf, totalStars, type SprintResult } from "../game/trip.ts";
 
 declare const pal: SurfaceKit;
 const $ = (id: string) => document.getElementById(id)!;
@@ -277,13 +277,13 @@ function onKey(k: string) {
       // a car just won: Enter shows it
       if ((k === "enter" || k === " ") && wonCar) { const id = wonCar; wonCar = null; openGarage(id); return; }
       if (k === "enter" || k === " " || k === "backspace") openMap();
-      if (k === "g") openGarage();
+      if (k === "g") openGarage(trip.car.id, { region: trip.sprint.region, back: "map" });
       return;
     }
     if (k === "enter" || k === " ") drive();
     if (k === "backspace") openMap();
     if (k === "f") openFree();
-    if (k === "g") openGarage();
+    if (k === "g") openGarage(save.car, { back: "free" });
   }
 }
 
@@ -291,7 +291,8 @@ function onKey(k: string) {
 
 type Place = "map" | "garage" | "free";
 const PLACES: Place[] = ["map", "garage", "free"];
-const OPEN: Record<Place, () => unknown> = { map: () => openMap(), garage: () => openGarage(), free: () => openFree() };
+// the garage from Free Drive comes back to it (for its car); from the map, to the map
+const OPEN: Record<Place, () => unknown> = { map: () => openMap(), garage: () => openGarage(undefined, { back: state === "free" ? "free" : "map" }), free: () => openFree() };
 
 /** The tabs' keys: tab and shift+tab step through the three, g and f go straight to the garage and Free Drive, a
  *  clicked tab to its place. Whether the key was theirs. */
@@ -429,6 +430,11 @@ function mapKey(k: string) {
     const open = sprintsOf(mapRegion).find((s) => !closed(s, save.sprints) && starsOf(s, save.sprints) < 3);
     save.stop = (open ?? sprintsOf(mapRegion)[0]).id;
     sound.play("ui_select", { gain: 0.4 });
+  } else if (k === "c") {
+    const car = pickFor(save, mapRegion);
+    if (!car) { sound.play("ui_error", { gain: 0.5 }); return; }
+    openGarage(car.id, { region: mapRegion, back: "map" });
+    return;
   } else if (k === "enter" || k === " ") {
     const s = sprintOf(save.stop)!, car = pickFor(save, s.region);
     if (closed(s, save.sprints) || !car || !s.best) { sound.play("ui_error", { gain: 0.5 }); return; }
@@ -448,6 +454,12 @@ let row = 0;
 let browse = 0; // the car shown, owned or not
 const ROWS = ["car", "paint"] as const;
 const shownCar = () => CARS[browse];
+/** What the garage is open for, which is what Enter does on a car you have: Free Drive in it (the Garage tab, Free
+ *  Drive's car), or use it for a region's Sprints (the map card's "Your car": only that region's class is shown). */
+type GarageFor = { region?: number; back: Place };
+let garageFor: GarageFor = { back: "map" };
+/** The cars the garage shows: every one, or the class of the region it is open for. */
+const browsable = () => (garageFor.region === undefined ? CARS : CARS.filter((c) => regionOfCar(c) === garageFor.region));
 
 /** How a car stands in the garage: yours, or under its cover until the trip opens it (`carNeeds` says how). */
 function bayOf(car: PlayerCar): Bay {
@@ -458,12 +470,13 @@ const paintsHad = () => [...PAINTS, ...legendPaints(save.sprints).map((l) => l.p
 /** A car you have that the garage has not shown off yet (the first car aside): its showcase is due. */
 const unseen = (c: PlayerCar) => c !== CARS[0] && has(save, c) && !save.seen.includes(`car:${c.id}`);
 
-async function openGarage(focus?: string) {
+async function openGarage(focus?: string, purpose: GarageFor = { back: "map" }) {
+  garageFor = purpose;
   state = "loading";
   hideSigns();
   leaveMap();
   veil(true, "Opening the garage");
-  browse = Math.max(0, CARS.findIndex((c) => c.id === (focus ?? pickFor(save, sprintOf(save.stop)?.region ?? 0)?.id ?? save.car)));
+  browse = Math.max(0, CARS.findIndex((c) => c.id === (focus ?? (has(save, carOf(save.car)) ? save.car : pickFor(save, sprintOf(save.stop)?.region ?? 0)?.id))));
   row = 0;
   // the bay looked at first is the first loaded, with its neighbours (unless the map built it already)
   const early = !!garageBuilt;
@@ -516,10 +529,17 @@ function drawGarage() {
   // the colours either side of the one it wears, nine at a time
   const paints = paintsHad(), at = Math.max(0, paints.indexOf(paintOf(save, car))), win = Array.from({ length: Math.min(9, paints.length) }, (_, i) => paints[(at - 4 + i + paints.length) % paints.length]);
   const swatches = win.map((c) => `<i style="background:${c}" class="${paintOf(save, car) === c ? "on" : ""}"></i>`).join("");
-  const action = !mine ? carNeeds(car) : picked ? `Your car for ${REGIONS[region].name}` : `Drive it in ${REGIONS[region].name}`;
+  const forRegion = garageFor.region !== undefined, where = REGIONS[region].name;
+  const action = !mine ? carNeeds(car) : forRegion ? (picked ? `Your car for ${where}` : `Use it for ${where}`) : "Free Drive in it";
+  const under = !mine ? `${Math.round(kmh(car.top))} ${unit()} top` : forRegion ? `${Math.round(kmh(car.top))} ${unit()} top`
+    : `${MODES.find((m) => m.id === save.mode)!.name} · ${placeOf(save.location).name}`;
+  const enter = !mine ? "show me where" : forRegion ? (picked ? "" : "use") : "drive";
+  const keys = [enter && `<button data-key="enter"><kbd>enter</kbd> ${enter}</button>`,
+    mine && !forRegion && !picked && `<button data-key="u"><kbd>u</kbd> use for ${where}</button>`,
+    `<button data-key="backspace"><kbd>⌫</kbd> ${garageFor.back === "free" ? "Free Drive" : "map"}</button>`].filter(Boolean).join("<br>");
   $("garage").innerHTML = `
     <div class="sign">
-      <div class="head"><b>Garage</b><span>${carsHad(save.sprints).length} of ${CARS.length}</span></div>
+      <div class="head"><b>${forRegion ? `Your ${REGIONS[garageFor.region!].name} car` : "Garage"}</b><span>${carsHad(save.sprints).length} of ${CARS.length}</span></div>
       <div class="rows">
         <div class="row${sel("car")}"><span>${classOf(car).name}</span><div class="val"><span class="arrows">${car.name}</span>${carTag}</div></div>
         <div class="bars">
@@ -531,8 +551,8 @@ function drawGarage() {
         <div class="row${sel("paint")}"><span>Paint</span><div class="val"><span class="swatches">${mine ? swatches : ""}</span></div></div>
       </div>
       <div class="drive">
-        <div><div class="go">${action}</div><div class="best">${Math.round(kmh(car.top))} ${unit()} top</div></div>
-        <div class="keys">${mine && !picked && ROWS[row] === "car" ? `<button data-key="enter"><kbd>enter</kbd> use</button><br>` : ""}<button data-key="backspace"><kbd>⌫</kbd> map</button></div>
+        <div><div class="go">${action}</div><div class="best">${under}</div></div>
+        <div class="keys">${keys}</div>
       </div>
     </div>`;
   $("garage").hidden = !!garageScene?.showing;
@@ -558,20 +578,45 @@ async function garageKey(k: string) {
   if (vdir(k)) row = (row + vdir(k) + ROWS.length) % ROWS.length;
   else if (dir(k)) {
     const d = dir(k);
-    if (what === "car") { browse = (browse + d + CARS.length) % CARS.length; garageScene?.focus(shownCar().id); sound.play("ui_select", { gain: 0.5 }); }
+    if (what === "car") {
+      const list = browsable(), at = Math.max(0, list.indexOf(car));
+      browse = CARS.indexOf(list[(at + d + list.length) % list.length]);
+      garageScene?.focus(shownCar().id); sound.play("ui_select", { gain: 0.5 });
+    }
     else if (what === "paint" && mine) {
       const paints = paintsHad();
       save.paint[car.id] = paints[(paints.indexOf(paintOf(save, car)) + d + paints.length) % paints.length];
       garageScene?.paint(car.id, paintOf(save, car));
       persist();
     } else return;
-  } else if ((k === "enter" || k === " ") && what === "car") {
-    const ok = mine && pickFor(save, regionOfCar(car)) !== car;
-    if (ok) { save.pick[REGIONS[regionOfCar(car)].cls] = car.id; persist(); }
-    sound.play(ok ? "ui_confirm" : "ui_error", { gain: 0.6 });
-  } else if (k === "backspace") { openMap(); return; }
+  } else if (k === "enter" || k === " ") {
+    if (!mine) { sound.play("ui_select", { gain: 0.5 }); openMap(unlocks(car)); return; }
+    if (garageFor.region === undefined) { save.car = car.id; persist(); sound.play("ui_confirm", { gain: 0.6 }); openFree(); return; }
+    usePick(car);
+    openMap();
+    return;
+  } else if (k === "u" && mine && garageFor.region === undefined) {
+    if (pickFor(save, regionOfCar(car)) === car) return;
+    usePick(car);
+  } else if (k === "backspace") { OPEN[garageFor.back](); return; }
   else return;
   drawGarage();
+}
+
+/** A car you have as the one its region's Sprints are driven in. */
+function usePick(car: PlayerCar) {
+  save.pick[REGIONS[regionOfCar(car)].cls] = car.id;
+  persist();
+  sound.play("ui_confirm", { gain: 0.6 });
+}
+
+/** The stop that opens a car you do not have yet: the duel that gives it, else the first open stop of its region
+ *  short of three stars (its stars are what open it), else the duel before its region. */
+function unlocks(car: PlayerCar): Sprint {
+  const duel = SPRINTS.find((s) => s.boss?.car === car.id), region = regionOfCar(car);
+  if (duel) return duel;
+  if (!regionOpen(region, save.sprints)) return bossOf(region - 1);
+  return sprintsOf(region).find((s) => !closed(s, save.sprints) && !s.boss && !s.legend && starsOf(s, save.sprints) < 3) ?? sprintsOf(region)[0];
 }
 
 // ---------------------------------------------------------------- Free Drive
@@ -600,13 +645,13 @@ function drawFree() {
     <div class="sign">
       <div class="head"><b>Free Drive</b></div>
       <div class="rows">
-        <div class="row${sel("car")}"><span>${classOf(car).name}</span><div class="val"><span class="arrows">${car.name}</span></div></div>
+        <div class="row${sel("car")}"><span>Car</span><div class="val"><span class="arrows">${car.name}</span><button data-key="g" class="pick"><kbd>g</kbd> garage</button></div></div>
         <div class="row${sel("mode")}"><span>Mode</span><div class="val"><span class="arrows">${mode.name}</span></div></div>
         <div class="row${sel("place")}"><span>Place</span><div class="val"><span class="arrows">${loc.name}</span></div></div>
         <div class="about">${mode.about}</div>
       </div>
       <div class="drive">
-        <div><div class="go">Drive</div><div class="best">${best ? `Best ${best.score.toLocaleString("en-US")} in ${(best.distance / 1000).toFixed(1)} km` : "No runs yet"}</div></div>
+        <div><div class="go">${mode.name} in the ${car.name}</div><div class="best">${best ? `Best ${best.score.toLocaleString("en-US")} in ${(best.distance / 1000).toFixed(1)} km` : "No runs yet"}</div></div>
         <div class="keys"><button data-key=" "><kbd>space</kbd> drive</button><br><button data-key="backspace"><kbd>⌫</kbd> map</button></div>
       </div>
     </div>`;
@@ -636,7 +681,8 @@ async function freeKey(k: string) {
     }
     sound.play("ui_select", { gain: 0.5 });
     persist();
-  } else if (k === " " || k === "enter") { drive(); return; }
+  } else if (k === "enter" && what === "car") { openGarage(save.car, { back: "free" }); return; }
+  else if (k === " " || k === "enter") { drive(); return; }
   else if (k === "backspace") { openMap(); return; }
   else return;
   drawFree();

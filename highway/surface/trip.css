@@ -138,6 +138,8 @@
 .trip-map .card .spec { margin-top: 0.3em; font-size: 0.82em; font-weight: 700; }
 .trip-map .card .you { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5em; margin-top: 0.45em; padding-top: 0.45em; border-top: 1px solid rgba(255, 255, 255, 0.2); font-size: 0.8em; color: var(--dim); }
 .trip-map .card .you > span:first-child { display: flex; align-items: center; gap: 0.3em; }
+.trip-map .card .you .change { display: inline-flex; align-items: center; gap: 0.3em; margin-left: 0.3em; color: var(--dim); }
+.trip-map .card .you .change:hover { color: var(--white); }
 .trip-map .card .you svg { width: 1.2em; height: 1.2em; color: var(--white); opacity: 0.8; }
 .trip-map .card .you b { color: var(--white); }
 .trip-map .card .times { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.3em; margin-top: 0.45em; }

@@ -96,6 +96,11 @@ one strong run bought the top car.
 - **Three tabs on top: Road trip, Garage, Free Drive**, on all three, so
   Free Drive is never a hidden key away. Tab steps through them (shift+tab
   back), a click or G and F go straight there, Backspace comes back to the map.
+- **The garage is where a car is picked**, and its sign says what Enter does
+  there. From the Garage tab or Free Drive's car, Enter drives the car in
+  Free Drive (U makes it its region's car too); from a stop's card ("Your car",
+  C) it shows that region's class and Enter makes the car the region's; on a
+  car you do not have yet, Enter opens the map on the stop that brings it.
   A run's end offers the next stop, another try (R), the map and the garage.
 - **A first launch drops you on the first stop** with one line: Enter to
   drive. Nothing else is explained until it matters.
