@@ -27,7 +27,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { Drive, ROLLING_START } from "../game/drive.ts";
 import { steerToward } from "../game/bot.ts";
-import { CARS, FEEL } from "../game/content.ts";
+import { CARS, CLASSES, FEEL, TRAFFIC, spec, trafficTop } from "../game/content.ts";
 import { edges } from "../game/layout.ts";
 import { SPRINTS, starTimes, GHOST_DT, type Sprint, type Ghost } from "../game/sprint.ts";
 import hulls from "./hulls.json";
@@ -121,11 +121,14 @@ function best(s: Sprint, beam: number) {
 }
 
 /** What decides how a run drives: a change to any of these can change a best time. */
-const FILES = ["game/drive.ts", "game/director.ts", "game/traffic.ts", "game/vehicle.ts", "game/content.ts", "game/score.ts", "game/crash.ts", "game/layout.ts", "game/bot.ts", "scripts/hulls.json", "scripts/sprint.ts"];
+const FILES = ["game/drive.ts", "game/director.ts", "game/traffic.ts", "game/vehicle.ts", "game/score.ts", "game/crash.ts", "game/layout.ts", "game/bot.ts", "scripts/hulls.json", "scripts/sprint.ts"];
 const root = new URL("..", import.meta.url).pathname;
 const CACHE = `${root}scripts/sprint-cache.json`;
 type Cached = Record<string, { key: string; best: number }>;
-const code = createHash("sha256").update(FILES.map((f) => readFileSync(root + f, "utf8")).join("\0")).digest("hex");
+// game/content.ts by what of it drives (the cars, the traffic, the feel, the physics made from them), not its places
+// or paints, so a change to how a place looks searches nothing again
+const driving = JSON.stringify([CARS, TRAFFIC, FEEL, CLASSES, spec.toString(), trafficTop.toString()]);
+const code = createHash("sha256").update(FILES.map((f) => readFileSync(root + f, "utf8")).join("\0") + driving).digest("hex");
 /** A road's fingerprint: the code, and the road itself (not its name, its best or where it sits on the map). */
 const keyOf = (s: Sprint) => createHash("sha256").update(code + JSON.stringify([s.car, s.layout, s.length, s.density, s.seed, !!s.boss])).digest("hex").slice(0, 16);
 const readCache = (): Cached => (existsSync(CACHE) ? JSON.parse(readFileSync(CACHE, "utf8")) : {});
