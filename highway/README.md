@@ -49,13 +49,12 @@ as a view level whose body is the extension's own page (`surface/`, a
   `foliage.ts` makes trees cheap (impostors baked at startup) and the grass,
   `structures.ts` the overpasses, noise barriers, signs and lamp light,
   `run.ts` a run, `camera.ts` the views, `audio.ts` the sound, `trip.ts` the
-  map, `garage.ts` the garage, `main.ts` the screens.
+  map's signs and pins, `mapworld.ts` its world seen from above,
+  `garage.ts` the garage, `main.ts` the screens.
 - `scripts/drive.ts` measures every car (0 to 100, top speed, braking, a lane
   change); `scripts/trace.ts` traces a lane change step by step;
   `scripts/sprint.ts` searches each Sprint's best time (the stars' anchor)
   and the rivals' lines (`surface/rivals/`).
-- **Map art** (`surface/map/`): painted for this game by FLUX.2 [klein] 4B
-  on a local machine.
 - `bun host/src/surface.ts highway 8733` serves the page in a
   browser.
 

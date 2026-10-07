@@ -12,7 +12,8 @@ import { Chase, VIEWS } from "./camera.ts";
 import { Car } from "./car.ts";
 import { Sound } from "./audio.ts";
 import { Garage, type Bay } from "./garage.ts";
-import { showMap, hideMap, onPick, onRegion, type MapView } from "./trip.ts";
+import { showMap, hideMap, onPick, onRegion, pinsAt, hold, reveal, framing, type MapView } from "./trip.ts";
+import { MapWorld } from "./mapworld.ts";
 import { ONE_WAY, TWO_WAY, laneX, type Layout } from "../game/layout.ts";
 import { CARS, LOCATIONS, MODES, PAINTS, FEEL, stats, classOf, type PlayerCar, type Location } from "../game/content.ts";
 import { load, stored, fresh, carOf, paintOf, has, places, pickFor, finishSprintRun, finishFree, countRun, type Save, type Scene } from "../game/meta.ts";
@@ -30,6 +31,7 @@ const r = new Renderer($("view") as HTMLCanvasElement);
 const world = new World(r.gl);
 const chase = new Chase(r.camera);
 const sound = new Sound();
+const mapWorld = new MapWorld(r, world);
 let garageScene: Garage | null = null, garageBuilt: Promise<void> | null = null;
 /** The garage, built once: its cars take a frame or more each to load, so this runs early, behind the map, where
  *  nothing is drawn and a slow frame is never seen. */
@@ -295,7 +297,7 @@ function mapView(): MapView {
   return {
     region: mapRegion,
     regions: REGIONS.map((g, i) => ({
-      name: g.name, about: g.about, art: `./map/${g.id}.webp`, open: regionOpen(i, times),
+      name: g.name, about: g.about, open: regionOpen(i, times),
       why: regionOpen(i, times) ? undefined : `Win the duel in ${REGIONS[i - 1].name}`,
       stars: starsIn(i, times), max: sprintsOf(i).length * 3, duelAt: BOSS_STARS, next: nextCar(i),
     })),
@@ -331,17 +333,69 @@ function openMap(at?: Sprint) {
   for (const [i, g] of REGIONS.entries()) if (regionOpen(i, save.sprints) && !save.seen.includes(`region:${g.id}`)) save.seen.push(`region:${g.id}`);
   persist();
   sound.setEngine(null);
+  // the road's car and traffic, a Sprint's line and ghosts off the road: the map stages its own
+  run?.dispose(); run = null;
+  void sprintProps(null);
+  hold();
   showMap(mapView());
+  void stageMap();
   setTimeout(() => { if (state === "map") void buildGarage(pickFor(save, mapRegion)?.id ?? save.car); }, 1500);
 }
-onPick((id) => { if (state !== "map") return; if (save.stop === id) mapKey("enter"); else { save.stop = id; persist(); sound.play("ui_select", { gain: 0.4 }); showMap(mapView()); } });
-onRegion((i) => { if (state === "map") { mapRegion = i; save.stop = sprintsOf(i)[0].id; showMap(mapView()); } });
+onPick((id) => { if (state !== "map") return; if (save.stop === id) mapKey("enter"); else { save.stop = id; persist(); sound.play("ui_select", { gain: 0.4 }); mapShow(); } });
+onRegion((i) => { if (state === "map" && i !== mapRegion) { toRegion(i); save.stop = sprintsOf(i)[0].id; persist(); mapShow(); } });
+
+/** The map's signs, and its world on the stop picked. */
+function mapShow() {
+  showMap(mapView());
+  if (mapWorld.active && !staging) mapWorld.pick(Math.max(0, sprintsOf(mapRegion).findIndex((s) => s.id === save.stop)));
+}
+
+/** Another region: its world held as a still (the frame just drawn) while the next is built and staged. */
+function toRegion(i: number) {
+  if (mapWorld.active && !staging) { mapWorld.render(0); hold(r.gl.domElement); }
+  mapRegion = i;
+  queueMicrotask(() => void stageMap()); // once the stop picked there is set
+}
+
+/** The world under the map: the region's place built (unless the world is that place already, from boot or a run there),
+ *  its shaders made, then staged by mapworld.ts and faded in. A region picked meanwhile is staged once this one is done. */
+let staging = false;
+async function stageMap() {
+  if (staging) return;
+  staging = true;
+  try {
+    for (let region = -1; state === "map" && region !== mapRegion;) {
+      region = mapRegion;
+      const loc = placeOf(REGIONS[region].place), stopOf = () => Math.max(0, sprintsOf(region).findIndex((s) => s.id === save.stop));
+      if (!builtFor.startsWith(`${loc.id}/`)) {
+        mapWorld.reset();
+        // built for the stop picked, so Enter drives at once
+        const layout = sprintsOf(region)[stopOf()].layout;
+        await world.build(loc.sky, loc.asphalt, layout);
+        builtFor = `${loc.id}/${layout.lanes}/${layout.oncoming}`;
+        if (state !== "map" || region !== mapRegion) continue;
+      }
+      const car = regionOpen(region, save.sprints) ? pickFor(save, region) : null;
+      await mapWorld.enter(region, stopOf(), car && { id: car.id, paint: paintOf(save, car) }, async () => {
+        if (warmedFor !== builtFor) { await warmTraffic(world, (sc) => r.warm(sc)); warmedFor = builtFor; }
+      });
+    }
+  } finally { staging = false; }
+  if (state !== "map") { mapWorld.leave(); return; }
+  // a frame drawn under the still, then the still faded off it
+  mapWorld.frame = framing();
+  mapWorld.render(0);
+  r.upload(world.scene);
+  requestAnimationFrame(() => { if (state === "map" && !staging) reveal(); });
+}
 
 function mapKey(k: string) {
   const list = sprintsOf(mapRegion), at = Math.max(0, list.findIndex((s) => s.id === save.stop));
   if (dir(k)) { save.stop = list[(at + dir(k) + list.length) % list.length].id; sound.play("ui_select", { gain: 0.4 }); }
   else if (vdir(k)) {
-    mapRegion = THREE.MathUtils.clamp(mapRegion - vdir(k), 0, REGIONS.length - 1);
+    const to = THREE.MathUtils.clamp(mapRegion - vdir(k), 0, REGIONS.length - 1);
+    if (to === mapRegion) return;
+    toRegion(to);
     const open = sprintsOf(mapRegion).find((s) => !closed(s, save.sprints) && starsOf(s, save.sprints) < 3);
     save.stop = (open ?? sprintsOf(mapRegion)[0]).id;
     sound.play("ui_select", { gain: 0.4 });
@@ -356,7 +410,7 @@ function mapKey(k: string) {
   else if (k === "f") { openFree(); return; }
   else return;
   persist();
-  showMap(mapView());
+  mapShow();
 }
 
 // ---------------------------------------------------------------- the garage
@@ -376,7 +430,7 @@ const unseen = (c: PlayerCar) => c !== CARS[0] && has(save, c) && !save.seen.inc
 async function openGarage(focus?: string) {
   state = "loading";
   hideSigns();
-  hideMap();
+  leaveMap();
   veil(true, "Opening the garage");
   browse = Math.max(0, CARS.findIndex((c) => c.id === (focus ?? pickFor(save, sprintOf(save.stop)?.region ?? 0)?.id ?? save.car)));
   row = 0;
@@ -499,7 +553,7 @@ async function openFree() {
   state = "loading";
   trip = null;
   hideSigns();
-  hideMap();
+  leaveMap();
   if (!has(save, carOf(save.car))) save.car = CARS[0].id;
   await road(true);
   state = "free";
@@ -558,6 +612,9 @@ async function freeKey(k: string) {
   drawFree();
 }
 
+/** Off the map: its signs and its staging off the world. */
+function leaveMap() { hideMap(); mapWorld.leave(); }
+
 function hideSigns() { for (const id of ["garage", "free", "card", "hud"]) $(id).hidden = true; $("tags").innerHTML = ""; }
 
 // ---------------------------------------------------------------- the run
@@ -575,7 +632,7 @@ async function drive(prep?: () => void) {
   state = "loading"; // nothing drawn while the car is swapped: the last frame holds
   crashInfo = null;
   ended = null;
-  hideMap();
+  leaveMap();
   await road(false, () => {
     hideSigns();
     chase.view = viewOf(save);
@@ -868,7 +925,9 @@ function frame() {
   const now = performance.now();
   let dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  if (state === "loading" || state === "map") return; // the map covers everything: nothing to draw under it
+  if (state === "loading") return;
+  // the map: the world from above, its pins over it (none while the next region's world is built)
+  if (state === "map") { if (staging) return; mapWorld.frame = framing(); mapWorld.render(dt); pinsAt(mapWorld.pins()); return; }
   if (state === "garage") { garageScene?.frame(dt); drawTags(); return; }
   if (!run) return;
   if (state === "paused") { r.render(world.scene, { dim: 0.35 }); return; }
@@ -975,7 +1034,7 @@ pal.storage.onChange((k, v) => {
   const vol = save.settings.sound;
   save = load(v);
   save.settings.sound = vol; // the volume is this machine's setting (pal's Volume)
-  if (state === "map") showMap(mapView());
+  if (state === "map") mapShow();
   if (state === "garage") drawGarage();
   if (state === "free") drawFree();
 });
@@ -985,7 +1044,7 @@ pal.onSettings((s: Record<string, unknown>) => {
 });
 
 // `?dev`: the page's state on window.hw, so a headless check can look inside
-if (q.has("dev")) Object.assign(window, { hw: { get run() { return run; }, get save() { return save; }, get state() { return state; }, get camera() { return r.camera; }, get world() { return world; }, r, THREE } });
+if (q.has("dev")) Object.assign(window, { hw: { get run() { return run; }, get save() { return save; }, get state() { return state; }, get camera() { return r.camera; }, get world() { return world; }, get map() { return mapWorld; }, r, THREE } });
 
 /** Play a staged scene: the map, the garage, a Free Drive run already going, or its end; a Sprint with `sprint`. */
 async function stage(sc: Scene) {
@@ -1030,10 +1089,12 @@ async function stage(sc: Scene) {
   if (typeof settings.ghost === "boolean") ghostOn = settings.ghost;
   sound.volume = save.settings.sound;
   names = new Map((await fetch("./cars/cars.json").then((x) => x.json())).map((c: { id: string; name: string }) => [c.id, c.name]));
-  const loc = placeOf(save.location);
+  // the place the page opens on: the map's region (its stop's road), else Free Drive's
+  const home = !scene && !kept && !q.has("drive") ? sprintOf(save.stop) ?? null : null;
+  const loc = placeOf(home ? home.location : save.location), layout = home ? home.layout : layoutOf(save.mode);
   veil(true, "Loading the road");
-  await world.build(loc.sky, loc.asphalt, layoutOf(save.mode));
-  builtFor = `${loc.id}/${layoutOf(save.mode).lanes}/${layoutOf(save.mode).oncoming}`;
+  await world.build(loc.sky, loc.asphalt, layout);
+  builtFor = `${loc.id}/${layout.lanes}/${layout.oncoming}`;
   await preloadTraffic((f) => (($("loading").querySelector("em") as HTMLElement).style.width = `${Math.round(f * 100)}%`));
   chase.view = viewOf(save);
   frame(); // the loop runs behind the sign, so it lifts over a drawn road

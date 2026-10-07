@@ -7,7 +7,7 @@ import { Car } from "./car.ts";
 import type { World } from "./world.ts";
 import type { Input } from "../game/vehicle.ts";
 import { Drive, type DriveEvents, type Size, type SprintRoad } from "../game/drive.ts";
-import { heading } from "../game/traffic.ts";
+import { Traffic, heading, crossing } from "../game/traffic.ts";
 import { TRAFFIC, FEEL, type ModeId, type PlayerCar } from "../game/content.ts";
 import { laneX, oncomingX, type Layout } from "../game/layout.ts";
 
@@ -170,5 +170,74 @@ export class Run {
     for (const car of this.shown.values()) { car.root.removeFromParent(); pool.get(car.kind)!.push(car); }
     this.shown.clear();
     for (const l of this.lights) { l.target.removeFromParent(); l.removeFromParent(); }
+  }
+}
+
+/** Traffic going about its day on a stretch of road with no one racing it: the map's. The game's drivers (game/traffic.ts:
+ *  following, changing lanes) in a fixed window of road, cars entering at its ends and leaving past them, drawn from
+ *  the shared pool like a run's. `keep` lanes of ours, from the slow one, are left empty (a car parked there). */
+export class Flow {
+  traffic: Traffic;
+  private shown = new Map<number, Car>();
+  private blink = 0;
+  private wait = 0;
+  constructor(public world: World, public layout: Layout, private from: number, private to: number, private keep = 1, private n = 14) {
+    this.traffic = new Traffic(layout.lanes - keep, layout.oncoming);
+    // the road already busy: cars spread along all of it
+    for (let i = 0; i < n * 4 && this.traffic.cars.length < n; i++) this.spawn(from + rnd() * (to - from));
+  }
+
+  /** A car into a lane with room for it at `z` (its direction's way in, unless given). */
+  private spawn(z?: number) {
+    const oncoming = this.layout.oncoming > 0 && rnd() < 0.4, lanes = oncoming ? this.layout.oncoming : this.layout.lanes - this.keep;
+    const at = z ?? (oncoming ? this.to : this.from), lane = Math.floor(rnd() * lanes);
+    const kinds = TRAFFIC.filter((t) => sizes.has(t.id)), heavy = rnd() < 0.15;
+    const list = kinds.filter((t) => !!t.heavy === heavy);
+    let w = rnd() * list.reduce((a, t) => a + t.weight, 0), kind = list[0];
+    for (const t of list) if ((w -= t.weight) <= 0) { kind = t; break; }
+    if (!kind) return;
+    const size = sizes.get(kind.id)!;
+    if (this.traffic.cars.some((c) => c.oncoming === oncoming && c.lane === lane && Math.abs(c.z - at) < 22)) return;
+    // slower on the right, faster to the left, trucks slowest; the other way a little slower than ours
+    const kmh = heavy ? 78 + rnd() * 10 : oncoming ? 85 + rnd() * 20 : 90 + (lane / Math.max(1, lanes - 1)) * 30 + rnd() * 12;
+    const v = (kmh / 3.6) * FEEL.pace;
+    this.traffic.add({ kind: kind.id, length: size.z, width: size.x, z: at, v, lane, v0: v, T: 1.2 + rnd() * 0.5, a: heavy ? 0.8 : 1.4, b: 2.5, oncoming,
+      politeness: 0.3 + rnd() * 0.4, side: (rnd() * 2 - 1) * 0.3, phase: rnd() * 6.28, cooldown: 2 + rnd() * 6 });
+  }
+
+  step(dt: number) {
+    const L = this.layout, t = this.traffic;
+    t.step(dt, null);
+    t.remove((c) => c.z < this.from - 5 || c.z > this.to + 5);
+    if ((this.wait -= dt) <= 0 && t.cars.length < this.n) { this.spawn(); this.wait = 0.4 + rnd() * 1.2; }
+    this.blink += dt;
+    const on = Math.floor(this.blink / 0.38) % 2 === 0;
+    for (const [id, car] of this.shown) if (!t.cars.some((c) => c.id === id)) { car.root.removeFromParent(); pool.get(car.kind)!.push(car); this.shown.delete(id); }
+    for (const c of t.cars) {
+      let car = this.shown.get(c.id);
+      if (!car) {
+        const list = pool.get(c.kind);
+        if (!list?.length) continue;
+        car = list.pop()!;
+        this.shown.set(c.id, car);
+        this.world.scene.add(car.root);
+      }
+      const at = (l: number) => (c.oncoming ? oncomingX(L, l) : laneX(L, l + this.keep));
+      c.x = at(c.from) + (at(c.lane) - at(c.from)) * crossing(c) + c.side + 0.1 * Math.sin(this.blink * 0.35 + c.phase);
+      car.root.position.set(c.x, 0, c.z);
+      car.root.rotation.y = heading(c, at);
+      car.setShadow(true);
+      for (const w of car.wheels) w.spin.rotation.x += (c.v / 0.33) * dt;
+      lamps(car, this.world.night, c.braking);
+      car.light("left", c.signal === 1 && on ? 5 : 0);
+      car.light("right", c.signal === -1 && on ? 5 : 0);
+    }
+  }
+
+  /** Off the road: the cars back to the pool. */
+  dispose() {
+    for (const car of this.shown.values()) { car.root.removeFromParent(); pool.get(car.kind)!.push(car); }
+    this.shown.clear();
+    this.traffic.remove(() => true);
   }
 }

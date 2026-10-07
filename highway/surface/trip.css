@@ -1,11 +1,12 @@
 /*
- * The road trip's map (trip.ts): the region's painting, the road over it as
- * SVG, the stops as round badges, the region on a road sign top-left, cash
- * top-right, the stop's card as a sign on the right. Sized in em off the
- * root, which grows with the page from pal's 720 by 390 panel.
+ * The road trip's map (trip.ts) over the world drawn on the page's canvas
+ * (mapworld.ts): the stops as pins on the road, the region on a road sign
+ * top-left, the stars top-right, the stop's card as a sign on the right.
+ * Sized in em off the root, which grows with the page from pal's 720 by 390
+ * panel.
  */
 .trip-map {
-  position: fixed; inset: 0; z-index: 20; overflow: hidden; background: #0d0f12;
+  position: fixed; inset: 0; z-index: 20; overflow: hidden;
   font-size: clamp(12px, min(1.8vw, 3.35vh), 21px);
   transition: opacity 380ms ease, visibility 0s;
 }
@@ -13,31 +14,29 @@
 .trip-map button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 .trip-map svg { display: block; fill: currentColor; }
 
-/* ---- the regions, side by side; the one shown at 0 ---- */
-.trip-map .world { position: absolute; inset: 0; }
-.trip-map .layer { position: absolute; inset: 0; overflow: hidden; transform: translateX(calc(var(--off, 0) * 100%)); transition: transform 760ms cubic-bezier(.7, 0, .25, 1); }
-.trip-map .layer:not(.here) { pointer-events: none; }
-.trip-map .art { position: absolute; inset: 0; background: #1b2a24 center / cover no-repeat; transition: filter 600ms ease, transform 760ms cubic-bezier(.7, 0, .25, 1); transform: scale(1.04); }
-.trip-map .layer.here .art { transform: scale(1); }
-.trip-map .layer.closed .art { filter: grayscale(0.85) brightness(0.48) contrast(0.9); }
-.trip-map .layer.closed .road, .trip-map .layer.closed .stops { opacity: 0.22; filter: grayscale(1); }
+/* ---- the world under it: held as a still while a region's is built, tinted when not open ---- */
+.trip-map .still { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; background: #0d0f12; }
+.trip-map .still.on { opacity: 1; transition: none; filter: saturate(0.8) brightness(0.85); }
+.trip-map .still.going { opacity: 0; transition: opacity 650ms ease, filter 650ms ease; }
+.trip-map.dark .still.on { background: #0d0f12; }
+.trip-map .tint { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 500ms ease; }
+.trip-map.closed-region .tint { opacity: 1; backdrop-filter: grayscale(0.85) brightness(0.5) contrast(0.92); -webkit-backdrop-filter: grayscale(0.85) brightness(0.5) contrast(0.92); }
 .trip-map .shade { position: absolute; inset: 0; pointer-events: none;
   background:
-    radial-gradient(ellipse 75% 70% at 45% 52%, transparent 55%, rgba(6, 8, 10, 0.5) 100%),
-    linear-gradient(180deg, rgba(6, 8, 10, 0.35), transparent 22%, transparent 80%, rgba(6, 8, 10, 0.45)); }
+    radial-gradient(ellipse 80% 75% at 42% 55%, transparent 60%, rgba(6, 8, 10, 0.38) 100%),
+    linear-gradient(180deg, rgba(6, 8, 10, 0.3), transparent 20%, transparent 84%, rgba(6, 8, 10, 0.35)); }
 
-/* ---- the road ---- */
-.trip-map .road { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-.trip-map .road path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
-.trip-map .road .shadow { stroke: rgba(0, 0, 0, 0.38); stroke-width: 2.4em; transform: translateY(0.3em); filter: blur(3px); }
-.trip-map .road .edge { stroke: #ece6d6; stroke-width: 1.85em; }
-.trip-map .road .tar { stroke: #34373c; stroke-width: 1.5em; }
-.trip-map .road .dash { stroke: #f1e3b5; stroke-width: 0.13em; stroke-dasharray: 0.55em 0.65em; opacity: 0.9; animation: dashes 2.4s linear infinite; }
-@keyframes dashes { to { stroke-dashoffset: -1.2em; } }
-
-/* ---- the stops ---- */
-.trip-map .stops { position: absolute; inset: 0; transition: opacity 600ms ease; }
-.trip-map .stop { position: absolute; width: 0; height: 0; animation: stop-in 520ms cubic-bezier(.2, 1.6, .4, 1) backwards; animation-delay: calc(120ms + var(--k, 0) * 45ms); }
+/* ---- the stops: a pin on the road, its head on a stem ---- */
+.trip-map .stops { position: absolute; inset: 0; z-index: 0; transition: opacity 300ms ease; }
+.trip-map.closed-region .stops { opacity: 0.6; filter: grayscale(1); }
+.trip-map .stops.off, .trip-map.closed-region .stops.off { opacity: 0; transition: none; }
+.trip-map .pin { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; will-change: transform; --stem: 2.6em; }
+.trip-map .pin .foot { position: absolute; left: -0.42em; top: -0.18em; width: 0.84em; height: 0.36em; border-radius: 50%; background: radial-gradient(closest-side, rgba(0, 0, 0, 0.55), transparent); }
+.trip-map .pin .stem { position: absolute; left: -0.07em; bottom: 0; width: 0.14em; height: var(--stem); border-radius: 0.1em; background: linear-gradient(rgba(243, 245, 241, 0.95), rgba(243, 245, 241, 0.55)); box-shadow: 0 0 0.3em rgba(0, 0, 0, 0.35); }
+.trip-map .pin .head { position: absolute; left: 0; top: calc(-1 * var(--stem)); animation: stop-in 520ms cubic-bezier(.2, 1.6, .4, 1) backwards; animation-delay: calc(80ms + var(--k, 0) * 45ms); }
+.trip-map .duel { --stem: 3.1em; }
+.trip-map .pin.sel { --stem: 3.9em; }
+.trip-map .duel.sel { --stem: 4.4em; }
 @keyframes stop-in { 0% { opacity: 0; transform: translateY(-0.8em) scale(0.4); } 100% { opacity: 1; transform: none; } }
 .trip-map .disc {
   --d: 2.25em; position: absolute; left: calc(var(--d) / -2); top: calc(var(--d) / -2); width: var(--d); height: var(--d); border-radius: 50%;
@@ -46,13 +45,13 @@
 }
 .trip-map .disc b { font-size: 1.12em; letter-spacing: -0.03em; transform: translateY(0.07em); }
 .trip-map .disc svg { width: 1.05em; height: 1.05em; }
-.trip-map .stop:hover .disc { transform: scale(1.08); }
+.trip-map .pin:hover .disc { transform: scale(1.08); }
 .trip-map .fresh .disc { background: var(--white); color: var(--sign); box-shadow: inset 0 0 0 0.15em var(--white), inset 0 0 0 0.27em var(--sign), 0 0.3em 0.7em rgba(0, 0, 0, 0.45); }
 .trip-map .played .disc { background: var(--sign); color: var(--white); box-shadow: inset 0 0 0 0.15em var(--sign), inset 0 0 0 0.27em var(--white), 0 0.3em 0.7em rgba(0, 0, 0, 0.45); }
 .trip-map .gold .disc { box-shadow: inset 0 0 0 0.15em var(--sign), inset 0 0 0 0.3em var(--yellow), 0 0.3em 0.7em rgba(0, 0, 0, 0.45), 0 0 0.9em rgba(244, 196, 48, 0.35); }
 .trip-map .closed .disc { background: #2b2e34; color: rgba(243, 245, 241, 0.62); box-shadow: inset 0 0 0 0.15em #2b2e34, inset 0 0 0 0.25em rgba(243, 245, 241, 0.3), 0 0.3em 0.7em rgba(0, 0, 0, 0.4); }
 .trip-map .closed .disc svg { width: 0.95em; height: 0.95em; }
-.trip-map .stop.closed:not(.sel) { opacity: 0.82; }
+.trip-map .closed .stem { background: linear-gradient(rgba(243, 245, 241, 0.6), rgba(243, 245, 241, 0.3)); }
 /* the duel: larger, brake-light red */
 .trip-map .duel .disc { --d: 3.15em; }
 .trip-map .duel .disc b { font-size: 0.86em; letter-spacing: 0; }
@@ -68,31 +67,29 @@
 @keyframes ring { 0% { transform: scale(1); opacity: 0.9; } 100% { transform: scale(1.75); opacity: 0; } }
 .trip-map .sel.closed .disc::before { box-shadow: 0 0 0 0.16em rgba(243, 245, 241, 0.8); }
 .trip-map .sel.closed .disc::after { border-color: rgba(243, 245, 241, 0.7); }
+.trip-map .sel .stem { background: linear-gradient(var(--yellow), rgba(244, 196, 48, 0.6)); }
 /* its three stars, on a dark tab under the disc */
-.trip-map .stop > .st { position: absolute; left: 0; top: 0.95em; transform: translateX(-50%); display: flex; gap: 0.04em; padding: 0.13em 0.22em 0.11em; border-radius: 0.6em; background: rgba(12, 14, 17, 0.78); }
-.trip-map .duel > .st { top: 1.38em; }
-.trip-map .sel > .st { top: 1.1em; }
-.trip-map .duel.sel > .st { top: 1.6em; }
+.trip-map .pin .st { position: absolute; left: 0; top: 0.95em; transform: translateX(-50%); display: flex; gap: 0.04em; padding: 0.13em 0.22em 0.11em; border-radius: 0.6em; background: rgba(12, 14, 17, 0.8); }
+.trip-map .duel .st { top: 1.38em; }
+.trip-map .sel .st { top: 1.1em; }
+.trip-map .duel.sel .st { top: 1.6em; }
 .trip-map .st i { display: block; width: 0.66em; height: 0.66em; }
 .trip-map .st svg { width: 100%; height: 100%; fill: rgba(243, 245, 241, 0.25); }
 .trip-map .st i.f svg { fill: var(--yellow); filter: drop-shadow(0 0 0.15em rgba(244, 196, 48, 0.6)); }
 .trip-map .st i.new { animation: star-pop 700ms cubic-bezier(.2, 1.8, .4, 1) backwards; animation-delay: calc(350ms + var(--n) * 160ms); }
 @keyframes star-pop { 0% { transform: scale(3) rotate(-40deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
 
-/* ---- the marker: a tag with the stop's name, driven along the road ---- */
-.trip-map .marker { position: absolute; left: 0; top: 0; z-index: 5; pointer-events: none; transition: opacity 200ms; }
-.trip-map .marker.off { opacity: 0; }
-.trip-map .marker .tag {
-  position: absolute; left: var(--nudge, 0px); bottom: 1.75em; transform: translateX(-50%); white-space: nowrap;
+/* ---- the picked stop's name, over its pin ---- */
+.trip-map .pin .tag {
+  position: absolute; left: 0; bottom: calc(var(--stem) + 1.75em); transform: translateX(-50%); white-space: nowrap; pointer-events: none;
   display: flex; align-items: center; gap: 0.3em; padding: 0.22em 0.55em 0.16em 0.4em; border-radius: 0.45em;
   background: var(--white); color: #16181c; font-weight: 800; font-size: 0.92em; box-shadow: 0 0.35em 0.9em rgba(0, 0, 0, 0.45);
   animation: bob 1.8s ease-in-out infinite;
 }
-.trip-map .marker.duel .tag { bottom: 2.35em; }
-.trip-map .marker .tag::after { content: ""; position: absolute; left: calc(50% - var(--nudge, 0px)); bottom: -0.32em; margin-left: -0.34em; border: 0.34em solid transparent; border-bottom: 0; border-top-color: var(--white); }
-.trip-map .marker .tag svg { width: 1.15em; height: 1.15em; color: var(--sign); }
-.trip-map .marker .tag b { transform: translateY(0.06em); }
-.trip-map .marker.moving .tag { animation: none; }
+.trip-map .duel .tag { bottom: calc(var(--stem) + 2.3em); }
+.trip-map .pin .tag::after { content: ""; position: absolute; left: 50%; bottom: -0.32em; margin-left: -0.34em; border: 0.34em solid transparent; border-bottom: 0; border-top-color: var(--white); }
+.trip-map .pin .tag svg { width: 1.15em; height: 1.15em; color: var(--sign); }
+.trip-map .pin .tag b { transform: translateY(0.06em); }
 @keyframes bob { 50% { transform: translate(-50%, -0.22em); } }
 
 /* ---- the region, on a road sign ---- */

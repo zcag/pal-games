@@ -84,13 +84,15 @@ one strong run bought the top car.
 
 ### What you see
 
-- **The map is home.** The game opens on it: the current region painted
-  edge to edge, a road winding through its nine stops (eight Sprints, then a
-  duel), each stop showing its stars. The stop to play next pulses. Left
-  and right walk the road; the stop's card says what it is, the car you
+- **The map is home.** The game opens on it: the region's own world seen
+  from high above the highway, its nine stops (eight Sprints, then a duel)
+  pinned along the road, each showing its stars, your car parked at the one
+  picked and traffic going by. The stop to play next pulses; the camera
+  glides along the road to whichever is picked, and your car drives there.
+  Left and right walk the road; the stop's card says what it is, the car you
   will drive, the times its stars need and your best. Enter drives.
-- **Up and down change region.** A region not yet open shows dimmed, with
-  what opens it ("Beat Ines").
+- **Up and down change region**, the next region's world cross-faded in.
+  A region not yet open shows dimmed, with what opens it ("Beat Ines").
 - **G is the garage, F is Free Drive**, from the map, and Escape comes back.
   A run's end offers the next stop, another try (R), the map and the garage.
 - **A first launch drops you on the first stop** with one line: Enter to
