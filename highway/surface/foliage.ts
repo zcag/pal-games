@@ -47,7 +47,7 @@ const CELL = 512;
 export function bake(renderer: THREE.WebGLRenderer, entries: [string, Placed[]][]): Map<string, Part> {
   const cols = 4, rows = Math.ceil(entries.length / cols);
   const opts = { type: THREE.HalfFloatType, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, depthBuffer: true };
-  const colour = new THREE.WebGLRenderTarget(cols * CELL, rows * CELL, opts), normals = new THREE.WebGLRenderTarget(cols * CELL, rows * CELL, opts);
+  const colour = new THREE.WebGLRenderTarget(cols * CELL, rows * CELL, opts), normals = new THREE.WebGLRenderTarget(cols * CELL, rows * CELL, { ...opts, type: THREE.UnsignedByteType }); // a normal needs no more than 8 bits
   const scene = new THREE.Scene(), cam = new THREE.OrthographicCamera(-1, 1, 1, 0, 0.1, 400);
   const prev = { target: renderer.getRenderTarget(), auto: renderer.autoClear, clear: renderer.getClearColor(new THREE.Color()), alpha: renderer.getClearAlpha() };
   renderer.autoClear = false;
@@ -137,13 +137,16 @@ function impostorMaterial(colour: THREE.Texture, normals: THREE.Texture) {
   return mat;
 }
 
+/** What a clump is: grass green with the odd dry blade, dry and golden, the grey-greens and russets of a moor, or sunflowers. */
+export type Tone = "green" | "dry" | "heath" | "sunflower";
+
 /** A clump of grass: three cards crossed, their normals straight up so they light like the ground they grow from; they shrink away with distance. */
-export function grassClump(): Part {
+export function grassClump(tone: Tone = "green"): Part {
   const cards = [0, 1, 2].map((i) => new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0).rotateY((i * Math.PI) / 3));
   const geo = mergeAll(cards);
   const n = geo.attributes.normal as THREE.BufferAttribute;
   for (let i = 0; i < n.count; i++) n.setXYZ(i, 0, 1, 0);
-  const tex = new THREE.CanvasTexture(blades());
+  const tex = new THREE.CanvasTexture(tone === "sunflower" ? flowers() : blades(tone));
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
   const mat = new THREE.MeshStandardMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 1, metalness: 0 });
@@ -151,12 +154,12 @@ export function grassClump(): Part {
   mat.onBeforeCompile = (sh) => {
     sh.vertexShader = sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
       vec3 gC = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-      transformed *= 1.0 - smoothstep(55.0, 95.0, distance(cameraPosition.xz, gC.xz));`);
+      transformed *= 1.0 - smoothstep(${tone === "sunflower" ? "110.0, 160.0" : "55.0, 95.0"}, distance(cameraPosition.xz, gC.xz));`);
     sh.fragmentShader = sh.fragmentShader.replace("#include <map_fragment>", `#include <map_fragment>
       diffuseColor.a = clamp((diffuseColor.a - 0.5) / max(fwidth(diffuseColor.a), 1e-4) + 0.5, 0.0, 1.0);
-      diffuseColor.rgb *= mix(0.62, 1.08, vMapUv.y);`).replace("#include <normal_fragment_begin>", "#include <normal_fragment_begin>\nnormal = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);");
+      diffuseColor.rgb *= mix(${tone === "dry" ? "0.82" : "0.62"}, 1.08, vMapUv.y);`).replace("#include <normal_fragment_begin>", "#include <normal_fragment_begin>\nnormal = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);");
   };
-  mat.customProgramCacheKey = () => "grass";
+  mat.customProgramCacheKey = () => `grass-${tone === "sunflower"}`;
   return { geo, mat };
 }
 
@@ -176,8 +179,8 @@ function mergeAll(geos: THREE.BufferGeometry[]) {
   return out;
 }
 
-/** Blades of grass on a transparent canvas: tapered, leaning, greens with the odd dry one. */
-function blades() {
+/** Blades of grass on a transparent canvas: tapered, leaning, greens with the odd dry one (or the tone's). */
+function blades(tone: Tone) {
   const c = document.createElement("canvas");
   c.width = c.height = 256;
   const g = c.getContext("2d")!;
@@ -185,8 +188,10 @@ function blades() {
   const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
   for (let i = 0; i < 140; i++) {
     const x = 20 + r() * 216, h = 90 + r() * 160, lean = (r() - 0.5) * 90, w = 3 + r() * 5;
-    const dry = r() < 0.18, l = 0.6 + r() * 0.5;
-    g.fillStyle = dry ? `rgb(${175 * l | 0},${165 * l | 0},${95 * l | 0})` : `rgb(${(90 + r() * 50) * l | 0},${(120 + r() * 50) * l | 0},${(35 + r() * 25) * l | 0})`;
+    const dry = r() < (tone === "dry" ? 0.85 : tone === "heath" ? 0.3 : 0.18), l = 0.6 + r() * 0.5;
+    g.fillStyle = tone === "heath" && !dry ? `rgb(${(95 + r() * 40) * l | 0},${(110 + r() * 30) * l | 0},${(70 + r() * 25) * l | 0})`
+      : dry ? (tone === "heath" ? `rgb(${150 * l | 0},${95 * l | 0},${50 * l | 0})` : `rgb(${(175 + r() * 40) * l | 0},${(150 + r() * 30) * l | 0},${(80 + r() * 20) * l | 0})`)
+      : `rgb(${(90 + r() * 50) * l | 0},${(120 + r() * 50) * l | 0},${(35 + r() * 25) * l | 0})`;
     g.beginPath();
     g.moveTo(x - w / 2, 256);
     g.quadraticCurveTo(x - w / 4 + lean * 0.3, 256 - h * 0.6, x + lean, 256 - h);
@@ -194,4 +199,51 @@ function blades() {
     g.fill();
   }
   return c;
+}
+
+/** Sunflowers on a transparent canvas: stalks with a leaf or two, a yellow head with its dark middle at the top. */
+function flowers() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 256;
+  const g = c.getContext("2d")!;
+  let s = 13;
+  const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 7; i++) {
+    const x = 20 + r() * 216, top = 20 + r() * 50, lean = (r() - 0.5) * 16;
+    g.strokeStyle = "#4d6a22"; g.lineWidth = 5;
+    g.beginPath(); g.moveTo(x, 256); g.quadraticCurveTo(x + lean * 0.3, 140, x + lean, top + 14); g.stroke();
+    g.fillStyle = "#58782a";
+    for (const y of [150 + r() * 40, 100 + r() * 30]) { g.beginPath(); g.ellipse(x + lean * 0.5 + (r() < 0.5 ? -14 : 14), y, 16, 8, r() - 0.5, 0, 6.3); g.fill(); }
+    g.fillStyle = "#e7b416"; g.beginPath(); g.ellipse(x + lean, top, 24, 21, 0, 0, 6.3); g.fill();
+    g.fillStyle = "#f4cb2c"; for (let k = 0; k < 14; k++) { const a = k / 14 * 6.28; g.beginPath(); g.ellipse(x + lean + Math.cos(a) * 20, top + Math.sin(a) * 17, 7, 4, a, 0, 6.3); g.fill(); }
+    g.fillStyle = "#3b2611"; g.beginPath(); g.ellipse(x + lean, top + 1, 11, 10, 0, 0, 6.3); g.fill();
+  }
+  return c;
+}
+
+/** A sprig for a leaf card, drawn: an olive's narrow leaves, dark grey-green above and silver beneath, or
+ *  gorse, dark and spiny and thick with yellow flowers. It replaces the model's own leaf picture. */
+export function sprig(kind: "olive" | "gorse") {
+  const c = document.createElement("canvas");
+  c.width = c.height = 256;
+  const g = c.getContext("2d")!;
+  let s = kind === "olive" ? 21 : 37;
+  const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  g.strokeStyle = "#4b4234"; g.lineWidth = 3;
+  g.beginPath(); g.moveTo(128, 250); g.quadraticCurveTo(110, 130, 140, 10); g.stroke();
+  for (let i = 0; i < (kind === "olive" ? 170 : 420); i++) {
+    const t = r(), x = 128 + (t - 0.5) * 20 + (r() - 0.5) * 190 * Math.sin(t * 3.1), y = 250 - t * 240 + (r() - 0.5) * 30;
+    if (kind === "olive") {
+      const silver = r() < 0.6, l = 0.8 + r() * 0.3;
+      g.fillStyle = silver ? `rgb(${196 * l | 0},${204 * l | 0},${182 * l | 0})` : `rgb(${118 * l | 0},${130 * l | 0},${96 * l | 0})`;
+      g.beginPath(); g.ellipse(x, y, 13 + r() * 6, 3 + r() * 1.5, r() * 3.14, 0, 6.3); g.fill();
+    } else {
+      const flower = r() < 0.32, l = 0.7 + r() * 0.4;
+      g.fillStyle = flower ? `rgb(${240 * l | 0},${196 * l | 0},${40 * l | 0})` : `rgb(${52 * l | 0},${72 * l | 0},${30 * l | 0})`;
+      g.beginPath(); flower ? g.arc(x, y, 4 + r() * 3, 0, 6.3) : g.ellipse(x, y, 9, 1.8, r() * 3.14, 0, 6.3); g.fill();
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
 }

@@ -134,14 +134,17 @@ export const TRAFFIC: TrafficKind[] = [
   { id: "illinois-90-police-cruiser", weight: 0.3, livery: true },
 ];
 
-/** Places: a sky over the land and how its traffic runs; each is a road trip region's (game/sprint.ts), open with it. */
-export type Location = { id: string; name: string; sky: string; density: number; asphalt: string };
+/** The lands a place can have beside its road (surface/lands.ts): green fields and woods, sun-baked plains,
+ *  vineyard hills with lakes, open moor by the sea, the edge of a city. */
+export type LandId = "country" | "plains" | "vineyard" | "moor" | "city";
+/** Places: a sky over a land and how its traffic runs; each is a road trip region's (game/sprint.ts), open with it. */
+export type Location = { id: string; name: string; sky: string; land: LandId; density: number; asphalt: string };
 export const LOCATIONS: Location[] = [
-  { id: "countryside", name: "Countryside", sky: "partly_cloudy", density: 1, asphalt: "asphalt_new" },
-  { id: "midday", name: "High Noon", sky: "clear_midday", density: 1.05, asphalt: "asphalt_new" },
-  { id: "dusk", name: "Golden Hour", sky: "golden_hour", density: 1, asphalt: "asphalt_new" },
-  { id: "overcast", name: "Grey Day", sky: "overcast", density: 1.15, asphalt: "asphalt_new" },
-  { id: "night", name: "Night Run", sky: "night", density: 0.8, asphalt: "asphalt_new" },
+  { id: "countryside", name: "Countryside", sky: "partly_cloudy", land: "country", density: 1, asphalt: "asphalt_new" },
+  { id: "midday", name: "High Noon", sky: "clear_midday", land: "plains", density: 1.05, asphalt: "asphalt_new" },
+  { id: "dusk", name: "Golden Hour", sky: "golden_hour", land: "vineyard", density: 1, asphalt: "asphalt_new" },
+  { id: "overcast", name: "Grey Day", sky: "overcast", land: "moor", density: 1.15, asphalt: "asphalt_new" },
+  { id: "night", name: "Night Run", sky: "night", land: "city", density: 0.8, asphalt: "asphalt_new" },
 ];
 
 export type ModeId = "endless" | "twoway" | "time" | "trap";

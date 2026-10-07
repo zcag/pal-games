@@ -38,13 +38,18 @@ const smooth = (a: number, b: number, x: number) => { const t = Math.min(1, Math
 
 // ---------------------------------------------------------------- the plan
 
-/** A stretch of road is 240 m; each side of it is forest, fields or the edge of a town. */
+/** A stretch of road is 240 m; each side of it is forest, fields or the edge of a town (in a city, mostly town:
+ *  its "fields" are industrial yards, its "forests" parks). How often each comes up is the place's (Terrain). */
 export const SEG = 240;
 export type Zone = "forest" | "field" | "town";
-export function zoneAt(z: number, side: number, open = 0): Zone {
-  const s = Math.floor(z / SEG);
-  if (noise(s / 1.7 + 47, 7) > 0.82 && Math.abs(z - bridgeNear(z)) > 150) return "town"; // a town straddles the road
-  const forest = noise(s / 2.1 + (side > 0 ? 0 : 57), 3) > 0.5;
+export function zoneAt(z: number, side: number, t: Pick<Terrain, "open" | "town" | "forest" | "city"> = {}): Zone {
+  const s = Math.floor(z / SEG), open = t.open ?? 0;
+  if (t.city) {
+    const n = noise(s / 1.4 + (side > 0 ? 0 : 31), 5);
+    return n > 0.66 ? "field" : n < 0.14 ? "forest" : "town";
+  }
+  if (noise(s / 1.7 + 47, 7) > (t.town ?? 0.82) && Math.abs(z - bridgeNear(z)) > 150) return "town"; // a town straddles the road
+  const forest = noise(s / 2.1 + (side > 0 ? 0 : 57), 3) > (t.forest ?? 0.5);
   // under a low sun a forest on its side would shade the whole road: there, only one stretch in three is forest
   return forest && (side !== open || s % 3 === 2) ? "forest" : "field";
 }
@@ -69,7 +74,19 @@ export function depthAt(z: number) {
   return d + (DECK - d) * (1 - smooth(70, 240, nb));
 }
 
-export type Terrain = { hills: number; seed: number; open?: number }; // hill height; the side kept open to a low sun (+1 left, -1 right)
+/** How the land lies in a place: hill height and how broad the hills are (`scale`), how lumpy (`rough`), how often
+ *  a stretch is town or forest (noise thresholds, higher is rarer), a city's plan, and water: lakes in the
+ *  hollows or the sea on one side (+1 left, -1 right), at `water` m. `open` is the side kept open to a low sun. */
+export type Terrain = { hills: number; seed: number; open?: number; scale?: number; rough?: number; town?: number; forest?: number; city?: boolean; water?: number; lakes?: boolean; sea?: number };
+
+/** How wet a point is, 0 to 1: a lake's hollow or the sea, never near the road. */
+export function wetAt(t: Terrain, x: number, z: number, roadHalf: number) {
+  if (t.water === undefined) return 0;
+  const e = Math.abs(x) - roadHalf;
+  let w = t.lakes ? smooth(0.59, 0.65, fbm(x / 300 + 63.6, z / 300 + 84)) * smooth(28, 50, e) : 0;
+  if (t.sea && Math.sign(x) === t.sea) w = Math.max(w, smooth(0, 40, e - 34 - 400 * Math.max(0, fbm(z / 500, 2.2) - 0.3)));
+  return w;
+}
 
 /** Ground height at a point: a verge and a ditch, the cutting's or embankment's slope, then the hills. `roadHalf` is the paved edge. */
 export function heightAt(t: Terrain, x: number, z: number, roadHalf: number) {
@@ -85,14 +102,37 @@ export function heightAt(t: Terrain, x: number, z: number, roadHalf: number) {
     y += D * smooth(1.5, top, e);
   }
   // the hills, rising from the top of the slope; flattened where the bridge's road crosses
-  const zb = bridgeNear(z), flat = smooth(14, 60, Math.abs(z - zb));
-  const h = (fbm(x / 260 + t.seed, z / 260) - 0.35) * t.hills + fbm(x / 60, z / 60 + t.seed) * t.hills * 0.12;
-  return y + (1 - Math.exp(-Math.max(0, e - top - 4) / 60)) * h * flat;
+  const zb = bridgeNear(z), flat = smooth(14, 60, Math.abs(z - zb)), k = 260 * (t.scale ?? 1);
+  const h = (fbm(x / k + t.seed, z / k) - 0.35) * t.hills + fbm(x / 60, z / 60 + t.seed) * t.hills * (t.rough ?? 0.12);
+  y += (1 - Math.exp(-Math.max(0, e - top - 4) / 60)) * h * flat;
+  if (t.water === undefined) return y;
+  // above the water everywhere but in a lake's hollow or the sea, which fall away under it
+  const w = wetAt(t, x, z, roadHalf);
+  return Math.max(y, t.water + 0.8) * (1 - w) + (t.water - 6) * w;
 }
+
+/** The fields' plan, shared by the ground's shader and what stands in the fields: cells `w` m across (from 22 m
+ *  out) by `len` m along the road, each with its own value 0..1 (a float32 hash the GPU computes alike). */
+export type Fields = { w: number; len: number };
+export const fieldOff = (side: number) => (side > 0 ? 17 : 41);
+export function fieldCell(f: Fields, e: number, z: number, side: number) {
+  const col = Math.floor((e - 22) / f.w), row = Math.floor((z + fieldOff(side)) / f.len);
+  return { col, row, h: cellHash(col * 7 + side * 3, row), u: (e - 22) - col * f.w, v: z + fieldOff(side) - row * f.len };
+}
+const fr = Math.fround, fract = (v: number) => fr(v - Math.floor(v));
+/** Dave Hoskins' hash12, in float32 like the shader's (GLSL below). */
+export function cellHash(x: number, y: number) {
+  y = ((y % 4096) + 4096) % 4096;
+  let a = fract(fr(x * 0.1031)), b = fract(fr(y * 0.1031)), c = a;
+  const d = fr(fr(a * fr(b + 33.33)) + fr(fr(b * fr(c + 33.33)) + fr(c * fr(a + 33.33))));
+  a = fr(a + d); b = fr(b + d); c = fr(c + d);
+  return fract(fr(fr(a + b) * c));
+}
+export const CELL_HASH_GLSL = `float cellHash(vec2 p){ p.y = mod(p.y, 4096.0); vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }`;
 
 // ---------------------------------------------------------------- the land
 
-export type Put = (kind: string, x: number, z: number, rot: number, scale: number, y?: number) => void;
+export type Put = (kind: string, x: number, z: number, rot: number, scale: number, y?: number, tall?: number) => void; // tall: the height scaled again
 export type Placer = (r: () => number, z0: number, put: Put) => void;
 export type Part = { geo: THREE.BufferGeometry; mat: THREE.Material };
 type Mode = "near" | "far";
@@ -176,7 +216,7 @@ export class Land {
       const m = this.ground[slot * 2 + k], side = m.userData.side as number;
       const pos = m.geometry.attributes.position as THREE.BufferAttribute, zone = m.geometry.attributes.aZone as THREE.BufferAttribute;
       const base = (m.geometry.userData.base ??= Float32Array.from(pos.array as Float32Array));
-      const zn = zoneAt(z0, side, this.t.open), edge = forestEdge(z0, side); // a chunk is all in one stretch
+      const zn = zoneAt(z0, side, this.t), edge = forestEdge(z0, side); // a chunk is all in one stretch
       for (let i = 0; i < pos.count; i++) {
         const lx = base[i * 3], lz = base[i * 3 + 2];
         // distance out from the road; mirrored on the right so x still grows with lx (the winding holds)
@@ -198,14 +238,17 @@ export class Land {
     const z0 = chunk * CHUNK;
     for (const k of this.kinds.values()) { k.counts[slot] = 0; k.dirty.add(slot); }
     const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0);
-    this.placer(rng(chunk * 7919 + this.t.seed * 13), z0, (kind, x, z, rot, scale, y) => {
+    this.placer(rng(chunk * 7919 + this.t.seed * 13), z0, (kind, x, z, rot, scale, y, tall = 1) => {
       const k = this.kinds.get(kind);
       if (!k) return;
       const n = k.counts[slot];
       if (n >= k.per) return;
+      if (y === undefined) {
+        y = Math.abs(x) < this.roadHalf + 0.5 ? 0 : heightAt(this.t, x, z, this.roadHalf);
+        if (this.t.water !== undefined && y < this.t.water + 0.5) return; // nothing grows in the lake
+      }
       k.counts[slot] = n + 1;
-      y ??= Math.abs(x) < this.roadHalf + 0.5 ? 0 : heightAt(this.t, x, z, this.roadHalf);
-      M.compose(P.set(x, y + k.yOffset * scale, z), Q.setFromAxisAngle(Y, rot), S.setScalar(scale));
+      M.compose(P.set(x, y + k.yOffset * scale, z), Q.setFromAxisAngle(Y, rot), S.set(scale, scale * tall, scale));
       M.toArray(k.mats, (slot * k.per + n) * 16);
     });
   }
