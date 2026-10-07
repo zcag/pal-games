@@ -44,7 +44,7 @@ function build() {
   root = el("div", "trip-map gone");
   root.innerHTML = `<canvas class="still"></canvas><div class="tint"></div><div class="shade"></div><div class="stops"></div><div class="shut"></div>
     <div class="region sign"></div><div class="purse"></div><div class="card-slot"></div>
-    <div class="hints"><button data-key="arrowright"><kbd>←→</kbd> stops</button><button data-key="arrowdown"><kbd>↑↓</kbd> regions</button><button data-key="enter"><kbd>enter</kbd> drive</button></div>`;
+    <div class="hints"><button data-key="arrowup"><kbd>↑↓</kbd> stops</button><button data-key="arrowright"><kbd>←→</kbd> regions</button><button data-key="enter"><kbd>enter</kbd> drive</button></div>`;
   document.body.append(root);
   head = root.querySelector(".region")!; purse = root.querySelector(".purse")!; card = root.querySelector(".card-slot")!;
   stops = root.querySelector(".stops")!; plate = root.querySelector(".shut")!; still = root.querySelector(".still")!;

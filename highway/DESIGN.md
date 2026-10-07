@@ -89,9 +89,11 @@ one strong run bought the top car.
   pinned along the road, each showing its stars, your car parked at the one
   picked and traffic going by. The stop to play next pulses; the camera
   glides along the road to whichever is picked, and your car drives there.
-  Left and right walk the road; the stop's card says what it is, the car you
-  will drive, the times its stars need and your best. Enter drives.
-- **Up and down change region**, the next region's world cross-faded in.
+  Up and down walk the road (its stops run up the screen); the stop's card says
+  what it is, the car you will drive, the times its stars need and your best.
+  Enter drives.
+- **Left and right change region** (the region sign's ‹ ›), the next region's
+  world cross-faded in.
   A region not yet open shows dimmed, with what opens it ("Beat Ines").
 - **Three tabs on top: Road trip, Garage, Free Drive**, on all three, so
   Free Drive is never a hidden key away. Tab steps through them (shift+tab

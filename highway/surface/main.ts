@@ -422,9 +422,10 @@ async function stageMap() {
 
 function mapKey(k: string) {
   const list = sprintsOf(mapRegion), at = Math.max(0, list.findIndex((s) => s.id === save.stop));
-  if (dir(k)) { save.stop = list[(at + dir(k) + list.length) % list.length].id; sound.play("ui_select", { gain: 0.4 }); }
-  else if (vdir(k)) {
-    const to = THREE.MathUtils.clamp(mapRegion - vdir(k), 0, REGIONS.length - 1);
+  // the stops run up the road, so up and down walk it; the regions sit side by side on the sign (its ‹ ›)
+  if (vdir(k)) { save.stop = list[(at - vdir(k) + list.length) % list.length].id; sound.play("ui_select", { gain: 0.4 }); }
+  else if (dir(k)) {
+    const to = THREE.MathUtils.clamp(mapRegion + dir(k), 0, REGIONS.length - 1);
     if (to === mapRegion) return;
     toRegion(to);
     const open = sprintsOf(mapRegion).find((s) => !closed(s, save.sprints) && starsOf(s, save.sprints) < 3);
