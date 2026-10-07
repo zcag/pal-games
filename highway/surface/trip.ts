@@ -14,10 +14,12 @@ export type Stop = {
   legend?: { paint: string; name: string; got: boolean };    // a Legend: the paint its first finish gives, and whether you have it
   stars: number; best?: number; times: number[];            // stars earned 0..3, your best (s), the three star times (s)
   closed: string | null;                                    // why it is closed, or null
-  watch: { best: boolean; mine?: number };                  // runs to watch: the best run, your best (its time, s)
+  replays: Replay[];                                        // the runs it has to watch
 };
+/** A run to watch: its name, what it is, its time (s); `off` says why it cannot be watched (yet). */
+export type Replay = { name: string; about: string; time?: number; off?: string };
 export type Region = { name: string; about: string; open: boolean; why?: string; stars: number; max: number; duelAt: number; next?: string }; // next: the car its stars open next, "Kiri '10 at 8 ★"
-export type MapView = { region: number; regions: Region[]; stops: Stop[]; selected: string; stars: number; car: string };
+export type MapView = { region: number; regions: Region[]; stops: Stop[]; selected: string; stars: number; car: string; yours?: number; replays: number | null }; // replays: the row picked in the open replays panel
 
 const STAR = `<svg viewBox="0 0 24 24"><path d="M12 1.8l3 6.6 7.2.7-5.4 4.8 1.6 7.1L12 17.3 5.6 21l1.6-7.1L1.8 9.1l7.2-.7z"/></svg>`;
 const LOCK = `<svg viewBox="0 0 24 24"><path d="M7 10V7.5a5 5 0 0 1 10 0V10h1.2c.7 0 1.3.6 1.3 1.3v8.4c0 .7-.6 1.3-1.3 1.3H5.8c-.7 0-1.3-.6-1.3-1.3v-8.4c0-.7.6-1.3 1.3-1.3zm2.4 0h5.2V7.5a2.6 2.6 0 0 0-5.2 0z"/></svg>`;
@@ -32,11 +34,12 @@ const el = (tag: string, cls: string, html = "") => { const e = document.createE
 
 let root: HTMLElement | null = null, view: MapView | null = null;
 let head: HTMLElement, purse: HTMLElement, card: HTMLElement, stops: HTMLElement, plate: HTMLElement, still: HTMLCanvasElement, tag: HTMLElement;
-let pickCb: (id: string) => void = () => {}, regionCb: (r: number) => void = () => {};
+let pickCb: (id: string) => void = () => {}, regionCb: (r: number) => void = () => {}, replayCb: (i: number) => void = () => {};
 let cardFor = "", headFor = -1, pinsFor = "", prevStars = new Map<string, number>();
 
 export const onPick = (cb: (id: string) => void) => { pickCb = cb; };
 export const onRegion = (cb: (region: number) => void) => { regionCb = cb; };
+export const onReplay = (cb: (row: number) => void) => { replayCb = cb; };
 
 function build() {
   const link = document.createElement("link");
@@ -53,6 +56,8 @@ function build() {
   tag = el("div", "tag", `${CAR}<b></b>`);
   root.addEventListener("click", (e) => {
     const t = e.target as HTMLElement;
+    const row = t.closest<HTMLElement>("[data-replay]");
+    if (row) { e.stopPropagation(); replayCb(+row.dataset.replay!); return; }
     const stop = t.closest<HTMLElement>("[data-stop]");
     if (stop) { e.stopPropagation(); pickCb(stop.dataset.stop!); return; }
     const step = t.closest<HTMLElement>("[data-step]");
@@ -161,10 +166,13 @@ function drawCard(v: MapView) {
   const body = s.boss
     ? `<div class="duelbox"><div><span>Rival</span><b>${esc(s.boss.rival)}</b></div><div><span>Time to beat</span><b>${clock(s.boss.time)}</b></div><div><span>Win</span><b>${esc(s.boss.car)}</b></div></div>`
     : `<div class="times">${times}</div>` + (s.legend ? `<div class="legendpaint"><i style="background:${s.legend.paint}"></i><span>${s.legend.got ? "Yours:" : "Finish it for"} <b>${esc(s.legend.name)}</b>, a paint for every car</span></div>` : "");
-  // runs to watch: the best run (how the stars' time is driven: lit on a stop you have tried short of three) and yours
-  const watch = !s.closed && (s.watch.best || s.watch.mine !== undefined) ? `<div class="watch">
-    ${s.watch.best ? `<button data-key="b"${s.best !== undefined && s.stars < 3 ? ` class="hot"` : ""}>${PLAY}<span>The best run</span><kbd>b</kbd></button>` : ""}
-    ${s.watch.mine !== undefined ? `<button data-key="v">${PLAY}<span>Your best</span><kbd>v</kbd></button>` : ""}</div>` : "";
+  // the runs it has to watch: one quiet line that says what it opens; R opens them as a panel beside the card
+  const runs = s.closed ? [] : s.replays, open = v.replays !== null && runs.length > 0;
+  const watch = runs.length ? `<button class="replays${open ? " on" : ""}" data-key="r">${PLAY}<span>Watch a replay</span><kbd>r</kbd></button>` : "";
+  const gap = (t?: number) => (t === undefined || v.yours === undefined || Math.abs(t - v.yours) < 0.005 ? "" : `${t < v.yours ? "−" : "+"}${Math.abs(t - v.yours).toFixed(2)}`);
+  const panel = open ? `<div class="sign replays-panel"><div class="ph">Replays <span>${esc(s.name)}</span></div>
+    ${runs.map((r, i) => `<button class="run${i === v.replays ? " on" : ""}${r.off ? " off" : ""}" data-replay="${i}">${PLAY}<span class="n">${esc(r.name)}<small>${esc(r.off ?? r.about)}</small></span><b>${r.time !== undefined ? clock(r.time) : ""}</b><em>${r.off ? "" : gap(r.time)}</em></button>`).join("")}
+    <div class="pk"><kbd>↑↓</kbd> pick <kbd>enter</kbd> watch <kbd>r</kbd> close</div></div>` : "";
   const foot = s.closed ? `<div class="why">${LOCK}<span>${esc(s.closed)}</span></div>`
     : `<button class="go" data-key="enter"><kbd>enter</kbd><span>${s.boss ? "Race" : "Drive"}</span></button>`;
   card.innerHTML = `<div class="sign card${s.boss ? " is-duel" : ""}${s.closed ? " is-closed" : ""}">
@@ -175,7 +183,7 @@ function drawCard(v: MapView) {
     <div class="you"><span>${CAR}Your car <b>${esc(v.car)}</b>${R.open && v.car ? `<button class="change" data-key="c"><kbd>c</kbd> change</button>` : ""}</span><span class="mine">${best}</span></div>
     ${body}
     ${watch}
-    ${foot}</div>`;
+    ${foot}</div>${panel}`;
   if (cardFor !== s.id) { const c = card.firstElementChild!; c.classList.add(cardFor ? "swap" : "rise"); cardFor = s.id; }
 }
 

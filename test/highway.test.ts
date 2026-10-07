@@ -10,7 +10,7 @@ import { fresh, load, stored, has, pickFor, finishSprintRun, type Save } from ".
 import { REGIONS, BOSS_STARS, sprintsOf, rivalTime } from "../highway/game/sprint.ts";
 import { closed, regionOpen, starsIn, bossOf, nextStop, carNeeds, CAR_STARS } from "../highway/game/trip.ts";
 import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
-import { bestDrive, chooser, decode, encode, type Hulls } from "../highway/game/bestrun.ts";
+import { bestDrive, chooser, decode, encode, HUMAN, type Hulls } from "../highway/game/bestrun.ts";
 import hulls from "../highway/surface/cars/hulls.json";
 import best from "../highway/surface/best.json";
 
@@ -218,10 +218,10 @@ describe("Sprints", () => {
     expect(d.score.time).toBeGreaterThan(5);
   });
 
-  test("stars are margins over the best time, and a ghost says its time at any point of the road", () => {
+  test("stars are margins over the best time (three, the best itself: a person's pace), and a ghost says its time at any point of the road", () => {
     const sp = { ...SPRINTS[1], best: 60 };
     const [one, two, three] = starTimes(sp);
-    expect(one > two && two > three && three > sp.best).toBe(true);
+    expect(one > two && two > three && three === sp.best).toBe(true);
     expect([starsFor(sp, three), starsFor(sp, two), starsFor(sp, one), starsFor(sp, one + 0.1)]).toEqual([3, 2, 1, 0]);
     const g = { x: [0, 1, 2], z: [0, 10, 30], yaw: [0, 0, 0], time: 2 * GHOST_DT };
     expect(ghostTimeAt(g, 20)).toBeCloseTo(GHOST_DT * 1.5, 6);
@@ -394,7 +394,7 @@ describe("replays", () => {
   test("a Sprint's best run, as shipped, finishes in its best time", () => {
     const runs = best as Record<string, string>, s = SPRINTS.find((x) => runs[x.id])!;
     expect(decode(runs[s.id]).map((c) => encode([c])).join("")).toBe(runs[s.id]);
-    const d = bestDrive(s, hullsOf), next = chooser(s, d, decode(runs[s.id]));
+    const d = bestDrive(s, hullsOf), next = chooser(s, d, decode(runs[s.id]), HUMAN);
     for (let i = 0; i < 120 * 120 && !d.over; i++) d.step(1 / 120, next());
     expect(d.ended).toBe("line");
     expect(+d.score.time.toFixed(2)).toBe(s.best!);

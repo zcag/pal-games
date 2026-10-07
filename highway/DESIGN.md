@@ -104,6 +104,10 @@ one strong run bought the top car.
   C) it shows that region's class and Enter makes the car the region's; on a
   car you do not have yet, Enter opens the map on the stop that brings it.
   A run's end offers the next stop, another try (R), the map and the garage.
+- **Back from a run, the map opens on the stop just driven**, its new stars
+  landing on its pin; when the run finished it (three stars, a duel), the
+  pick then glides up the road to the next stop. Jumping straight to the
+  next one lost where you had been.
 - **A first launch drops you on the first stop** with one line: Enter to
   drive. Nothing else is explained until it matters.
 
@@ -238,16 +242,24 @@ map was built on them.
   dropped: a search that sits on the line between two lanes takes a Paint
   trader off nearly every car (137 near misses in 3 km, 31 s of credit on a
   60 s clock), so the stars would have measured a skill no person has.
-- **Stars are margins over a searched best.** `scripts/sprint.ts` plays a
-  beam of runs headless, choosing every 0.25 s where across the road to
-  steer for (half-lane steps) and gas, lift or brake, colliding as the
-  game's outlines (`surface/cars/hulls.json`), and keeps the best
-  of each kind of place to be; it knows the road as someone who has learned
-  it does, driving the region's first car stock. One star is +20% on its
-  time (a good first try), two +9% (the road learned), three +3%
-  (near-perfect). Its best runs keep one combo the
-  whole way, about two near misses a second. The first margins (+30%, +12%,
-  +4%, over a weaker search with nitro) gave two stars on a first try.
+- **Stars are margins over a searched best, driven at a person's pace.**
+  `scripts/sprint.ts` plays a beam of runs headless, choosing where across
+  the road to steer for (half-lane steps) and gas or brake, colliding as the
+  game's outlines (`surface/cars/hulls.json`), and keeps the best of each
+  kind of place to be; it knows the road as someone who has learned it
+  does, driving the region's first car stock. It chooses at a person's pace
+  (`HUMAN` in `game/bestrun.ts`): 2.5 times a second, each choice felt
+  0.15 s late, at most a lane's width each. Three stars are that time, two
+  +6% (the road learned), one +15% (a good first try).
+  - The search at a machine's pace (four choices a second, at once, two
+    slots each) drove a TAS: watched, Dry Run's three-star run was inhuman.
+    Its margins were +20%, +9%, +3%; before them +30%, +12%, +4% over a
+    weaker search with nitro gave two stars on a first try.
+  - The pace was set on Dry Run against a player's 64.85 s (the machine:
+    61.10). One slot a choice took two seconds a lane change and drove
+    75-81 s; two slots every 0.4 s, 0.15 s late, drove 64.61, so that best
+    is three stars a quarter second under the player's. A wider beam found
+    the same times.
 - **Trying again is instant.** R, from the run, the pause or the end; your
   best run drives beside you as a ghost, and the clock shows how far ahead
   or behind it you are at that point of the road.
@@ -263,12 +275,16 @@ alone drive the same run again, the traffic doing what it did.
   just driven can be watched from its results ("Watch what happened" after
   a crash); a new best's tape is kept, this machine's, for the map card's
   "Your best".
-- **The best run.** The best-time search keeps its winning run's choices,
-  and `--write` ships them (`surface/best.json`); the page drives them as
-  the search did (`game/bestrun.ts`), in the car it drove, so "The best run"
-  is the run the stars are margins over. The map card offers it, lit on a
-  stop you have tried short of three stars, and a finish short of the next
-  star offers it as the thing to do next.
+- **The 3★ run.** The best-time search keeps its winning run's choices,
+  and `--write` ships them (`surface/best.json`); the page drives them at
+  their pace (`game/bestrun.ts`), in the car it drove, so the 3★ run is
+  the run the stars are drawn from. A finish short of the next star offers
+  it as the thing to do next.
+- **Where they are.** A stop's card has one quiet line, "Watch a replay"
+  (R), that opens a panel beside it: your best (or why it is not kept: a
+  best from before replays), the 3★ run, and later the record, each with
+  its time and its gap to yours; on a stop short of three stars it opens on
+  the 3★ run.
 - **Watching** is a run with the keys taken away: a strip says what it is,
   F changes speed (1×, 2×, ½×), P pauses, Backspace goes to the map; its
   end says how it compares (the best run's margin over yours, your run's to

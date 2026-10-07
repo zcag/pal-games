@@ -26,14 +26,13 @@ import { Worker, isMainThread, parentPort } from "node:worker_threads";
 import { createHash } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { Drive } from "../game/drive.ts";
-import { bestDrive as drive, slotsOf, inputOf, encode, PEDALS, EVERY, DT, type Choice, type Hulls } from "../game/bestrun.ts";
+import { bestDrive as drive, slotsOf, inputOf, chooser, encode, stepsOf, PEDALS, DT, HUMAN, TAS, type Choice, type Hulls, type Pace } from "../game/bestrun.ts";
 import hulls from "../surface/cars/hulls.json";
 import { CARS, CLASSES, FEEL, TRAFFIC, spec, trafficTop } from "../game/content.ts";
 import { SPRINTS, starTimes, GHOST_DT, type Sprint, type Ghost } from "../game/sprint.ts";
 
-// at most a lane's move a choice, and gas or brake: as good a best as finer choices found (farm-road, 46.21 s both
-// ways), with half the runs to try (a choice is game/bestrun.ts's: a quarter second, a slot GRID apart)
-const MOVES = [-2, -1, 0, 1, 2];
+// a choice is game/bestrun.ts's: where across (slots GRID apart, at most the pace's `moves` from the last) and gas or
+// brake, every `every` s of the pace, felt `delay` s late
 const bestDrive = (s: Sprint) => drive(s, hulls as unknown as Hulls);
 
 /** The choices that led to a run: this one and the ones before it. */
@@ -41,10 +40,12 @@ type Path = { up: Path | null; slot: number; pedal: number };
 type Node = { d: Drive; slot: number; value: number; path: Path | null };
 
 /** Search one Sprint at a step size: the choices of the best run found, or null. */
-function search(s: Sprint, beam: number, dt: number) {
-  const d0 = bestDrive(s), { xOf, last, at } = slotsOf(s, d0), every = Math.round(EVERY * DT / dt);
-  while (d0.intro > 0) d0.step(dt, { throttle: 0, brake: 0, steer: 0 }); // the rolling start, as a player gets it
-  let nodes: Node[] = [{ d: d0, slot: at(d0.veh.x), value: 0, path: null }];
+function search(s: Sprint, beam: number, pace: Pace) {
+  const d0 = bestDrive(s), { xOf, last, at } = slotsOf(s, d0), every = stepsOf(pace.every), late = stepsOf(pace.delay);
+  const MOVES = Array.from({ length: 2 * pace.moves + 1 }, (_, i) => i - pace.moves);
+  while (d0.intro > 0) d0.step(DT, { throttle: 0, brake: 0, steer: 0 }); // the rolling start, as a player gets it
+  const start: Choice = { slot: at(d0.veh.x), pedal: 0 };
+  let nodes: Node[] = [{ d: d0, slot: start.slot, value: 0, path: null }];
   let best: { time: number; path: Path | null } | null = null;
   for (let round = 0; nodes.length && round < 4000; round++) {
     const kids: Node[] = [];
@@ -53,8 +54,9 @@ function search(s: Sprint, beam: number, dt: number) {
         const slot = n.slot + m;
         if (slot < 0 || slot > last) continue;
         for (let p = 0; p < PEDALS.length; p++) {
-          const d = n.d.clone();
-          for (let i = 0; i < every && !d.over; i++) d.step(dt, inputOf(d, xOf, { slot, pedal: p }));
+          const d = n.d.clone(), prev = n.path ?? start;
+          // the turn's choice is felt `late` steps in: the last one holds till then (game/bestrun.ts's chooser)
+          for (let i = 0; i < every && !d.over; i++) d.step(DT, inputOf(d, xOf, i < late ? prev : { slot, pedal: p }));
           if (d.ended === "crash") continue;
           const path: Path = { up: n.path, slot, pedal: p };
           if (d.ended === "line") { if (!best || d.score.time < best.time) best = { time: d.score.time, path }; continue; }
@@ -84,13 +86,13 @@ function search(s: Sprint, beam: number, dt: number) {
   return choices;
 }
 
-/** Drive a run's choices: its time and its line (a duel's rival drives it). */
-function replay(s: Sprint, choices: Choice[]) {
-  const d = bestDrive(s), { xOf } = slotsOf(s, d);
-  while (d.intro > 0) d.step(DT, { throttle: 0, brake: 0, steer: 0 });
+/** Drive a run's choices at its pace, as the page does: its time and its line (a duel's rival drives it). */
+function replay(s: Sprint, choices: Choice[], pace: Pace) {
+  const d = bestDrive(s), next = chooser(s, d, choices, pace);
+  while (d.intro > 0) d.step(DT, next());
   const z0 = d.veh.z, ghost: Ghost = { x: [], z: [], yaw: [], time: 0 };
-  for (const c of choices) for (let i = 0; i < EVERY && !d.over; i++) {
-    d.step(DT, inputOf(d, xOf, c));
+  for (let n = 0; n < choices.length * stepsOf(pace.every) + stepsOf(pace.delay) && !d.over; n++) {
+    d.step(DT, next());
     if (d.score.time >= ghost.z.length * GHOST_DT) { ghost.x.push(+d.veh.x.toFixed(2)); ghost.z.push(+(d.veh.z - z0).toFixed(2)); ghost.yaw.push(+d.veh.yaw.toFixed(3)); }
   }
   if (d.ended !== "line") return null;
@@ -100,9 +102,9 @@ function replay(s: Sprint, choices: Choice[]) {
 
 /** A road's best: its choices searched, then driven once more for the time and the line (kept out of the search,
  *  which only carries its choices). */
-function best(s: Sprint, beam: number) {
-  const choices = search(s, beam, DT);
-  return choices && replay(s, choices);
+function best(s: Sprint, beam: number, pace: Pace) {
+  const choices = search(s, beam, pace);
+  return choices && replay(s, choices, pace);
 }
 
 /** What decides how a run drives: a change to any of these can change a best time. */
@@ -115,7 +117,7 @@ type Cached = Record<string, { key: string; best: number; choices?: string }>;
 const driving = JSON.stringify([CARS, TRAFFIC, FEEL, CLASSES, spec.toString(), trafficTop.toString()]);
 const code = createHash("sha256").update(FILES.map((f) => readFileSync(root + f, "utf8")).join("\0") + driving).digest("hex");
 /** A road's fingerprint: the code, and the road itself (not its name, its best or where it sits on the map). */
-const keyOf = (s: Sprint) => createHash("sha256").update(code + JSON.stringify([s.car, s.layout, s.length, s.density, s.seed, !!s.boss])).digest("hex").slice(0, 16);
+const keyOf = (s: Sprint, pace: Pace = HUMAN) => createHash("sha256").update(code + JSON.stringify([s.car, s.layout, s.length, s.density, s.seed, !!s.boss, pace])).digest("hex").slice(0, 16);
 const readCache = (): Cached => (existsSync(CACHE) ? JSON.parse(readFileSync(CACHE, "utf8")) : {});
 
 /** The cached times that still fit their roads, into game/sprint.ts's BEST. */
@@ -131,12 +133,17 @@ async function write() {
 }
 
 if (!isMainThread) {
-  parentPort!.on("message", (m: { id: string; beam: number }) => { const sp = SPRINTS.find((s) => s.id === m.id); if (!sp) console.error("worker got", JSON.stringify(m)); parentPort!.postMessage(sp ? best(sp, m.beam) : null); });
+  parentPort!.on("message", (m: { id: string; beam: number; pace: Pace }) => { const sp = SPRINTS.find((s) => s.id === m.id); if (!sp) console.error("worker got", JSON.stringify(m)); parentPort!.postMessage(sp ? best(sp, m.beam, m.pace) : null); });
 } else {
   const args = process.argv.slice(2);
   const opt = (k: string, def: string) => { const i = args.indexOf(k); return i >= 0 ? args.splice(i, 2)[1] : def; };
   const flag = (k: string) => { const i = args.indexOf(k); if (i >= 0) args.splice(i, 1); return i >= 0; };
   const beam = +opt("--beam", "30"), region = opt("--region", ""), workers = +opt("--workers", "11"), all = flag("--all");
+  // the pace searched at: HUMAN's, the machine's (--pace tas, to compare), or one being tuned (--every/--delay/--moves);
+  // --try prints a pace's results and keeps nothing (the cache and the rivals are HUMAN's)
+  const base = opt("--pace", "human") === "tas" ? TAS : HUMAN;
+  const pace: Pace = { every: +opt("--every", String(base.every)), delay: +opt("--delay", String(base.delay)), moves: +opt("--moves", String(base.moves)) };
+  const trying = flag("--try") || JSON.stringify(pace) !== JSON.stringify(HUMAN);
   if (flag("--write")) { await write(); process.exit(0); }
   const cache = readCache();
   const ids = (args.length ? args : SPRINTS.filter((s) => region === "" || s.region === +region).map((s) => s.id))
@@ -147,20 +154,21 @@ if (!isMainThread) {
   const report = async (r: Out | null) => {
     if (!r) { console.log("no finish found"); return; }
     const s = SPRINTS.find((x) => x.id === r.id)!;
-    console.log(`${r.id.padEnd(14)} best ${r.time} s (${r.misses} near misses, ${r.doubles} gaps, best combo ×${r.combo}, ${r.avg} km/h)  stars at ${starTimes({ ...s, best: r.time }).join(" / ")}`);
+    console.log(`${r.id.padEnd(14)} best ${r.time} s (${r.misses} near misses, ${r.doubles} gaps, best combo ×${r.combo}, ${r.avg} km/h)  stars at ${starTimes({ ...s, best: r.time }).join(" / ")}${trying ? `  [pace ${JSON.stringify(pace)}, tried: not kept]` : ""}`);
+    if (trying) return;
     if (s.boss) await Bun.write(`${root}surface/rivals/${r.id}.json`, JSON.stringify(r.ghost));
     // kept as each road finishes, so a run stopped halfway loses only the roads it was on
     const now = readCache();
     now[r.id] = { key: keyOf(s), best: r.time, choices: r.choices };
     await Bun.write(CACHE, JSON.stringify(now, null, 1) + "\n");
   };
-  if (process.env.TRACE) for (const id of ids) await report(best(SPRINTS.find((s) => s.id === id)!, beam));
+  if (process.env.TRACE) for (const id of ids) await report(best(SPRINTS.find((s) => s.id === id)!, beam, pace));
   else {
     // a pool: each worker takes the next Sprint as it finishes one
     let next = 0;
     await Promise.all(Array.from({ length: Math.min(workers, ids.length) }, () => new Promise<void>((done) => {
       const w = new Worker(new URL(import.meta.url));
-      const feed = () => { if (next >= ids.length) { w.terminate(); done(); return; } w.postMessage({ id: ids[next++], beam }); };
+      const feed = () => { if (next >= ids.length) { w.terminate(); done(); return; } w.postMessage({ id: ids[next++], beam, pace }); };
       w.on("message", async (r) => { await report(r); feed(); });
       feed();
     })));

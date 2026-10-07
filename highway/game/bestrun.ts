@@ -10,10 +10,18 @@ import { CARS } from "./content.ts";
 import { edges } from "./layout.ts";
 import type { Sprint } from "./sprint.ts";
 
-export const CHOICE = 0.25, DT = 1 / 120;
-/** A choice holds for this many steps. */
-export const EVERY = Math.round(CHOICE / DT);
+export const DT = 1 / 120;
 export const GRID = 0.9;
+/** How a run decides: a choice every `every` s, each felt `delay` s late (the one before holds meanwhile), each at
+ *  most `moves` slots from the last. The search's own is a machine's (TAS: four a second, at once); the best times
+ *  the stars are drawn from are searched at HUMAN, a person's pace, so a star asks for a person's driving. */
+export type Pace = { every: number; delay: number; moves: number };
+export const TAS: Pace = { every: 0.25, delay: 0, moves: 2 };
+// set on Dry Run (2026-10-08) against a player's 64.85 s: the machine drives it in 61.10, this in 64.61. Slower paces
+// were far off (one slot a choice: 75-81 s, a lane change taking two seconds); a wider beam found the same times.
+export const HUMAN: Pace = { every: 0.4, delay: 0.15, moves: 2 };
+/** Steps of a span of time. */
+export const stepsOf = (s: number) => Math.round(s / DT);
 export const PEDALS = [{ throttle: 1, brake: 0 }, { throttle: 0, brake: 1 }];
 export type Choice = { slot: number; pedal: number };
 
@@ -36,15 +44,18 @@ export function slotsOf(s: Sprint, d: Drive) {
 /** What a choice does to the car at this moment. */
 export const inputOf = (d: Drive, xOf: (i: number) => number, c: Choice): Input => ({ ...PEDALS[c.pedal], steer: steerToward(d, xOf(c.slot)) });
 
-/** The input that drives a run's choices, step by step from its start: nothing through the rolling start (the
- *  game drives it), then each choice for EVERY steps. */
-export function chooser(s: Sprint, d: Drive, choices: Choice[]) {
-  const { xOf } = slotsOf(s, d);
-  let n = 0;
+/** The input that drives a run's choices at a pace, step by step from its start: nothing through the rolling
+ *  start (the game drives it), then each choice from `delay` into its turn to `delay` into the next (before the
+ *  first, the lane it started in, on the gas). The search drives each turn the same way (scripts/sprint.ts). */
+export function chooser(s: Sprint, d: Drive, choices: Choice[], pace: Pace) {
+  const { xOf, at } = slotsOf(s, d), every = stepsOf(pace.every), late = stepsOf(pace.delay);
+  let n = 0, start: Choice | null = null;
   return (): Input => {
     if (d.intro > 0) return { throttle: 0, brake: 0, steer: 0 };
-    const c = choices[Math.min(choices.length - 1, Math.floor(n++ / EVERY))];
-    return inputOf(d, xOf, c);
+    start ??= { slot: at(d.veh.x), pedal: 0 };
+    const k = Math.floor(n / every), held = n % every < late;
+    n++;
+    return inputOf(d, xOf, (held ? (k ? choices[k - 1] : start) : choices[k]) ?? choices[choices.length - 1]);
   };
 }
 
