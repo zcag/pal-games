@@ -7,6 +7,9 @@ import * as THREE from "./vendor/three.js";
 import { GLTFLoader } from "./vendor/three.js";
 
 const loader = new GLTFLoader();
+// Textures are not shared across files, though most cars use the same few (interiors, glass, tyres, plates) and
+// each brings its own copies, a second of upload in WebKit: one Texture handed to several files' materials left
+// holes in cars in WebKit (the Kiri '10's bumper and grille), fine in Chrome (8cb5d1f, reverted). Find why first.
 
 function glb(json: { buffers?: { uri?: string; byteLength: number }[] }): ArrayBuffer {
   let bin = new Uint8Array(0);
