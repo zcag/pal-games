@@ -14,13 +14,14 @@
 // rows planned before rather than the live traffic, so how fast you drive
 // never changes what comes next.
 
-import { FEEL } from "./content.ts";
+import { FEEL, CARS, trafficTop, type PlayerCar } from "./content.ts";
 
 export type Spawn = { lane: number; dz: number; heavy: boolean; v0: number; oncoming: boolean };
 /** `seed`: on a course, what the caller draws the row's cars from (their models, their drivers). */
 export type Row = { z: number; spawns: Spawn[]; pattern: string; seed?: number };
-/** A fixed road: its seed, its traffic (0..1, the density a run reaches at full strength), and how far ahead rows are planned, m. */
-export type Course = { seed: number; density: number; reach: number };
+/** A fixed road: its seed, its traffic (0..1, the density a run reaches at full strength), how far ahead rows are
+ *  planned, m, and the road its cars are counted over, m (spanOf). */
+export type Course = { seed: number; density: number; reach: number; span: number };
 
 export type DirectorOpts = {
   lanes: number; oncomingLanes: number;
@@ -49,6 +50,16 @@ const PATTERNS: { name: string; weight: (d: number) => number; make: (o: Directo
 // one more every 27 s, up to 14. (It then drops back to 6; a breather now and then does that job here.)
 const SPAN = 140, START = 5, MOST = 14, RAMP = 27;
 
+/** The band of speeds the traffic keeps, dial km/h, on a road whose traffic tops out at `top` (content.ts trafficTop):
+ *  the original's, always slower than you, more so in a faster car. */
+export const band = (top: number) => [9 + top / 5.7, 51.5 + top / 5.5] as const;
+/** How fast a car closes on its road's traffic, dial km/h: its top speed less the band's middle (speed()). */
+const closing = (car: PlayerCar) => { const [lo, hi] = band(trafficTop(car)); return car.top - (lo + (hi - lo) * 0.575); };
+/** The road a course counts its cars over, m: SPAN in the first car, longer as a car closes on traffic faster, so a
+ *  road's traffic comes at you as often in every car (2.5 times as long in the fastest). Cars per metre alone made
+ *  a Night Run road meet a car twice as often as the Countryside's busiest, each read in half the time. */
+export const spanOf = (car: PlayerCar) => (SPAN * closing(car)) / closing(CARS[0]);
+
 export class Director {
   frontier = 0; // the z the next row goes at
   time = 0; // seconds into the run
@@ -68,15 +79,14 @@ export class Director {
     return (c ? c.density : Math.min(1, (this.time / RAMP / (MOST - START)) * (this.o.density ?? 1))) * (this.breather > 0 ? 0.3 : 1);
   }
 
-  /** Cars wanted in the 140 m ahead: 5, then one more every 27 s, up to 14. */
+  /** Cars wanted in the 140 m ahead (a course's span): 5, then one more every 27 s, up to 14. */
   cap() { return START + (MOST - START) * this.density(); }
 
   /** The speed a driver in a lane wants: below yours, faster to the left, trucks slowest. */
   private speed(lane: number, heavy: boolean, oncoming: boolean) {
     const r = () => this.rnd(), top = this.o.topSpeed * 3.6;
     if (oncoming) return ((50 + r() * 25) / 3.6) * FEEL.pace;
-    // the original's band, from your car's top speed: always slower than you, more so in a faster car
-    const lo = 9 + top / 5.7, hi = 51.5 + top / 5.5;
+    const [lo, hi] = band(top);
     const k = this.o.lanes > 1 ? lane / (this.o.lanes - 1) : 0.5;
     const kmh = heavy ? Math.min(hi, lo + (hi - lo) * 0.35 + r() * 8) : lo + (hi - lo) * (0.15 + 0.6 * k + r() * 0.25);
     return (kmh / 3.6) * FEEL.pace; // the band is in dial km/h; the world goes by at the pace
@@ -95,9 +105,9 @@ export class Director {
       if (c) row.seed = seedOf(c.seed ^ 0x5bd1e995, this.rows);
       if (row.spawns.length) rows.push(row);
       for (const s of row.spawns) cars.push({ lane: s.lane, z: row.z + s.dz, oncoming: s.oncoming });
-      // the next row: spaced so the 140 m ahead holds the cars the moment calls for
+      // the next row: spaced so the 140 m ahead (a course's span) holds the cars the moment calls for
       const ours = row.spawns.filter((s) => !s.oncoming).length || 1;
-      const gap = (SPAN * ours / this.cap()) * (0.75 + this.rnd() * 0.5);
+      const gap = ((c?.span ?? SPAN) * ours / this.cap()) * (0.75 + this.rnd() * 0.5);
       this.frontier += gap;
       if (this.breather > 0) this.breather -= gap;
       else if (d > 0.5 && this.rnd() < 0.025) this.breather = 600;

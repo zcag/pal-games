@@ -249,7 +249,7 @@ test("a run packed and unpacked carries on exactly as it would have", () => {
 describe("Sprints", () => {
   const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
   const sp = SPRINTS[1];
-  const road = { seed: sp.seed, length: sp.length, density: sp.density };
+  const road = sp;
 
   test("the road is the same whatever the speed: every row, its cars and their drivers", () => {
     const met = (throttle: number) => {
@@ -342,7 +342,7 @@ test("a save from before keeps its paints and settings, and drops money, upgrade
 });
 test("the line between two lanes is no lane: side by side, some pairs leave room for a car and some do not", () => {
   const size = { x: 1.6, z: 3.6 }, sizeOf = () => ({ x: 1.8, z: 4.4 });
-  const d = new Drive(ONE_WAY, CARS[0], size, 2.2, sizeOf, {}, { sprint: { seed: 11, length: 9000, density: 0.6 } });
+  const d = new Drive(ONE_WAY, CARS[0], size, 2.2, sizeOf, {}, { sprint: { seed: 11, length: 9000, density: 0.6, span: 140 } });
   d.ghost = true; // nothing touches: only the traffic is watched
   const fits = size.x - 0.16; // what the Compact needs between two bodies (its collision outline)
   let open = 0, shut = 0;
@@ -363,7 +363,7 @@ test("drivers decide on their own: cars placed together do not change lanes all 
   const size = { x: 1.8, z: 4.4 }, sizeOf = () => size;
   let worst = 0;
   for (const seed of [3, 4]) {
-    const d = new Drive(ONE_WAY, CARS[0], size, 2.6, sizeOf, {}, { sprint: { seed, length: 9000, density: 0.8 } });
+    const d = new Drive(ONE_WAY, CARS[0], size, 2.6, sizeOf, {}, { sprint: { seed, length: 9000, density: 0.8, span: 140 } });
     d.ghost = true;
     const started: number[] = [];
     const was = new Map<number, number>();
@@ -379,7 +379,7 @@ test("drivers decide on their own: cars placed together do not change lanes all 
 
 test("a rolling start: the car cruises, nothing counts and nothing touches until it ends, then the clock runs", () => {
   const size = { x: 1.8, z: 4.4 }, sizeOf = () => size;
-  const d = new Drive(ONE_WAY, CARS[0], size, 2.6, sizeOf, {}, { sprint: { seed: 9, length: 3000, density: 0.9 }, intro: ROLLING_START });
+  const d = new Drive(ONE_WAY, CARS[0], size, 2.6, sizeOf, {}, { sprint: { seed: 9, length: 3000, density: 0.9, span: 140 }, intro: ROLLING_START });
   const z = d.veh.z;
   for (let i = 0; i < 120 * (ROLLING_START - 0.1); i++) d.step(1 / 120, { throttle: 0, brake: 1, steer: 1 }); // the keys are ignored
   expect([d.score.time, d.score.distance, d.over]).toEqual([0, 0, false]);
@@ -393,7 +393,7 @@ test("a rolling start: the car cruises, nothing counts and nothing touches until
 test("a run's clone carries on exactly as the run does, and apart from it", () => {
   const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
   const drive = (i: number) => ({ throttle: 1, brake: 0, steer: Math.sin(i / 90) * 0.6 });
-  const a = new Drive(ONE_WAY, CARS[6], size, 2.6, sizeOf, {}, { sprint: { seed: 4, length: 9000, density: 0.7 } });
+  const a = new Drive(ONE_WAY, CARS[6], size, 2.6, sizeOf, {}, { sprint: { seed: 4, length: 9000, density: 0.7, span: 140 } });
   a.ghost = true;
   for (let i = 0; i < 120 * 5; i++) a.step(1 / 120, drive(i));
   const b = a.clone();
@@ -450,12 +450,15 @@ describe("replays", () => {
     }
     expect([b.ended, b.score.time, b.veh.x, b.veh.z]).toEqual([a.ended, a.score.time, a.veh.x, a.veh.z]);
   });
-  test("a Sprint's best run, as shipped, finishes in its best time", () => {
-    const runs = best as Record<string, string>, s = SPRINTS.find((x) => runs[x.id])!;
-    expect(decode(runs[s.id]).map((c) => encode([c])).join("")).toBe(runs[s.id]);
-    const d = bestDrive(s, hullsOf), next = chooser(d, decode(runs[s.id]), HUMAN);
-    for (let i = 0; i < 120 * 120 && !d.over; i++) d.step(1 / 120, next());
-    expect(d.ended).toBe("line");
-    expect(+d.score.time.toFixed(2)).toBe(s.best!);
+  // searched on Linux, watched on a Mac: the last duel is the fastest car on one of the longest roads, where a bit's
+  // difference (the system's sin) once grew into a crash (game/fmath.ts)
+  test("a Sprint's best run, as shipped, finishes in its best time on this machine too", () => {
+    const runs = best as Record<string, string>;
+    for (const s of [SPRINTS.find((x) => runs[x.id])!, SPRINTS.find((x) => x.id === "duel-kaz")!]) {
+      expect(decode(runs[s.id]).map((c) => encode([c])).join("")).toBe(runs[s.id]);
+      const d = bestDrive(s, hullsOf), next = chooser(d, decode(runs[s.id]), HUMAN);
+      for (let i = 0; i < 120 * 120 && !d.over; i++) d.step(1 / 120, next());
+      expect([s.id, d.ended, +d.score.time.toFixed(2)]).toEqual([s.id, "line", s.best]);
+    }
   });
 });

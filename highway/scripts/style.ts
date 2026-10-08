@@ -33,7 +33,7 @@ function measure(d: Drive, next: () => { throttle: number; brake: number; steer:
 }
 for (const [id, tape] of Object.entries(store.tapes as Record<string, any>)) {
   const s = SPRINTS.find((x) => x.id === id)!, car = CARS.find((c) => c.id === tape.car)!, size = sizes.get(car.id)!;
-  const d = new Drive(s.layout, car, size, size.z * 0.58, (k) => sizes.get(k), {}, { sprint: { seed: s.seed, length: s.length, density: s.density }, intro: ROLLING_START, seed: tape.seed });
+  const d = new Drive(s.layout, car, size, size.z * 0.58, (k) => sizes.get(k), {}, { sprint: s, intro: ROLLING_START, seed: tape.seed });
   const t = unpack(tape.tape); let j = 0, c = { throttle: 0, brake: 0, steer: 0 };
   const me = measure(d, () => { while (j < t.length && t[j][0] <= d.steps) { c = { throttle: t[j][1], brake: t[j][2], steer: t[j][3] }; j++; } return c; });
   console.log(`${id} (you ${tape.car} ${tape.time.toFixed(2)}, bot ${s.car})\n  you ${me}`);

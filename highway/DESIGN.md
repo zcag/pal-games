@@ -49,6 +49,14 @@ diagonal, a truck with company, a near wall) and never closes every lane; the
 first 150 m keep your lane clear. Drivers follow with IDM and change lanes by
 MOBIL, signalling first (`game/traffic.ts`).
 
+A Sprint's traffic is what comes at you rather than cars per metre: it
+counts its cars over a road as much longer than 140 m as its car closes on
+traffic faster (`spanOf`, 357 m in the Saba), so a road's traffic number
+meets you as often in every class. Counted per metre, Night Run's roads
+were at once twice as fast and twice as busy as the Countryside's: the
+best-time search passed 150 cars a minute there, each in sight under two
+seconds, where a player manages a hundred.
+
 ## Scoring and crashes
 
 Its rules, measured: points per second from speed (v³·10⁻⁶ + v²/3000 past
@@ -351,6 +359,15 @@ map was built on them.
     both: at 0.1 m Commuters 52.33 (just under him) and Dry Run 74.82 (ten
     seconds over: he threads gaps under 0.1 m there), at 0.31 m 56.17 and
     81.51. A person's edge differs by road, so the margin carries it.
+  - It still pressed without limit, and the faster the car the more:
+    a press every 0.25 s for seconds on end, 61-111 a minute in the
+    Countryside (where he matched it), 96-137 in High Noon, up to 179 at
+    night; he presses 57-94 a minute, most 0.5-0.7 s apart, never more
+    than 4 in a second, 7 in two or 15 in five, and fell 4-5% behind it
+    in High Noon. Its keys now come from a budget (`Pace.presses`): 4
+    saved up, 1.6 more a second. With it (and the traffic held to the
+    Countryside's, Traffic) Noon Rush took 67 presses a minute (was 113)
+    and Red Lights 72 (163), at most 11 in five seconds.
 - **Trying again is instant.** R, from the run, the pause or the end; your
   best run drives beside you as a ghost, and the clock shows how far ahead
   or behind it you are at that point of the road.
@@ -359,7 +376,12 @@ map was built on them.
 
 A Sprint can be watched again, because it is deterministic: its road and
 traffic come from its seeds and it steps at a fixed 1/120 s, so the inputs
-alone drive the same run again, the traffic doing what it did.
+alone drive the same run again, the traffic doing what it did. That holds to
+the bit on every machine: the simulation's sin, cos, pow and the rest are
+fdlibm's in plain JS (`game/fmath.ts`), not the system's, which round
+differently on Linux (where the search runs) and macOS. With the system's,
+a traffic car's drift differed at the last bit a few seconds in, and 8 of
+the 50 3★ runs crashed when a Mac drove them. It costs the search 7%.
 
 - **Your runs.** A Sprint keeps its inputs as a tape of changes (the keys
   held, and the step they changed at: a kilobyte or two a minute). The run

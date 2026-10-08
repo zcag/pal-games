@@ -88,7 +88,7 @@ async function road(demo: boolean, ready?: () => void, intro = 0) {
   const car = sp ? trip!.car : carOf(save.car);
   const player = await Car.load(car.id, paintOf(save, car));
   run = new Run(world, layout, player, car, events, loc.density, demo || sp ? "endless" : save.mode,
-    sp ? { seed: sp.seed, length: sp.length, density: sp.density } : undefined, intro, !demo && watching?.tape ? watching.tape.seed : undefined);
+    sp ?? undefined, intro, !demo && watching?.tape ? watching.tape.seed : undefined);
   if (!demo && sp && watching) startWatching(sp);
   if (demo) run.veh.launch((105 / 3.6) * FEEL.pace);
   run.settle();

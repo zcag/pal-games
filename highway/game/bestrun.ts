@@ -15,14 +15,17 @@ export const DT = 1 / 120;
  *  key in it meant to be held for one of `taps` s. A press comes out up to `err` of itself longer or shorter than
  *  meant (slipOf), so a run has to see where a tap left it and fix it with the next. A pass closer than `risk[0]` m
  *  is a gamble, costing the search up to `risk[1]` m of road (scripts/sprint.ts): a person cannot place a car to the
- *  centimetre. The search's own is a machine's (TAS: exact, at once, fearless); the best times the stars are drawn
+ *  centimetre. Steering keys are pressed from a budget: `presses[1]` saved up at most, `presses[0]` more a second, so
+ *  a run cannot tap every turn for long. The search's own is a machine's (TAS: exact, at once, fearless); the best times the stars are drawn
  *  from are searched at HUMAN, a person's pace, so a star asks for a person's driving. */
-export type Pace = { every: number; delay: number; taps: number[]; err: number; risk: [number, number] };
-export const TAS: Pace = { every: 0.25, delay: 0, taps: [0.08, 0.16, 0.25], err: 0, risk: [0, 0] };
+export type Pace = { every: number; delay: number; taps: number[]; err: number; risk: [number, number]; presses: [number, number] };
+export const TAS: Pace = { every: 0.25, delay: 0, taps: [0.08, 0.16, 0.25], err: 0, risk: [0, 0], presses: [4, 4] };
 // set (2026-10-08) against a player's saved runs (scripts/_style.ts): his taps (70-97 a minute, most 0.1-0.15 s, a third
 // to a half of them fixing the one before) and his passes (median 0.27-0.42 m from the car, a tenth to a quarter under
 // 0.1). Without the risk the search passed a median 0.03 m off; at 0.4 m it never went under 0.1 and fell 2-6 s behind
-export const HUMAN: Pace = { every: 0.25, delay: 0.15, taps: [0.08, 0.12, 0.18], err: 0.3, risk: [0.15, 0.25] };
+// and his presses (2026-10-09, 13 runs): 69-94 a minute, most 0.5-0.7 s apart, never more than 4 in a second, 7 in two
+// or 15 in five; the search without a budget pressed every 0.25 s for seconds on end, 18 in five and 170 a minute at night
+export const HUMAN: Pace = { every: 0.25, delay: 0.15, taps: [0.08, 0.12, 0.18], err: 0.3, risk: [0.15, 0.25], presses: [1.6, 4] };
 /** Steps of a span of time. */
 export const stepsOf = (s: number) => Math.round(s / DT);
 export const PEDALS = [{ throttle: 1, brake: 0 }, { throttle: 0, brake: 1 }];
@@ -40,7 +43,7 @@ export type Hulls = Record<string, { x: number; z: number; hull: [number, number
 export function bestDrive(s: Sprint, hulls: Hulls, events: DriveEvents = {}) {
   const sizes = new Map(Object.entries(hulls));
   const car = CARS.find((c) => c.id === s.car)!, size = sizes.get(car.id)!;
-  return new Drive(s.layout, car, size, size.z * 0.58, (id) => sizes.get(id), events, { sprint: { seed: s.seed, length: s.length, density: s.density }, intro: ROLLING_START });
+  return new Drive(s.layout, car, size, size.z * 0.58, (id) => sizes.get(id), events, { sprint: s, intro: ROLLING_START });
 }
 
 /** A pace in steps. */

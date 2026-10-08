@@ -1,5 +1,6 @@
 // Every number and name: the cars you can drive, what fills the traffic,
 // the places, and how the stats turn into a car that drives (spec()).
+import * as F from "./fmath.ts";
 import type { Spec } from "./vehicle.ts";
 
 /** How driving feels (DESIGN.md, "Feel").
@@ -76,7 +77,7 @@ const G = 9.81, RHO = 1.2, CDA = 0.62, CRR = 0.012, EFF = 0.88;
 /** The physics for a car: power solved from the top speed, gears to suit. */
 export function spec(car: PlayerCar, wheelbase: number): Spec & { agility: number } {
   const top = (car.top / 3.6) * FEEL.pace; // the world's pace scales it all
-  const power = (0.5 * RHO * CDA * top ** 3 + CRR * car.mass * G * top) / EFF / 1000; // kW at the top speed
+  const power = (0.5 * RHO * CDA * F.pow(top, 3) + CRR * car.mass * G * top) / EFF / 1000; // kW at the top speed
   // power for the pickup, the gearing keeps the top close: each class pulls harder than the one before, so a
   // better car gets back up to speed quicker after a squeeze
   const punch = 1 + 0.12 * CLASSES.findIndex((c) => c === classOf(car));
@@ -86,7 +87,7 @@ export function spec(car: PlayerCar, wheelbase: number): Spec & { agility: numbe
   const topRatio = (redline * Math.PI / 30) * wheelRadius / (top * 1.04);
   const n = 6, first = 13.5; // overall: gearbox times final drive
   const final = 1; // folded into the ratios
-  const gears = Array.from({ length: n }, (_, i) => first * Math.pow(topRatio / first, i / (n - 1)) * final);
+  const gears = Array.from({ length: n }, (_, i) => first * F.pow(topRatio / first, i / (n - 1)) * final);
   return {
     mass: car.mass, wheelbase, cgFront: 0.55, cgHeight: 0.5,
     power: power * 1.08 * punch, torque: (power * 1000 * 1.08 * punch) / ((redline * 0.62 * Math.PI) / 30), redline, idle: 850,
@@ -107,7 +108,7 @@ export function stats(car: PlayerCar): Stats {
   const top = car.top;
   return {
     speed: k(top, 115, 240),
-    accel: k(((top ** 3 / car.mass) * (1 + 0.12 * CLASSES.findIndex((c) => c === classOf(car)))) / 1e3, 4, 20),
+    accel: k(((F.pow(top, 3) / car.mass) * (1 + 0.12 * CLASSES.findIndex((c) => c === classOf(car)))) / 1e3, 4, 20),
     handling: k(car.agility, 0.95, 1.72),
     brakes: k(car.brake, 0.88, 1.25),
   };

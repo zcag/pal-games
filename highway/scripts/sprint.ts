@@ -37,7 +37,7 @@ const bestDrive = (s: Sprint) => drive(s, hulls as unknown as Hulls);
 
 /** The choices that led to a run: this one and the ones before it. */
 type Path = Choice & { up: Path | null };
-type Node = { d: Drive; value: number; risk: number; path: Path | null; press: Press | null };
+type Node = { d: Drive; value: number; risk: number; path: Path | null; press: Press | null; budget: number };
 type Turn = ReturnType<typeof turnOf>;
 // the risk taken so far by the run being driven: search()'s pass hook adds each pass's
 let risk = 0, near = (_gap: number) => 0;
@@ -46,11 +46,13 @@ let risk = 0, near = (_gap: number) => 0;
  *  rather than wander) and pedal, pressed as the turn's slip has it and driven at the pace; the runs that carry on,
  *  and those that reached the line. A run is worth how far it got, what it carries on with, and less for the risk
  *  its passes took: a person cannot place a car to the centimetre, so a pass a hair from a car is a gamble they
- *  take only when it pays (Pace.risk). */
-function expand(nodes: Node[], t: Turn, keys: number, slip: number) {
+ *  take only when it pays (Pace.risk). A steering key spends a press of the run's budget (Pace.presses), which
+ *  `refill` tops up each turn. */
+function expand(nodes: Node[], t: Turn, keys: number, slip: number, refill: number, most: number) {
   const kids: Node[] = [], done: { time: number; path: Path }[] = [];
   for (const n of nodes) {
-    for (let key = 0; key < keys; key++) {
+    const left = Math.min(most, n.budget + refill);
+    for (let key = 0; key < keys && (key === 0 || left >= 1); key++) {
       for (let p = 0; p < PEDALS.length; p++) {
         const cur = pressOf(t, { key, pedal: p }, slip), d = n.d.clone();
         risk = n.risk;
@@ -60,7 +62,7 @@ function expand(nodes: Node[], t: Turn, keys: number, slip: number) {
         const path: Path = { up: n.path, key, pedal: p };
         if (d.ended === "line") { done.push({ time: d.score.time, path }); continue; }
         // how far it got, and what it carries on with: its speed and the combo's surge
-        kids.push({ d, value: d.score.distance + (d.veh.u / FEEL.pace) * 0.8 + d.surge * 0.6 - risk, risk, path, press: cur });
+        kids.push({ d, value: d.score.distance + (d.veh.u / FEEL.pace) * 0.8 + d.surge * 0.6 - risk, risk, path, press: cur, budget: key ? left - 1 : left });
       }
     }
   }
@@ -90,10 +92,11 @@ function search(s: Sprint, beam: number, pace: Pace) {
   near = (gap) => (gap < within ? cost * ((within - gap) / within) ** 2 : 0);
   const d0 = drive(s, hulls as unknown as Hulls, { pass: (_n, gap) => { risk += near(gap); } }), turn = turnOf(pace), keys = keysOf(pace);
   while (d0.intro > 0) d0.step(DT, { throttle: 0, brake: 0, steer: 0 }); // the rolling start, as a player gets it
-  let nodes: Node[] = [{ d: d0, value: 0, risk: 0, path: null, press: null }];
+  const [rate, most] = pace.presses;
+  let nodes: Node[] = [{ d: d0, value: 0, risk: 0, path: null, press: null, budget: most }];
   let best: { time: number; path: Path | null } | null = null;
   for (let round = 0; nodes.length && round < 4000; round++) {
-    const { kids, done } = expand(nodes, turn, keys, slipOf(s.seed, round));
+    const { kids, done } = expand(nodes, turn, keys, slipOf(s.seed, round), rate * pace.every, most);
     for (const f of done) if (!best || f.time < best.time) best = f;
     nodes = prune(kids, beam);
     // once a run has finished, the rest are only worth carrying while they could still beat it
@@ -157,10 +160,10 @@ if (!isMainThread) {
   const flag = (k: string) => { const i = args.indexOf(k); if (i >= 0) args.splice(i, 1); return i >= 0; };
   const beam = +opt("--beam", "30"), region = opt("--region", ""), workers = +opt("--workers", "11"), all = flag("--all");
   // the pace searched at: HUMAN's, the machine's (--pace tas, to compare), or one being tuned (--every/--delay/--taps,
-  // the taps comma-separated, --err, --risk within,cost);
+  // the taps comma-separated, --err, --risk within,cost, --presses rate,most);
   // --try prints a pace's results and keeps nothing (the cache and the rivals are HUMAN's)
   const base = opt("--pace", "human") === "tas" ? TAS : HUMAN;
-  const pace: Pace = { every: +opt("--every", String(base.every)), delay: +opt("--delay", String(base.delay)), taps: opt("--taps", base.taps.join(",")).split(",").map(Number), err: +opt("--err", String(base.err)), risk: opt("--risk", base.risk.join(",")).split(",").map(Number) as [number, number] };
+  const pace: Pace = { every: +opt("--every", String(base.every)), delay: +opt("--delay", String(base.delay)), taps: opt("--taps", base.taps.join(",")).split(",").map(Number), err: +opt("--err", String(base.err)), risk: opt("--risk", base.risk.join(",")).split(",").map(Number) as [number, number], presses: opt("--presses", base.presses.join(",")).split(",").map(Number) as [number, number] };
   const trying = flag("--try") || JSON.stringify(pace) !== JSON.stringify(HUMAN);
   if (flag("--write")) { await write(); process.exit(0); }
   const cache = readCache();

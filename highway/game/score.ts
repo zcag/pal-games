@@ -6,6 +6,7 @@
 // times; two passes at once (threading a door) pay a bonus. A combo is also
 // momentum: each pass in it pushes the car past its top speed (`surge`,
 // game/drive.ts). It also keeps what missions ask about.
+import * as F from "./fmath.ts";
 
 export const NEAR_SPEED = 80; // km/h: below this nothing counts as a near miss, and a combo dies
 export const COMBO_TIME = 4; // s
@@ -24,7 +25,7 @@ export type Miss = { points: number; grade: Grade; combo: number; oncoming: bool
 /** Points a second at a speed (km/h), and for being in the oncoming lane. */
 export function rate(kmh: number, oncomingLane: boolean) {
   if (kmh < 60) return 0;
-  let p = kmh ** 3 * 1e-6 + (kmh >= 100 ? (kmh * kmh) / 3000 : 0);
+  let p = F.pow(kmh, 3) * 1e-6 + (kmh >= 100 ? (kmh * kmh) / 3000 : 0);
   if (oncomingLane) p += (kmh * kmh) / 900;
   return p * 25; // the original counts per 0.04 s tick
 }

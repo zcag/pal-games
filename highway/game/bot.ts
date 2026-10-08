@@ -4,11 +4,13 @@
 // far ahead it plans, how fast it dares to go, how close it passes and how
 // well it hits that line, and how often it looks away. scripts/economy.ts
 // plays thousands of runs with it to measure what a run pays.
+import * as F from "./fmath.ts";
 import type { Drive } from "./drive.ts";
 import { acrossAt, turnOf, type Input } from "./vehicle.ts";
 import { FEEL, trafficTop, CARS } from "./content.ts";
 import { laneX, oncomingX, LANE_W } from "./layout.ts";
 import { NEAR_SPEED } from "./score.ts";
+import { band } from "./director.ts";
 
 export type Skill = {
   name: string;
@@ -66,7 +68,7 @@ export class Bot {
   }
 
   private rnd() { return (this.seed = (this.seed * 16807) % 2147483647) / 2147483647; }
-  private gauss() { return Math.sqrt(-2 * Math.log(this.rnd() + 1e-12)) * Math.cos(2 * Math.PI * this.rnd()); }
+  private gauss() { return Math.sqrt(-2 * F.ln(this.rnd() + 1e-12)) * F.cos(2 * Math.PI * this.rnd()); }
   private nearest(x: number) { let b = 0; this.slots.forEach((s, i) => { if (Math.abs(s.x - x) < Math.abs(this.slots[b].x - x)) b = i; }); return b; }
 
   /** The dial's top speed of the car as built (upgrades included). */
@@ -95,7 +97,7 @@ export class Bot {
     const dd = d as { floor?: number; mode?: string };
     // as fast as it dares: a player settles at a speed over the traffic they can still dodge at, more in a car
     // that changes lanes quicker; a Speed Trap's floor overrules it
-    const tt = trafficTop(d.car), traffic = ((9 + tt / 5.7) + (51.5 + tt / 5.5)) / 2;
+    const [lo, hi] = band(trafficTop(d.car)), traffic = (lo + hi) / 2;
     const dare = traffic + k.nerve * (acrossAt(v.spec, v.u) / acrossAt(this.first, v.u));
     const target = Math.max(Math.min(this.top() * k.speed, dare), dd.mode === "trap" && dd.floor ? dd.floor + 6 : 0);
     const decel = v.spec.brake * 9.81 * FEEL.brake * FEEL.pace; // what full brakes do (game/vehicle.ts)
@@ -197,7 +199,7 @@ export class Bot {
  *  line comes near, so it settles without weaving (the bot's, and scripts/sprint.ts's). */
 export function steerToward(d: Drive, x: number) {
   const v = d.veh;
-  const across = acrossAt(v.spec, v.u), lat = v.u * Math.sin(v.yaw) + v.v * Math.cos(v.yaw);
+  const across = acrossAt(v.spec, v.u), lat = v.u * F.sin(v.yaw) + v.v * F.cos(v.yaw);
   const dx = x - v.x;
   const stop = turnOf(v.spec) * 1.9 * 0.6; // how hard it can check the slide, with room to spare
   const want = Math.sign(dx) * Math.min(across, Math.sqrt(2 * stop * Math.abs(dx)), 5 * Math.abs(dx));

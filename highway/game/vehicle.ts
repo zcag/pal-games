@@ -9,6 +9,7 @@
 // power for a moment on each shift. Keyboard steering is digital, so a driver
 // aid stands in for the hands: the wheel turns in at a rate that slows with
 // speed, and with no input it holds the road's heading the way a driver would.
+import * as F from "./fmath.ts";
 
 import { FEEL } from "./content.ts";
 
@@ -95,7 +96,7 @@ export class Vehicle {
   /** Engine torque at an rpm: a broad plateau that falls toward the redline. */
   engineTorque(rpm: number) {
     const s = this.spec, t = rpm / s.redline;
-    const shape = t < 0.25 ? 0.55 + 1.6 * t : t < 0.7 ? 0.95 + 0.05 * Math.sin((t - 0.25) / 0.45 * Math.PI) : 1 - Math.pow((t - 0.7) / 0.3, 2) * 0.35;
+    const shape = t < 0.25 ? 0.55 + 1.6 * t : t < 0.7 ? 0.95 + 0.05 * F.sin((t - 0.25) / 0.45 * Math.PI) : 1 - F.pow((t - 0.7) / 0.3, 2) * 0.35;
     // the power at the peak caps the torque high in the range
     const omega = rpm * Math.PI / 30;
     return Math.min(s.torque * shape, (s.power * 1000) / Math.max(omega, 1) * 1.05);
@@ -129,13 +130,13 @@ export class Vehicle {
 
     // --- tyre lateral forces: slip angle in, a saturating curve out
     const uu = Math.max(speed, 1.5);
-    const alphaF = Math.atan2(this.v + a * this.r, uu) - this.delta;
-    const alphaR = Math.atan2(this.v - b * this.r, uu);
+    const alphaF = F.atan2(this.v + a * this.r, uu) - this.delta;
+    const alphaR = F.atan2(this.v - b * this.r, uu);
     const tyre = (alpha: number, N: number) => {
       const peak = s.grip * SIDE_GRIP * N, k = s.corner * SIDE_GRIP * N;
       // a smooth saturation (Pacejka-like): linear at small slip, a plateau past the peak
       const x = (k * alpha) / peak;
-      return -peak * Math.tanh(x) * (1 - 0.08 * Math.min(1, Math.abs(x) / 3));
+      return -peak * F.tanh(x) * (1 - 0.08 * Math.min(1, Math.abs(x) / 3));
     };
     const Fyf = tyre(alphaF, Nf), Fyr = tyre(alphaR, Nr);
     this.slipFront = Math.abs(s.corner * alphaF / s.grip);
@@ -156,7 +157,7 @@ export class Vehicle {
     let Fx = onPower * this.engineTorque(this.rpm) * ratio() * 0.88 / s.wheelRadius;
     if (this.rpm >= s.redline) Fx *= 0.2; // the limiter
     // the rear tyres can only push so hard, and less while they also corner
-    const rearBudget = Math.sqrt(Math.max(0, Math.pow(s.grip * Nr, 2) - Fyr * Fyr));
+    const rearBudget = Math.sqrt(Math.max(0, F.pow(s.grip * Nr, 2) - Fyr * Fyr));
     Fx = Math.min(Fx, rearBudget);
     // brakes, held at what the tyres allow (ABS)
     const brakeF = this.braking * s.brake * W * FEEL.brake * FEEL.pace;
@@ -179,7 +180,7 @@ export class Vehicle {
       // flicking the other way goes straight through the middle, as hands on a wheel would
       if (input.steer * this.steer < 0) this.steer = 0;
       this.steer += Math.max(-ramp, Math.min(ramp, input.steer - this.steer));
-      const lat = speed * Math.sin(this.yaw) + this.v * Math.cos(this.yaw); // sideways speed on the road
+      const lat = speed * F.sin(this.yaw) + this.v * F.cos(this.yaw); // sideways speed on the road
       const across = acrossAt(s, speed);
       // checking a slide the other way is twice as quick as building one
       const want = this.steer * across, reverse = (want - lat) * lat < 0;
@@ -188,18 +189,18 @@ export class Vehicle {
       // a combo's surge raises the limit past the top speed and pulls the car on toward it, gently, weaker the nearer
       // it gets: below the top the engine alone does the work, past it the climb takes a chain kept going
       const top = s.top ?? 99, past = this.u - top;
-      const du = Flong / s.mass + (this.boost && past > 0 && past < this.over ? this.boost * SURGE_K * (top / 46.7) * (1 - (past / this.over) ** SURGE_SHAPE) : 0);
+      const du = Flong / s.mass + (this.boost && past > 0 && past < this.over ? this.boost * SURGE_K * (top / 46.7) * (1 - F.pow(past / this.over, SURGE_SHAPE)) : 0);
       const crawl = (FEEL.crawl / 3.6) * FEEL.pace;
       this.u = Math.max(Math.min(this.u, crawl), this.u + du * dt); // the brakes slow you to a crawl, never a stop
-      const yaw = Math.asin(Math.max(-0.6, Math.min(0.6, next / Math.max(this.u, 1))));
+      const yaw = F.asin(Math.max(-0.6, Math.min(0.6, next / Math.max(this.u, 1))));
       this.r = (yaw - this.yaw) / dt;
       this.yaw = yaw;
       this.v = 0;
       this.x += next * dt;
-      this.z += this.u * Math.cos(yaw) * dt;
+      this.z += this.u * F.cos(yaw) * dt;
       this.ax += (du - this.ax) * Math.min(1, dt * 12);
       this.ay += ((next - lat) / dt - this.ay) * Math.min(1, dt * 12);
-      this.delta = Math.max(-0.35, Math.min(0.35, Math.atan((L * this.r) / Math.max(this.u, 1)) * 2.5 + this.steer * 0.04));
+      this.delta = Math.max(-0.35, Math.min(0.35, F.atan((L * this.r) / Math.max(this.u, 1)) * 2.5 + this.steer * 0.04));
       this.slipFront = this.slipRear = Math.abs(this.ay) / (4.5 * G); // the tyres only cry out on the most violent moves
       this.wheelSpin += (this.u / s.wheelRadius) * dt;
       return;
@@ -207,7 +208,7 @@ export class Vehicle {
     this.steer = input.steer;
 
     // --- integrate in the car's frame
-    const cosD = Math.cos(this.delta);
+    const cosD = F.cos(this.delta);
     const du = Flong / s.mass + this.v * this.r;
     const dv = (Fyf * cosD + Fyr) / s.mass - this.u * this.r;
     const dr = (a * Fyf * cosD - b * Fyr) / Iz;
@@ -217,14 +218,14 @@ export class Vehicle {
     // at a crawl the tyre model is stiff: let the kinematic model take over
     if (speed < 3) {
       const k = 1 - speed / 3;
-      this.r += ((this.u * Math.tan(this.delta)) / L - this.r) * k;
+      this.r += ((this.u * F.tan(this.delta)) / L - this.r) * k;
       this.v *= 1 - k;
     }
     // stability control: a yaw rate past what the tyres can hold is braked back, as ESC would
     const rMax = (s.grip * SIDE_GRIP * G) / Math.max(uu, 4) * 1.1;
     if (Math.abs(this.r) > rMax) this.r += (Math.sign(this.r) * rMax - this.r) * Math.min(1, dt * 6);
     this.yaw += this.r * dt;
-    const c = Math.cos(this.yaw), sn = Math.sin(this.yaw);
+    const c = F.cos(this.yaw), sn = F.sin(this.yaw);
     this.x += (this.u * sn + this.v * c) * dt;
     this.z += (this.u * c - this.v * sn) * dt;
     this.ax += (du - this.v * this.r - this.ax) * Math.min(1, dt * 12);

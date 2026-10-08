@@ -3,6 +3,7 @@
 // score, contact and the crash rule. The page (surface/run.ts) draws it; a
 // script can play it headless (scripts/economy.ts). It tells whoever listens
 // what happened through events.
+import * as F from "./fmath.ts";
 import { Vehicle, type Input } from "./vehicle.ts";
 import { Traffic, crossing, heading, type Npc } from "./traffic.ts";
 import { Director, type Course } from "./director.ts";
@@ -27,7 +28,7 @@ export type DriveEvents = {
 /** Why a run ended: a crash, the clock (Time Attack), too slow for too long (Speed Trap), the finish line (a Sprint). */
 export type End = "crash" | "time" | "slow" | "line";
 /** A Sprint: a fixed road (game/director.ts) `length` m long on the dial, its traffic `density` (0..1) from the start. */
-export type SprintRoad = { seed: number; length: number; density: number };
+export type SprintRoad = { seed: number; length: number; density: number; span: number };
 
 /** A run packed for storage (`Drive.pack`). */
 export type Packed = { car: string; mode: ModeId; drive: object; veh: object; traffic: object; director: object; score: object };
@@ -95,7 +96,7 @@ export class Drive {
     this.veh.launch((START_KMH / 3.6) * FEEL.pace);
     this.traffic = new Traffic(layout.lanes, layout.oncoming);
     // a Sprint plans its rows as far ahead as the car can see at its fastest, so every speed meets the same road
-    const course: Course | undefined = this.sprint ? { seed: this.sprint.seed, density: this.sprint.density, reach: Math.max(320, (this.veh.spec.top ?? 60) * 1.25 * 7) } : undefined;
+    const course: Course | undefined = this.sprint ? { seed: this.sprint.seed, density: this.sprint.density, reach: Math.max(320, (this.veh.spec.top ?? 60) * 1.25 * 7), span: this.sprint.span } : undefined;
     this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: trafficTop(car) / 3.6, rnd: () => this.rnd(), density: o.density ?? 1, course });
     this.director.spare = { lane: Math.min(1, layout.lanes - 1), until: 150 };
     this.place();
@@ -212,7 +213,7 @@ export class Drive {
       const at = (l: number) => (n.oncoming ? oncomingX(L, l) : laneX(L, l)) + (L.oncoming && l === inner ? toward : 0);
       // nobody drives dead centre: each keeps to its own side of its lane and drifts about it, so the line between two
       // lanes is open between some pairs and shut between others, never a lane of its own
-      n.x = at(n.from) + (at(n.lane) - at(n.from)) * crossing(n) + n.side + DRIFT * Math.sin(this.score.time * 0.35 + n.phase);
+      n.x = at(n.from) + (at(n.lane) - at(n.from)) * crossing(n) + n.side + DRIFT * F.sin(this.score.time * 0.35 + n.phase);
     }
   }
 
@@ -278,11 +279,11 @@ export class Drive {
       const nyaw = heading(n, (l) => (n.oncoming ? oncomingX(L, l) : laneX(L, l)));
       const c = collide({ x: v.x, z: v.z, yaw: v.yaw * FEEL.yaw, ...this.outline(this.size) }, { x: n.x, z: n.z, yaw: nyaw, ...this.outline(this.sizeOf(n.kind) ?? { x: n.width, z: n.length }) });
       if (!c) continue;
-      const cy = Math.cos(v.yaw), sy = Math.sin(v.yaw);
-      const me: Rigid = { x: v.x, z: v.z, vx: v.u * sy + v.v * cy, vz: v.u * cy - v.v * sy, r: v.r, m: v.spec.mass, I: (v.spec.mass * (this.size.z ** 2 + this.size.x ** 2)) / 12 };
+      const cy = F.cos(v.yaw), sy = F.sin(v.yaw);
+      const me: Rigid = { x: v.x, z: v.z, vx: v.u * sy + v.v * cy, vz: v.u * cy - v.v * sy, r: v.r, m: v.spec.mass, I: (v.spec.mass * (this.size.z * this.size.z + this.size.x * this.size.x)) / 12 };
       const nm = TRAFFIC.find((t) => t.id === n.kind)?.heavy ? 5500 : 1400;
       const nvz = n.hit ? n.v * (n.oncoming ? -1 : 1) : n.oncoming ? -n.v : n.v;
-      const them: Rigid = { x: n.x, z: n.z, vx: n.hit?.vx ?? 0, vz: nvz, r: n.hit?.r ?? 0, m: nm, I: (nm * (n.length ** 2 + n.width ** 2)) / 12 };
+      const them: Rigid = { x: n.x, z: n.z, vx: n.hit?.vx ?? 0, vz: nvz, r: n.hit?.r ?? 0, m: nm, I: (nm * (n.length * n.length + n.width * n.width)) / 12 };
       const closing = Math.abs((me.vx - them.vx) * c.nx + (me.vz - them.vz) * c.nz) * 3.6;
       const j = resolve(me, them, c);
       v.x = me.x; v.z = me.z; v.r = me.r;

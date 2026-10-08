@@ -7,6 +7,7 @@
 //
 // Positions are in the road frame: z along the road, lane index across it.
 // Oncoming cars (two-way roads) drive toward -z in lanes of their own.
+import * as F from "./fmath.ts";
 
 export type Npc = {
   id: number;
@@ -46,8 +47,8 @@ const DECIDE = 1 / 8;
 /** IDM acceleration for a car at speed v with a gap and closing speed to its leader. */
 export function idm(n: Pick<Npc, "v0" | "T" | "a" | "b">, v: number, gap: number, dv: number) {
   const sStar = S0 + Math.max(0, v * n.T + (v * dv) / (2 * Math.sqrt(n.a * n.b)));
-  const free = 1 - Math.pow(v / Math.max(n.v0, 0.1), 4);
-  return n.a * (free - Math.pow(sStar / Math.max(gap, 0.1), 2));
+  const free = 1 - F.pow(v / Math.max(n.v0, 0.1), 4);
+  return n.a * (free - F.pow(sStar / Math.max(gap, 0.1), 2));
 }
 
 type Body = { z: number; v: number; length: number };
@@ -119,9 +120,9 @@ export class Traffic {
     for (const n of this.cars) {
       if (n.hit) {
         // sliding on locked or scrubbing tyres until it stops
-        const h = n.hit, sp = Math.hypot(h.vx, n.v), f = Math.min(1, (7 * dt) / Math.max(sp, 0.01));
+        const h = n.hit, sp = F.hypot(h.vx, n.v), f = Math.min(1, (7 * dt) / Math.max(sp, 0.01));
         h.vx -= h.vx * f; n.v -= n.v * f;
-        h.r *= Math.exp(-dt * 1.2);
+        h.r *= F.exp(-dt * 1.2);
         n.x += h.vx * dt; n.z += n.v * dt * dirOf(n.oncoming); h.yaw += h.r * dt;
         n.braking = true;
         continue;
@@ -220,5 +221,5 @@ export function crossing(n: Npc) { const t = n.t; return t * t * (3 - 2 * t); }
 export function heading(n: Npc, at: (lane: number) => number) {
   if (n.hit) return n.hit.yaw;
   const dx = n.t < 1 ? ((at(n.lane) - at(n.from)) * 6 * n.t * (1 - n.t)) / CHANGE_TIME : 0;
-  return (n.oncoming ? Math.PI : 0) + Math.atan2(dx, Math.max(n.v, 1));
+  return (n.oncoming ? Math.PI : 0) + F.atan2(dx, Math.max(n.v, 1));
 }

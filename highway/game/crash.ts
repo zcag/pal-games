@@ -8,6 +8,7 @@
 // 0.35 m each side narrower than the widest point, so two boxes touched
 // where the screen showed a gap. A car without one (the headless scripts)
 // is its box.
+import * as F from "./fmath.ts";
 
 /** A point in a car's own frame: r across (+ right of a car heading +z, which is +x), f along (+ forward), m. */
 export type Pt = [r: number, f: number];
@@ -15,7 +16,7 @@ export type Box = { x: number; z: number; yaw: number; w: number; l: number; hul
 export type Contact = { nx: number; nz: number; depth: number; px: number; pz: number }; // normal from b to a
 
 function axes(b: Box) {
-  const c = Math.cos(b.yaw), s = Math.sin(b.yaw);
+  const c = F.cos(b.yaw), s = F.sin(b.yaw);
   return { fx: s, fz: c, rx: c, rz: -s }; // forward and right unit vectors
 }
 /** The outline in the car's frame: its hull, else the box's corners. */
@@ -26,7 +27,7 @@ function corners(b: Box): [number, number][] {
 }
 /** Each edge's normal: the axes a separating line can lie across. */
 function normals(c: [number, number][]): [number, number][] {
-  return c.map(([x, z], i) => { const [x2, z2] = c[(i + 1) % c.length]; const ex = x2 - x, ez = z2 - z, n = Math.hypot(ex, ez) || 1; return [ez / n, -ex / n] as [number, number]; });
+  return c.map(([x, z], i) => { const [x2, z2] = c[(i + 1) % c.length]; const ex = x2 - x, ez = z2 - z, n = F.hypot(ex, ez) || 1; return [ez / n, -ex / n] as [number, number]; });
 }
 
 /** The contact if the boxes overlap, else null. */
@@ -57,7 +58,7 @@ export function collide(a: Box, b: Box): Contact | null {
 function inside(c: [number, number][], x: number, z: number) {
   let sign = 0;
   for (let i = 0; i < c.length; i++) {
-    const [x1, z1] = c[i], [x2, z2] = c[(i + 1) % c.length], ex = x2 - x1, ez = z2 - z1, n = Math.hypot(ex, ez) || 1;
+    const [x1, z1] = c[i], [x2, z2] = c[(i + 1) % c.length], ex = x2 - x1, ez = z2 - z1, n = F.hypot(ex, ez) || 1;
     const d = (ex * (z - z1) - ez * (x - x1)) / n;
     if (Math.abs(d) <= 0.05) continue;
     if (sign && Math.sign(d) !== sign) return false;
@@ -114,7 +115,7 @@ export function resolve(a: Rigid, b: Rigid, c: Contact, e = 0.15, mu = 0.35) {
   apply(a, c.nx * j, c.nz * j, rax, raz);
   apply(b, -c.nx * j, -c.nz * j, rbx, rbz);
   // friction along the contact, capped by Coulomb
-  const tx = rvx - vn * c.nx, tz = rvz - vn * c.nz, tl = Math.hypot(tx, tz);
+  const tx = rvx - vn * c.nx, tz = rvz - vn * c.nz, tl = F.hypot(tx, tz);
   if (tl > 1e-4) {
     const ux = tx / tl, uz = tz / tl;
     const rat = cross(rax, raz, ux, uz), rbt = cross(rbx, rbz, ux, uz);
