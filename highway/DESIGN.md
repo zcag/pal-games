@@ -244,13 +244,13 @@ map was built on them.
   60 s clock), so the stars would have measured a skill no person has.
 - **Stars are margins over a searched best, driven at a person's pace.**
   `scripts/sprint.ts` plays a beam of runs headless, choosing where across
-  the road to steer for (half-lane steps) and gas or brake, colliding as the
-  game's outlines (`surface/cars/hulls.json`), and keeps the best of each
-  kind of place to be; it knows the road as someone who has learned it
-  does, driving the region's first car stock. It chooses at a person's pace
-  (`HUMAN` in `game/bestrun.ts`): 2.5 times a second, each choice felt
-  0.15 s late, at most a lane's width each; of equal choices it keeps its
-  lane (it once drifted to the rail, where every slot scored the same).
+  a player's keys (a tap of left or right, or neither, and gas or brake),
+  colliding as the game's outlines (`surface/cars/hulls.json`), and keeps
+  the best of each kind of place to be; it knows the road as someone who
+  has learned it does, driving the region's first car stock. It chooses at
+  a person's pace (`HUMAN` in `game/bestrun.ts`): every 0.6 s, each choice
+  felt 0.25 s late, a key held 0.2, 0.4 or 0.6 s; of equal choices it
+  takes no key.
   Three stars are that time +2%, two +6% (the road learned), one +15% (a
   good first try), each rounded up to the tenth. Three began at +0%, rounded down: on First Light
   (nothing to slow for, so every flat-out run is within hundredths of the
@@ -265,6 +265,20 @@ map was built on them.
     75-81 s; two slots every 0.4 s, 0.15 s late, drove 64.61, so that best
     is three stars a quarter second under the player's. A wider beam found
     the same times.
+  - It first chose where across the road to be (0.9 m apart) and steered
+    there with an analogue wheel, each step's lock worked out to arrive
+    without overshoot. Watched, that was a machine too: dead straight, then
+    small exact corrections onto each pass. A keyboard has full lock or
+    none, so it now drives a player's keys through the same driver aid,
+    lands between lanes as a person does, and corrects with taps. Keys
+    made it faster, not slower (the driver aid's slides are quick): at 0.4 s
+    choices with 0.1 s taps Dry Run went 64.78 to 62.1, three stars beyond
+    the player's 64.85. Paces from 0.4 to 0.6 s drove Dry Run 61.4-65.9 and
+    Commuters 51.0-51.9 (noisy, not monotone); 0.6 s, 0.25 s late, taps of
+    0.2/0.4/0.6 s gave 65.92 and 51.02, the old search's standing against
+    his three roads.
+    At that pace three dense roads (Big Block, Convoy, The Storm) found no
+    finish with the usual beam of 30, every run in it crashing; 120 did.
   - Behaviour was tried before margin, against the same player's three
     roads (First Light 55.01, Commuters 53.46, Dry Run 64.85; the search
     54.99, 51.02, 64.78). His gap to it is the near-miss surge: on

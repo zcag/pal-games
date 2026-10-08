@@ -422,7 +422,7 @@ function startWatching(sp: Sprint) {
   if (w.choices) {
     run!.drive = bestDrive(sp, hullsNow, events);
     run!.settle();
-    w.next = chooser(sp, run!.drive, decode(w.choices), HUMAN);
+    w.next = chooser(run!.drive, decode(w.choices), HUMAN);
   } else if (w.tape) {
     const t = unpackTape(w.tape.tape);
     let j = 0, cur: Input = { throttle: 0, brake: 0, steer: 0 };

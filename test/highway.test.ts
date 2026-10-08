@@ -395,7 +395,7 @@ describe("replays", () => {
   test("a Sprint's best run, as shipped, finishes in its best time", () => {
     const runs = best as Record<string, string>, s = SPRINTS.find((x) => runs[x.id])!;
     expect(decode(runs[s.id]).map((c) => encode([c])).join("")).toBe(runs[s.id]);
-    const d = bestDrive(s, hullsOf), next = chooser(s, d, decode(runs[s.id]), HUMAN);
+    const d = bestDrive(s, hullsOf), next = chooser(d, decode(runs[s.id]), HUMAN);
     for (let i = 0; i < 120 * 120 && !d.over; i++) d.step(1 / 120, next());
     expect(d.ended).toBe("line");
     expect(+d.score.time.toFixed(2)).toBe(s.best!);

@@ -1,7 +1,7 @@
 // The best time on each Sprint's road (game/sprint.ts), found by search: a
 // beam of runs played headless (game/drive.ts at 1/120 s), each choosing every
-// quarter second, a player's pace, where across the road to steer for (in
-// half-lane steps: as finely as a player places a car) and gas, lift or brake.
+// turn of a player's pace (game/bestrun.ts) the keys a player has: a tap of
+// left or right, or neither, and gas or brake.
 // The road is fixed, so it knows the road the way someone who has learned it
 // does. Cars collide as the outlines the game draws them with (hulls.json,
 // taken from the page's models), so a pass that is fine on screen is fine
@@ -26,51 +26,47 @@ import { Worker, isMainThread, parentPort } from "node:worker_threads";
 import { createHash } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { Drive } from "../game/drive.ts";
-import { bestDrive as drive, slotsOf, inputOf, chooser, encode, stepsOf, PEDALS, DT, HUMAN, TAS, type Choice, type Hulls, type Pace } from "../game/bestrun.ts";
+import { bestDrive as drive, chooser, encode, inputAt, keysOf, turnOf, stepsOf, PEDALS, DT, HUMAN, TAS, type Choice, type Hulls, type Pace } from "../game/bestrun.ts";
 import hulls from "../surface/cars/hulls.json";
 import { CARS, CLASSES, FEEL, TRAFFIC, spec, trafficTop } from "../game/content.ts";
 import { SPRINTS, starTimes, GHOST_DT, type Sprint, type Ghost } from "../game/sprint.ts";
 
-// a choice is game/bestrun.ts's: where across (slots GRID apart, at most the pace's `moves` from the last) and gas or
-// brake, every `every` s of the pace, felt `delay` s late
+// a choice is game/bestrun.ts's: a steering key held for a tap, or none, and gas or brake, every `every` s of the
+// pace, felt `delay` s late
 const bestDrive = (s: Sprint) => drive(s, hulls as unknown as Hulls);
 
 /** The choices that led to a run: this one and the ones before it. */
-type Path = { up: Path | null; slot: number; pedal: number };
-type Node = { d: Drive; slot: number; value: number; path: Path | null };
+type Path = Choice & { up: Path | null };
+type Node = { d: Drive; value: number; path: Path | null };
 
-/** Search one Sprint at a step size: the choices of the best run found, or null. */
-/** A turn's choices from each run: every move (staying first, so where nothing is gained a run keeps its lane rather
- *  than drift to the rail) and pedal, driven at the pace; the runs that carry on, and those that reached the line. */
-function expand(nodes: Node[], t: { xOf: (i: number) => number; last: number; every: number; late: number; start: Choice; moves: number[] }) {
+/** A turn's choices from each run: every key (none first, so where nothing is gained a run keeps going straight rather
+ *  than wander) and pedal, driven at the pace; the runs that carry on, and those that reached the line. */
+function expand(nodes: Node[], t: ReturnType<typeof turnOf>, keys: number) {
   const kids: Node[] = [], done: { time: number; path: Path }[] = [];
   for (const n of nodes) {
-    for (const m of t.moves) {
-      const slot = n.slot + m;
-      if (slot < 0 || slot > t.last) continue;
+    for (let key = 0; key < keys; key++) {
       for (let p = 0; p < PEDALS.length; p++) {
-        const d = n.d.clone(), prev = n.path ?? t.start;
-        // the turn's choice is felt `late` steps in: the last one holds till then (game/bestrun.ts's chooser)
-        // a pass closer than the pace's nerve allows is as good as a crash: a person would not have gone there
-        for (let i = 0; i < t.every && !d.over; i++) d.step(DT, inputOf(d, t.xOf, i < t.late ? prev : { slot, pedal: p }));
+        const d = n.d.clone(), cur = { key, pedal: p };
+        // the turn's choice is felt `late` steps in: the last one holds till then (game/bestrun.ts's inputAt)
+        for (let i = 0; i < t.every && !d.over; i++) d.step(DT, inputAt(t, n.path, cur, i));
         if (d.ended === "crash") continue;
-        const path: Path = { up: n.path, slot, pedal: p };
+        const path: Path = { up: n.path, key, pedal: p };
         if (d.ended === "line") { done.push({ time: d.score.time, path }); continue; }
         // how far it got, and what it carries on with: its speed and the combo's surge
-        kids.push({ d, slot, value: d.score.distance + (d.veh.u / FEEL.pace) * 0.8 + d.surge * 0.6, path });
+        kids.push({ d, value: d.score.distance + (d.veh.u / FEEL.pace) * 0.8 + d.surge * 0.6, path });
       }
     }
   }
   return { kids, done };
 }
 
-/** The best of each kind of place to be (where across, how fast), then the best overall: a beam that keeps its
+/** The best of each kind of place to be (where across, which way it is moving, how fast), then the best overall: a beam that keeps its
  *  options rather than every run in the same spot. A stable sort: of equals, the first tried (the one that stayed). */
 function prune(kids: Node[], beam: number) {
   kids.sort((a, b) => b.value - a.value);
   const seen = new Map<string, number>(), out: Node[] = [];
   for (const k of kids) {
-    const key = `${Math.round(k.d.veh.x / 1.8)}/${Math.round(k.d.kmh / 12)}`;
+    const v = k.d.veh, key = `${Math.round(v.x / 1.8)}/${Math.round((v.u * Math.sin(v.yaw) + v.v * Math.cos(v.yaw)) / 2)}/${Math.round(k.d.kmh / 12)}`;
     if ((seen.get(key) ?? 0) >= 3) continue;
     seen.set(key, (seen.get(key) ?? 0) + 1);
     out.push(k);
@@ -79,23 +75,16 @@ function prune(kids: Node[], beam: number) {
   return out;
 }
 
-/** A road's start at a pace: the car after its rolling start, and what each turn needs. */
-function begin(s: Sprint, pace: Pace) {
-  const d0 = bestDrive(s), { xOf, last, at } = slotsOf(s, d0);
-  while (d0.intro > 0) d0.step(DT, { throttle: 0, brake: 0, steer: 0 }); // the rolling start, as a player gets it
-  const start: Choice = { slot: at(d0.veh.x), pedal: 0 };
-  const moves = [0, ...Array.from({ length: pace.moves }, (_, i) => [-(i + 1), i + 1]).flat()];
-  return { d0, start, turn: { xOf, last, every: stepsOf(pace.every), late: stepsOf(pace.delay), start, moves } };
-}
-const choicesOf = (path: Path | null) => { const c: Choice[] = []; for (let p = path; p; p = p.up) c.unshift({ slot: p.slot, pedal: p.pedal }); return c; };
+const choicesOf = (path: Path | null) => { const c: Choice[] = []; for (let p = path; p; p = p.up) c.unshift({ key: p.key, pedal: p.pedal }); return c; };
 
 /** Search one Sprint: the choices of the best run found, or null. */
 function search(s: Sprint, beam: number, pace: Pace) {
-  const { d0, start, turn } = begin(s, pace);
-  let nodes: Node[] = [{ d: d0, slot: start.slot, value: 0, path: null }];
+  const d0 = bestDrive(s), turn = turnOf(pace), keys = keysOf(pace);
+  while (d0.intro > 0) d0.step(DT, { throttle: 0, brake: 0, steer: 0 }); // the rolling start, as a player gets it
+  let nodes: Node[] = [{ d: d0, value: 0, path: null }];
   let best: { time: number; path: Path | null } | null = null;
   for (let round = 0; nodes.length && round < 4000; round++) {
-    const { kids, done } = expand(nodes, turn);
+    const { kids, done } = expand(nodes, turn, keys);
     for (const f of done) if (!best || f.time < best.time) best = f;
     nodes = prune(kids, beam);
     // once a run has finished, the rest are only worth carrying while they could still beat it
@@ -106,7 +95,7 @@ function search(s: Sprint, beam: number, pace: Pace) {
 
 /** Drive a run's choices at its pace, as the page does: its time and its line (a duel's rival drives it). */
 function replay(s: Sprint, choices: Choice[], pace: Pace) {
-  const d = bestDrive(s), next = chooser(s, d, choices, pace);
+  const d = bestDrive(s), next = chooser(d, choices, pace);
   while (d.intro > 0) d.step(DT, next());
   const z0 = d.veh.z, ghost: Ghost = { x: [], z: [], yaw: [], time: 0 };
   for (let n = 0; n < choices.length * stepsOf(pace.every) + stepsOf(pace.delay) && !d.over; n++) {
@@ -157,10 +146,11 @@ if (!isMainThread) {
   const opt = (k: string, def: string) => { const i = args.indexOf(k); return i >= 0 ? args.splice(i, 2)[1] : def; };
   const flag = (k: string) => { const i = args.indexOf(k); if (i >= 0) args.splice(i, 1); return i >= 0; };
   const beam = +opt("--beam", "30"), region = opt("--region", ""), workers = +opt("--workers", "11"), all = flag("--all");
-  // the pace searched at: HUMAN's, the machine's (--pace tas, to compare), or one being tuned (--every/--delay/--moves);
+  // the pace searched at: HUMAN's, the machine's (--pace tas, to compare), or one being tuned (--every/--delay/--taps,
+  // the taps comma-separated);
   // --try prints a pace's results and keeps nothing (the cache and the rivals are HUMAN's)
   const base = opt("--pace", "human") === "tas" ? TAS : HUMAN;
-  const pace: Pace = { every: +opt("--every", String(base.every)), delay: +opt("--delay", String(base.delay)), moves: +opt("--moves", String(base.moves)) };
+  const pace: Pace = { every: +opt("--every", String(base.every)), delay: +opt("--delay", String(base.delay)), taps: opt("--taps", base.taps.join(",")).split(",").map(Number) };
   const trying = flag("--try") || JSON.stringify(pace) !== JSON.stringify(HUMAN);
   if (flag("--write")) { await write(); process.exit(0); }
   const cache = readCache();

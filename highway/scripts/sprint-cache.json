@@ -1,252 +1,252 @@
 {
  "first-light": {
-  "key": "c55887739599b2ef",
-  "best": 54.99,
-  "choices": "aaaaaaaa86aeimmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmkkkkmmmkkmkkkmmkkkmmkkkkkkmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmommmmkgeeeeecceeeeeeeeeccccccccccc"
+  "key": "1da547ab1b0d9282",
+  "best": 55.32,
+  "choices": "000000466200000280020004200000040024440624024000024200402040204002420288002424020042040000000"
  },
  "farm-road": {
-  "key": "d19dce8b1d2c478a",
-  "best": 55,
-  "choices": "cgkmmmooooookkkkkmmmmmmmmmmmmkmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmkkkkkkkkkkkmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+  "key": "e0dbe11ce735d374",
+  "best": 54.99,
+  "choices": "044a00000004020840200000042402a0000040400020000000600000000000424800062000000000004020000400"
  },
  "commuters": {
-  "key": "2b0682bdc6aa3c7e",
+  "key": "bd22072902cee693",
   "best": 51.02,
-  "choices": "aeeeeeimokkkkkkmmmmmmkgecccccccaegggggggecgeeecgggeeeeeeeeimmkkkmkgeeeegeeeeimkkmmmmmmmmmmmmmmmmooomkmmmmmmmmmmmmmmkmmmmmmmkmmmm"
+  "choices": "020024800000000000000a0200200420420c00200060840a40842c0a222820020042004200004000204000"
  },
  "old-road": {
-  "key": "709715bea0d2a144",
-  "best": 51.13,
-  "choices": "aacceea86666666666666666666668666666666466666666668ceec846666668ceeeccca66666666666666666666666668666666666666666666646aeiiigcee"
+  "key": "71677ed30954995d",
+  "best": 51.24,
+  "choices": "0206008000000000000022242280820400a408404006400464242004824a20004464200c00400066208200"
  },
  "three-lanes": {
-  "key": "49663118669fe4cc",
-  "best": 60.39,
-  "choices": "aaeec8444488888888444664444466666666666488666666666666666666666466464666466448ceeeeeeeeeeececgeeceeeeeeeeeeeeeeceeeeeecceeceeeeeeeeccccec84666444646666"
+  "key": "551247dadf7aac13",
+  "best": 60.41,
+  "choices": "04000000000040240022640808ac264400000024240a824c628ac6642ca208ac2000000002c0004a04200004020860c024200"
  },
  "squeeze": {
-  "key": "3086df9696efd354",
-  "best": 61.22,
-  "choices": "86aeeeeccccceeeeeeeeeeeeeeeeeegceeeeeecggggeeeeeeeeeeec866aeeeeeeeeeeeeegeccecccceeeegeeeeecgeeeeec84866664486666666468cec844668466666666aeeeeeeeeeeceeccc"
+  "key": "ff754937ea86ad90",
+  "best": 60.32,
+  "choices": "46c60006248000420400282200000024024a08462840002042042400024000a82000c00240004a42c2062420c66424200c020"
  },
  "hedgerows": {
-  "key": "811d5f52cc3ba8fb",
-  "best": 69.67,
-  "choices": "aaaegeimqqqqqqqqqqmkkkkkkkkkkkkkkkkmkgeeeeeccccecceeeeeeeimmmmkmmmmmmmkkgeeeimmmmmmkmoookmmmmmmmmkmmmmmmmmmkkmkkkmmkkkooookkmmmmmkmmmmmmmmmmmmkgcceeeeeeecceec84446444466666644"
+  "key": "e3dcd8a0bf7d67e7",
+  "best": 70.6,
+  "choices": "06420c00260220000000000008864044a602800c4046604ca20004202c0a2000000240080268064020040008026422880800060046484626002400"
  },
  "last-light": {
-  "key": "6323c5625f49aa86",
-  "best": 64.92,
-  "choices": "eeeec86666666666666666666446488886666aeeeeec86664464484666646666aeeeceeeeeceeeeeeeeeceeeeceeeeec84886666aeeccceeeeceeeeccec866666aeeeceeec84666aeeeeeeeeeeeeeeceeee"
+  "key": "60b37421fe852fce",
+  "best": 64.63,
+  "choices": "6ca000000000000240282464000008004246200008420600ca200000000000806080602c00ac86424624440a800002400000c6006002"
  },
  "heat-haze": {
-  "key": "0ba70fb52a29cd3d",
-  "best": 56.59,
-  "choices": "886666666aeimmmmmmmmmmmmmmmkkkookgccceeceeeeececeeeeeeeeeeeceeeeccccecceeeec8466646646448444646aeeeeeeeceeeeeeceeeeeimmkkkkmkkgegeeecgeeeeeeee"
+  "key": "8f6913ad2ff9e5d1",
+  "best": 57.09,
+  "choices": "28604400000000060080000006420282ca20004442402640a88a802424806000442400008a2424c0a468086828000000"
  },
  "dry-run": {
-  "key": "79fb08896e140ed1",
-  "best": 64.78,
-  "choices": "a8666666666666666666aeeecgggceggceeeceeeeegcceeeeceeceeceeeeeeecececeeeec8666aecgceeeeeeeeceeeeecgeeeeeceeceeeeeecceeecc8466466648464666648466aec864846666aececcee"
+  "key": "3997e200f622e648",
+  "best": 65.92,
+  "choices": "28000000a00400c6462800a082008064242864826806c6642080228600000000042822000000402802400060800026c646080600860000"
  },
  "long-haul": {
-  "key": "ee706d4d34e27c07",
-  "best": 80.36,
-  "choices": "aaeeeeec844444444444446666666666aeeeeecceeccecc84446666666666666666644444466666446666666666666664444444446aeeeeeeeceeegggggggggeeeeceeceeeeeeeeeeeeeeceeeeeeeeeeecceeeeeeeeeeimmmmmmmmmmmmmmmkgceeeeceeee"
+  "key": "c4ba89dc50986560",
+  "best": 80.33,
+  "choices": "0404ac0004000002000000426000420264c4020040000400020282a6860400000000000002040040000088a824204002420400062048242064002000c08002424a6000"
  },
  "noon-rush": {
-  "key": "dd402e83b9810084",
-  "best": 66.02,
-  "choices": "ceiimmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmkkmmmmmkgceeceecceceeeeimmkkkmkkokgeeeeeccgeimmkmmmmkmokmommmmkgccegeeeceimmmokoommmmmmmkmmkmmmmmmmmkkgcec86226aeecccc"
+  "key": "c1bcc95b4d2d7800",
+  "best": 65.49,
+  "choices": "00a000020c0000240000000020426084a0480220000806284024240024a0c684062224800684406806a8024000240024c424a802804240"
  },
  "overtaker": {
-  "key": "aaf7f65d2ab22e1d",
-  "best": 60.94,
-  "choices": "6666666666666666666666664444666664666666666666666666666666666666666aegggc84666666666666644486868466466666666aeeeeeeeeeeeeccgeeimmmmmmmmmmmmmmmmmmmmmmmmmm"
+  "key": "716fe22b154ec21c",
+  "best": 61,
+  "choices": "4000000000000000402000000000000000000000000006000600000c4260604820602800000044044242062240240200048020"
  },
  "canyon-run": {
-  "key": "38e428439857cb1f",
-  "best": 66.34,
-  "choices": "866666446aeeeeeeeecec8446484688446aegcgggececgecceccececcceecgggeeeceeeeeeceeeceeeeceeaeeeececgceccegcggeeeececeeccececeegcec8466666266648cgggcc84486aeeeeeccec866aeee"
+  "key": "9c9f847769771602",
+  "best": 65.57,
+  "choices": "40000000426080000224204224240824644640280000624042042282002400000002424086082464420684268208a80044000006080020"
  },
  "white-lines": {
-  "key": "f619f2efd063c0ce",
-  "best": 70.62,
-  "choices": "a866666666666644444444468846642664664666666aeeecegceeeaeeceeecceecceggggccgccc866666846666426646aeecgc8466646664866aeeeeca66668466666aeeececa8464666646666664646866866466666aeeee"
+  "key": "3a75c0e323af3d46",
+  "best": 70.95,
+  "choices": "04000000040000aca480648a84060248000000600000422008400246080004268acac6000824006008042000ac46004460080000600082040604200"
  },
  "head-on": {
-  "key": "6676e0955b25ac38",
-  "best": 51.27,
-  "choices": "ceccceeeaa6666666666668884666664884666aeimmmkmmmkkkmmmooommmmmmmmmmmookmmkgeeeegc84666646666666668888484846666646aeeeecca66466666"
+  "key": "debfa0231075ea34",
+  "best": 51.25,
+  "choices": "002004282000000062200400004204204020204000000284204604c6282002200044680004224002400000"
  },
  "big-block": {
-  "key": "884058cbf7d41998",
-  "best": 57.07,
-  "choices": "8466666666aeimmmmmmmmmkkmmmmmmmmmomkmkgcc8448ceimmkkkmkgceeeeegcecgcgccgccceeeeeeimmkmmmkmokkkmkmmmmmmkokkmmkkgcceeceeeecgggeeeimmmkgccceccceee"
+  "key": "0bdc6dc09da34ab2",
+  "best": 57.25,
+  "choices": "40000020400222242000002820846402682c466ca20c0000022000068826caca02228422008826604002400008024020"
  },
  "long-straight": {
-  "key": "8eb5b6ae6d122a01",
-  "best": 81.1,
-  "choices": "848aecccc86644468888466664888446666aeeeeimmkgceeeimmmkmmmkmmkokkmmmkgeeeeeimmkokgcegc8664666aeeeeeeceeeeceeeeeimkokimkkkmmmmkmmmmmmmkmommkmmkokmmmmmmkomkkmmkmmmkkookokgeeeeeeimmmmkmkkimmmmmmkkkkmmkgececc"
+  "key": "805113057b99cb7a",
+  "best": 81.59,
+  "choices": "4022000022200008c60402040622242c22c64a0c02462ca608024000220860248ca80600008a2482866c466000844026c022264800a802428420468600002c4046242640"
  },
  "low-sun": {
-  "key": "8081ac0ff861a8e9",
-  "best": 74.85,
-  "choices": "a8686666666666666664666444846646666aeeeeeeaecec86466848464846aeecec846646aeeceeec846aeecec864664666446464448462248cgeegcec864666484646666646666666664844844648648446aececeeeeeceeeeceececcee"
+  "key": "fbfdf43cde7a882f",
+  "best": 76.18,
+  "choices": "000286860000002084600000826804644000000680068000064468068242406080acac42684aca00ca80006cac64224002424000004a88a8002860c06264800"
  },
  "glare": {
-  "key": "ffe9ab450115369f",
-  "best": 66.67,
-  "choices": "ceikmmmkgcc844446644846666aeeimkkkkooommmmmmmmmmmmmmkmmmkkokmmmmkgeeeeegccccccceecc866446666666666aeeeimmmkmmmmmmmmmmmmkkmkmmmmmmmmmmmmkokkmqokkmmokkkmkmkgeecec8444666"
+  "key": "8f92f6eabab779ef",
+  "best": 67.03,
+  "choices": "0a00000008006088006220460400000004208842046200006042880202600008040406a4420420004242040884a060086086000000806000"
  },
  "sundown": {
-  "key": "9fc8c12768a678e1",
-  "best": 66.63,
-  "choices": "8446666aeeeeeeeeeeeeeeeeceeegggeeeeeecggccecgccec844664666aegceeeecceecgcececceeecececeimmmkmmkmkmmmmkmmmokookkmkmkgeeeecceeeeeeeec848448466aeeaceeeecgkmmkgcecggec8466"
+  "key": "c5759370e35e69ba",
+  "best": 67.05,
+  "choices": "40002208060000000002040060424202c8a688a84000086000000068002244866ca24044624862c402200680026c40002462242484000240"
  },
  "dust": {
-  "key": "34e2d2a0bc8f230c",
-  "best": 61.52,
-  "choices": "cceecceeccccc84886444444444466666666666666aeimqqqqqqqqmmmmkgca666668888448666684686684666484846668486666aeeeeccggkommmmmmkgccccccgcceca6666666666666666666"
+  "key": "42a3922c35df0a78",
+  "best": 61.42,
+  "choices": "024200000006c402402000006460000200004000824004ac46644ac8680000002a4424248226820000284680600002082000200"
  },
  "the-mile": {
-  "key": "1e12131c8ad79ad7",
-  "best": 81.63,
-  "choices": "84466aeeeec8446666644444446446aeecgeceeimmkmkkmmkmkkokmkmkookmmmkmmmmmkgceeeec8464646646aeimkmmmmkmkokmmkmkmmkkmmmkmmkommmmmkmmkkmmkgceeeeecc84466644646666466884466aeeecgceeccecca8486648464644666aeeeeccegg"
+  "key": "5fe4f86c467cd863",
+  "best": 82.34,
+  "choices": "4a204ca04008a0200080006800264828a04c640668008600860028a828002640000806844668068866864ca0006ca4200c644668682c6022008ac0a8468608800000022400"
  },
  "b-road": {
-  "key": "4e17cd0d276d274a",
-  "best": 51.91,
-  "choices": "a6664668ceeeccceeccecccccegccccceimqmmmmkkkmmmmmmmoookgeceeeec84866666aeeeeccegggccc866666664888866666aeaececea6666aeeeeeeeeeceeee"
+  "key": "27e55d0f3206821b",
+  "best": 54.41,
+  "choices": "a40000000402000028400068a8400200000002c20040000220420040406800a40081400ac282240006204804260"
  },
  "drizzle": {
-  "key": "93f8fb9e70d3c458",
-  "best": 68.63,
-  "choices": "86446444448886666664666666666446aeeeeeeecgecceceeceeegcecedggceeec84866aeceggc84444844668846646aeec844646664666666444484856668aececeeeeeeceecec844646446aeccecgggc8466466666"
+  "key": "c420a46b6b636377",
+  "best": 70.98,
+  "choices": "040002420420420000028682200000000000000080006806806806c22682400068000000224404200a820008000460800465cb000000c6000022400"
  },
  "overcast": {
-  "key": "d652140dea105bc9",
-  "best": 63.1,
-  "choices": "eeeecccca8444444484446aeeceeeeeeeeeimmmmmmmokmmkmmnmmkkoookmmkgeeeeceimkgeceeeeeeeeeeeceeececeeceegeimookkokmmmkgcggceaecgeeeeecegceec8446666aegcceecececegcee"
+  "key": "7234b6f4993191c2",
+  "best": 60.85,
+  "choices": "0a408020200824608862644c6a4000c004a4608028668244826200008a8240c6644068680246428220000c20000a4004200820"
  },
  "rush-hour": {
-  "key": "4bdd3a98c858454b",
-  "best": 66.85,
-  "choices": "866666accggggeccceeeeeeimoomkmmmkkmmkgceeimkkkkokgceceeeeeeeececceimkkkmmkkmimokmkgc8466666666466466646668466aeimmmmmmmkkimqokooomkmkkmmkgcegceeimmmkmmkkkokmkkkmkkkkmmm"
+  "key": "62fadff199dd0e3c",
+  "best": 67.79,
+  "choices": "0004000242442202604204020282822868a84424002422044268682440c64a860024c066c02068228206402c6866822424024240c24a24020"
  },
  "convoy": {
-  "key": "5352abf6367a07c5",
-  "best": 80.91,
-  "choices": "a86466666446aeeeeceececeeecccccggc8468666aegcaegeceeaec8488846aeeececggcecedggc846666664666aeeecececcccececeeeececccegcecfecfcceegeceeeeeceeeeecccceeeccgecgcceccceeeeeececececeecea8448cgeeececeeceeececgg"
+  "key": "48cea72fecedda68",
+  "best": 82.88,
+  "choices": "06c200682020824224002004200420480628608608640028228ac00642800022000000008a80240422424806800002208600240002404201086080602444642028644402460"
  },
  "fog-line": {
-  "key": "c851b388d8aef066",
-  "best": 61.69,
-  "choices": "eeeeeeea666666666646664466666666666666666aeeegc846666666648666668666666aeceggggkokmmmmmmmkkkgccc86666666666666666666aeeceeec84484644888666aeccc866488888866"
+  "key": "d6c3bdad11c9f4f8",
+  "best": 61.5,
+  "choices": "200040460420080024a000000ca208220c22040000000000006004648060020c000240024622484242446082000004622000800"
  },
  "motorway": {
-  "key": "4645c3f1f48997b7",
-  "best": 70.33,
-  "choices": "a86666666accccccccccceecaeeeeimmmmkgccegeceeceeeeimkmmmmkookmkokmkgccaaeececeeeeceegceimkokimmmkmmkmmmmkgcegc846684666aeimokmkkkmmmkgeceeecceceeeeececgeeimkokmmmmokomkgececgeii"
+  "key": "fbce46d0253fcfb0",
+  "best": 70.03,
+  "choices": "0a4c0000a0800080240262008446006868062424000c2006282806602400086000000c00a4880644200062240094646862c68a086c00006068800"
  },
  "grand-tour": {
-  "key": "1c4a74be5da312e8",
-  "best": 82.69,
-  "choices": "666648864646666444444468488444464646446444266246666aeeceimmkmmmmkmmokkmkmmmimmkkmkmmkokmmkmkmmmmkmokgceeeecceeeceaeaececgceceegcececgkmmomkmmmmmmmmmmmkkimmmiimmmmmmmkooookgcggkmmmmmmmmmkgcceeceedeimmmmmmkmkk"
+  "key": "01c0b1f4c5d771b5",
+  "best": 82.2,
+  "choices": "04a8000082400002642020042868246c00620084a400000000420caca46c6680060800688a80086006ca24240464422c200406464204286000442c0620228600042c46224"
  },
  "neon": {
-  "key": "dfdbe187344e5cc2",
-  "best": 57.64,
-  "choices": "aaeeeeeceeeeeeeeeeeceeeeeec846666aeeeeeeceeegceceeec856226466666666666aecgceceimmmkmmmmmmmmmmmkgcgececgceimmkgcgceimmmmmmkgceec844466666646664444"
+  "key": "a8104b35517fbb89",
+  "best": 56.56,
+  "choices": "40a00000040824620282208000446ca46808606c000002404668820a0420c00ac46202c0004066428642c0000064000"
  },
  "midnight": {
-  "key": "102d24c235019ee3",
-  "best": 63.41,
-  "choices": "a866666aeeeeeeeeeeeeeeegcggggggceeeeeeecgeeeceeceececggeeeecgggcc8466666666646666684866aec86846646466aeceeac866648464666666466aeeceeceeeeecgecgcec8466666666466"
+  "key": "fea4e6058af9a18d",
+  "best": 67.18,
+  "choices": "0042020024280006806444608000001680680680642806820400007800000640040200000240000000000000240000042086000080000160"
  },
  "slipstream": {
-  "key": "709b4e5a5669308b",
-  "best": 70.21,
-  "choices": "eeccccgimmmmmmkgececcecceeeccgeeeecccceeeeaegeimmmkookkmkokkmkkgcceeeeeimmmkmmkokmmkomkokmkokomkmokmkmimkmmkmlgceceimkmkokgcececeeimmmmmmkmmmmkgcececeeceeeeeececec846aeimmmkkkk"
+  "key": "a7e2abb183c17a46",
+  "best": 75.04,
+  "choices": "ac00420000242244800a0404020246868086608220440446860080600087642080000a82c04ac00068a80640084a446846c64a088a86c00686004a82428800"
  },
  "high-beams": {
-  "key": "94639eb2e8c21101",
-  "best": 51.49,
-  "choices": "eecccggggggggkooommmmmmmmommmmmiea62662668666646664668cccceecccggimmiea6686666666666666664888666646666666664666688888446666666666"
+  "key": "140267d878cf85d1",
+  "best": 54.41,
+  "choices": "00020284a02400002c00062c224a040bc4000024000000620402402424204868204000000000420020024400000"
  },
  "tunnel-vision": {
-  "key": "9303ae3bca9b7654",
-  "best": 74.13,
-  "choices": "6668ceeeegceeeieecggggggcggggeeeceeeeeeeeea62684666aeecec8486aeeeeceeececgeeeecgceeeaeeeeeeeeeea66684664666aeecgeeegceeeeec846846646644466666666aeeeegcecegcecggggcececeefeecgcgeeeceeeecc"
+  "key": "f148dc9ffa599079",
+  "best": 77.53,
+  "choices": "000044a4806000004228a820008246082460000860000000860000820000000000000000006842000006868602804060082064086428000604086000008a808200"
  },
  "red-lights": {
-  "key": "9e03570cc8d91093",
-  "best": 67.3,
-  "choices": "a666aeimmkkmmmmmmmmkmkmmmmmkmmmmkmmkgceeeeeeeimmmmkmmkookmmmmmmmmmmmmmmmmmkmokmmmmmmmkmmmmkmmokmmmmmmmmmmkmmmmmmmkmkmmkgcegceeeeaaaeeecceeceececceeeeceeeimqokmokmmmkmmmm"
+  "key": "abeefb2a3e64e430",
+  "best": 67.54,
+  "choices": "0000600842040644a88000a0822c22644240006408208a0c620000006428680680000042000024202c242026c64026c00a0042800006c0822"
  },
  "graveyard": {
-  "key": "14d7ea273aaa296b",
-  "best": 61.22,
-  "choices": "aeeeeeggcc844446666666666666668cea666664646aeeea66aeimmmmmmmmmiea66866666aa664466666668486666aeeegccecc866666666666666666666aegceccgggggimmmmmieaeeeea6666"
+  "key": "2cf5aa3e25461925",
+  "best": 62.02,
+  "choices": "006048a080400020400204ac2000846400068040ac0000620086c202400046064002c00000000000000000022000020000086000"
  },
  "all-night": {
-  "key": "f9a7cb7a6fb38465",
-  "best": 82.79,
-  "choices": "aeeeimmmmkkmmkkkokgecceeeeimkmmmkkmkgeecgceeeeeeec8426666648666648a6464666644646466aeecgkmkmmkgcegceeeeceeeec846aeeeeceaeeeeeceimkmkookmkmmmmmmmmmmmmmmmkgeceeeeccgcegeimmmmmkmmmmkmmkmmkmkokokkmmmmmmmmkoookkk"
+  "key": "5601f5923e431711",
+  "best": 82.95,
+  "choices": "00000608608246048682600404462c640006284006820600002400000000020040000000000cac2002422200240000002400000000000800680000866c00026442460868000"
  },
  "duel-ines": {
-  "key": "c3ac1446fbd9e5f8",
-  "best": 69.67,
-  "choices": "aaaaaeeimmmmmmmmmmmmmmmmmmmmmmmmmmkkkkkkmooomkoooookmmmmmmmmmmkgeeeceeeeeeeeeeeeeimmmmmmmommmmmmmmmmmmmmmmmmmmkmmmmkmmmiimmmmkkkmkkgecgeccccceeeeeeeeeeeeeeegkookkmmmkkmmmmmmmm"
+  "key": "9ce38741f2ebc711",
+  "best": 69.78,
+  "choices": "0660040020000040020000040002c0a00480806000240a820c00246242424242480000a044640c0024a0c86640a80242042402424204024024200"
  },
  "duel-mika": {
-  "key": "a90e2f099c7bb262",
-  "best": 72.43,
-  "choices": "ceeeeeeeeimmmmmmkkgeacggimmmkkkgeeimmkkkkkkkmmkmkgeecec844448aeceeececeegceceeeeeec86446aeccgecceceimmmkookgceeceeeeeeceeeeeec866666666aeeeeeccccccggeceeeeeeeimkmoookmmmmkkmkkkmmkkkk"
+  "key": "19d3a73bc1b56447",
+  "best": 71.12,
+  "choices": "2800600026400c6206404c0240024066042004640000c60866000884264404200000642c66806000000000004206428800600008a20042042400000"
  },
  "duel-rook": {
-  "key": "8b7aca47d19d1261",
-  "best": 75.09,
-  "choices": "8446466aeeimmmkkmmmmmkgc84446444666aeeceecgceeccececeeimmmmmmmimookmookkmmmmmmmmmmmmokgceeeeccc8444886446664466646448466488646464846aeeccggggkoookkmmmmmkgceeeeeececgccggeeeegccec8444844888"
+  "key": "6527ee6094569454",
+  "best": 72.08,
+  "choices": "400066004886260ca020486242c6ca688a288680004a2860024000c42200ac2404042acac0282ac00864ac2006420000c46000042444200060c606400"
  },
  "afterburn": {
-  "key": "90a8dd4447ec4bf8",
-  "best": 67.87,
-  "choices": "aeeccegimmmmmkkmmmokgceeeccgc8466648466644646466aeeeeeeimkokokmkomkmmmkmkokmmkgceeceeeeceecceeec846aeceeeegimmmmmmmmmkmmmkmokmkmmmmmimmmmmmmmmmmmmmmmkgceeeecgggcec8484666"
+  "key": "ea8814f1006df772",
+  "best": 68.09,
+  "choices": "00a40880240600006828a042c00000002200000068000044664002844a08000042000028a4c2a82c66000000000000860000280224482ac400"
  },
  "duel-vega": {
-  "key": "d5aec4bb2f52a102",
-  "best": 76.7,
-  "choices": "aeimmkmmkgccecgimmmmmkkkkgecgeceimkmmkmmmmkmmmmkmmmkmmmkokokokmmkonkmokkmmmmmkmmkmokmmomigeeeimmieeeimkommmikmmkoommkmkokmmmmkookmokmmkommmkmkmkmkgcgecgkokmkgceggceceimmkmmmmigcgceeceecgceecee"
+  "key": "b97a251d82e8aaf9",
+  "best": 76.21,
+  "choices": "04262080002244826282460802282220408400a40286800000860006806840680006424ca46806420080642800680000640280642086080080006686ca286800"
  },
  "duel-kaz": {
-  "key": "264405262db52738",
-  "best": 71.57,
-  "choices": "ec86648cgeikmkmmmkkkkmmmmmmmomkgc84466468cgceeeeeeecgceeaeeceeeeeimmmmmmkmmmmmmmmmmmmmmokmmmkmmmmmmkmmmmkgceeccc86466648a6464666666666644846aeeeeimmmkmmkmmmmmkgceimokkmmmmmmkmmmmm"
+  "key": "1afe16a16ae16eb0",
+  "best": 73.19,
+  "choices": "004246200820044a402402806400000001c6686028604c222642402860048600000444a080008a44004400000006424868a800820046008aca80068000"
  },
  "legend-harvest": {
-  "key": "ebfe75edf386225e",
-  "best": 70.2,
-  "choices": "aeec866666888666aeeeeeeeeeeeeeeeccceeeeecec846664466444666666664448ceeceeeeeeec844846666464864646666666aeeceeeeeeec84466aeeeeeeeeeeeeeeeeeaeceeeeeeeeeeeeeeeeeeeeec8466666466666"
+  "key": "cd6cc86b550f0b60",
+  "best": 69.12,
+  "choices": "028000204026402000000446882000006084020046802242424000000004a4c6020040a88042600046c0a800648208a004200042048000000000"
  },
  "legend-mirage": {
-  "key": "b454a24cb341d35b",
-  "best": 69.8,
-  "choices": "6aecccccccccccccccgccceeecceeeeeeeeeec8666666666662666648666666666686666666666666666666846668cgceeeggggggggggkmmmmkgcaeecc8446666622226666626666aeca6666666666666aegkmmmkgccggg"
+  "key": "a20a6f72356d3250",
+  "best": 73.02,
+  "choices": "020000400004000002860402a00000008202086088002426402020080446600000820000022420c200c06424002000c60024002420000020008260c600"
  },
  "legend-storm": {
-  "key": "f36302300252451f",
-  "best": 72.16,
-  "choices": "ceaeeeeeeccccccccccccceeccccccc8664486aeggkoooommmiigca64666aeeea666666666466466786aeeeea666666666666448866666666686666666666666464484664664668666aeeeaaegkmmkiedeea64666666646446666"
+  "key": "6305fc683a01dd1f",
+  "best": 72.92,
+  "choices": "0a4c0000000000042002446022282248400000680024204240003244240000000224446640c60680000000006c662048000022640000020c4200000000"
  },
  "legend-red-sky": {
-  "key": "ddf9be793fc5782b",
-  "best": 82.97,
-  "choices": "866666488aceeeeeecceeeeaacecgeeeegcgc8446846aeeeeeececeeceeeeeeegceeeeceaececa684666646466aeeec864648aeeeececeegccecgeeeeecgc84846646646aeeeececeec8484627aeeeecgggceggcccea8648cgcceccgeecggecaceeceeceeceigcee"
+  "key": "7b900089bb59373c",
+  "best": 83.43,
+  "choices": "02000080242064846400000042a8000000ca024242486008680462800000022240800042026c64000a8008680000224682000ca2424024824680604244000628042200080000"
  },
  "legend-long-night": {
-  "key": "dca7c72440264e99",
-  "best": 75.53,
-  "choices": "a666666664466646466666aececggcceeeceeeeeceeeeeecec846666844864264674666488446646846844466668466648846646686566446484664464486664666aegc866666646666446664664866666666466aeecec866aeeeeecgeecc"
+  "key": "2ca1ca742cb81575",
+  "best": 80.72,
+  "choices": "00022ca486820686c60204046006040044a8200042000000000680000000000860000000000000000000000000446c628a820000008a8400060002c6020000421000000"
  }
 }
