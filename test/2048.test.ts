@@ -314,8 +314,10 @@ describe("over the wire", () => {
     expect([stored.get(key("best")), stored.get(key("games")), stored.get(key("top"))]).toEqual([20_000, 9, 1024]);
   });
   test("a game's score and highest tile are posted when it ends, and when New game leaves one with a score", async () => {
-    const over = state([2, 4, 2, 4, 4, 2, 4, 2, 2, 4, 2, 4, 4, 2, 4, 4], { score: 300 });
-    expect(finished(over, apply(over, "left", DEFAULTS, first))).toEqual({ score: 308, tile: 8 });
+    // left merges the last row's 4s; the 16 above the cell the new tile lands in leaves no move whether it is a 2 or a 4
+    // (a 4 there once sat under a 4, and one game in ten went on)
+    const over = state([2, 4, 2, 4, 4, 2, 4, 2, 2, 4, 2, 16, 4, 2, 4, 4], { score: 300 });
+    expect(finished(over, apply(over, "left", DEFAULTS, first))).toEqual({ score: 308, tile: 16 });
     const mid = state([2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], { score: 40 });
     expect(finished(mid, apply(mid, "left", DEFAULTS, first))).toBeNull();
     expect(finished(mid, apply(mid, "new", DEFAULTS, first), "new")).toEqual({ score: 40, tile: 2 });
@@ -327,7 +329,7 @@ describe("over the wire", () => {
     const v = (await host.pick("2048", "2048", "view", "left")).view as View;
     expect(v.title).toBe("Game over");
     await host.until(() => posts().length === from + 2, 3000, "the posts");
-    expect(posts().slice(from)).toEqual([{ extension: "2048", board: "score", value: 308 }, { extension: "2048", board: "tile", value: 8 }]);
+    expect(posts().slice(from)).toEqual([{ extension: "2048", board: "score", value: 308 }, { extension: "2048", board: "tile", value: 16 }]);
     expect(v.actions.some((a) => a.id === "signin")).toBe(false);
   });
   test("signed out, game over offers to sign in, and s opens it", async () => {
