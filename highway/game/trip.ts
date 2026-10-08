@@ -3,14 +3,11 @@
 // gives. Pure: everything comes from a save's best times, so nothing open or
 // owned is ever stored and two machines can never disagree.
 import { CARS, CLASSES, type PlayerCar } from "./content.ts";
-import { REGIONS, BOSS_STARS, SPRINTS, sprintsOf, starsFor, rivalTime, type Sprint } from "./sprint.ts";
+import { REGIONS, BOSS_STARS, SPRINTS, sprintsOf, starsFor, rivalTime, carsOfClass, stopsForPlace, type Sprint } from "./sprint.ts";
 
 /** What the trip needs from a save: the best time of each Sprint, s. */
 export type Times = Record<string, number>;
 
-/** Stars in its region that open a class's k-th car (the first comes with the region: the Compact from the start,
- *  the others from the duel before): the second at 8, the third at 16, the fourth at 24. */
-export const CAR_STARS = 8;
 
 export const bossOf = (region: number) => SPRINTS.find((s) => s.region === region && s.boss)!;
 /** The stars a time earns on a Sprint; none before its best time is known. */
@@ -31,15 +28,17 @@ export const regionOfCar = (car: PlayerCar) => {
 };
 /** A car's place in its class: 0 for the first. */
 const placeInClass = (car: PlayerCar) => CARS.indexOf(car) - CARS.findIndex((c) => c.id === classOfRegion(regionOfCar(car)).from);
-/** The stars its region needs for a car (0 for a class's first, which comes with the region). */
-export const starsForCar = (car: PlayerCar) => placeInClass(car) * CAR_STARS;
-/** Whether you have a car: its region is open and its stars there are in. */
-export const hasCar = (car: PlayerCar, times: Times) => regionOpen(regionOfCar(car), times) && starsIn(regionOfCar(car), times) >= starsForCar(car);
+/** The Sprints finished in its region a car needs (0 for a class's first, which comes with the region). */
+export const stopsForCar = (car: PlayerCar) => stopsForPlace(placeInClass(car), carsOfClass(classOfRegion(regionOfCar(car)).id).length);
+/** A region's Sprints you have finished (not its duel or Legend). */
+export const finishedIn = (region: number, times: Times) => sprintsOf(region).filter((s) => !s.boss && !s.legend && times[s.id]).length;
+/** Whether you have a car: its region is open and enough of its Sprints are finished. */
+export const hasCar = (car: PlayerCar, times: Times) => regionOpen(regionOfCar(car), times) && finishedIn(regionOfCar(car), times) >= stopsForCar(car);
 export const carsHad = (times: Times) => CARS.filter((c) => hasCar(c, times));
 /** What a car you do not have yet needs, in words. */
 export function carNeeds(car: PlayerCar): string {
   const r = regionOfCar(car), duel = SPRINTS.find((s) => s.boss?.car === car.id);
-  return duel ? `Beat ${duel.boss!.rival} in ${REGIONS[duel.region].name}` : `${starsForCar(car)} stars in ${REGIONS[r].name}`;
+  return duel ? `Beat ${duel.boss!.rival} in ${REGIONS[duel.region].name}` : `Finish ${stopsForCar(car)} stops in ${REGIONS[r].name}`;
 }
 
 /** Why a stop is closed (null when it is open): its region, the Sprints before it, or the duel's stars. The first
@@ -57,8 +56,12 @@ export function closed(s: Sprint, times: Times): string | null {
 /** The Legend paints you have: every Legend finished gives its own. */
 export const legendPaints = (times: Times) => SPRINTS.filter((s) => s.legend && times[s.id]).map((s) => s.legend!);
 
-/** The stop to play next: the first open one without every star in the furthest open region, else the first open. */
-export function nextStop(times: Times) {
+/** The stop to play next: one open and never driven in the region just driven (`from`: the Legend a duel's three
+ *  stars opened, a stop passed by), else the first open one without every star in the furthest open region, else
+ *  the first. */
+export function nextStop(times: Times, from?: number) {
+  const fresh = from === undefined ? undefined : sprintsOf(from).find((x) => !closed(x, times) && !times[x.id]);
+  if (fresh) return fresh;
   const open = regionsOpen(times);
   for (const r of [...open].reverse()) {
     const s = sprintsOf(r).find((x) => !closed(x, times) && starsOf(x, times) < (x.boss ? 1 : 3) && !(x.boss && won(r, times)));

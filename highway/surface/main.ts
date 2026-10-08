@@ -22,7 +22,7 @@ import { ROLLING_START, type Drive, type End, type Packed } from "../game/drive.
 import { acrossAt, type Input } from "../game/vehicle.ts";
 import { bestDrive, chooser, decode, HUMAN, type Hulls } from "../game/bestrun.ts";
 import { REGIONS, SPRINTS, BOSS_STARS, sprintOf, sprintsOf, starTimes, rivalTime, clock, GHOST_DT, ghostAt, ghostTimeAt, type Ghost, type Sprint } from "../game/sprint.ts";
-import { bossOf, carNeeds, carsHad, legendPaints, closed, nextStop, regionOfCar, regionOpen, starsForCar, starsIn, starsOf, totalStars, type SprintResult } from "../game/trip.ts";
+import { bossOf, carNeeds, carsHad, legendPaints, closed, nextStop, regionOfCar, regionOpen, stopsForCar, starsIn, starsOf, totalStars, type SprintResult } from "../game/trip.ts";
 
 declare const pal: SurfaceKit;
 const $ = (id: string) => document.getElementById(id)!;
@@ -509,10 +509,10 @@ function mapView(): MapView {
     yours: times[sel.id], replays: replaysAt,
   };
 }
-/** The next car a region's stars open, in words: "Kiri '10 at 8 ★"; none when every one is yours. */
+/** The next car a region's Sprints open, in words: "Kiri '10 after 3 stops"; none when every one is yours. */
 function nextCar(region: number) {
-  const car = CARS.find((c) => regionOfCar(c) === region && !has(save, c) && starsForCar(c) > 0);
-  return car && `${car.name} at ${starsForCar(car)} ★`;
+  const car = CARS.find((c) => regionOfCar(c) === region && !has(save, c) && stopsForCar(c) > 0);
+  return car && `${car.name} after ${stopsForCar(car)} stops`;
 }
 const traffic = (d: number) => (d < 0.2 ? "light traffic" : d < 0.45 ? "steady" : d < 0.7 ? "busy" : "packed");
 const factsOf = (s: Sprint) => `${s.layout.oncoming ? "Two-Way" : `${s.layout.lanes} lanes`} · ${(s.length / 1000).toFixed(1)} km · ${traffic(s.density)}`;
@@ -763,7 +763,7 @@ function drawTags() {
     const car = carOf(l.id), b = bayOf(car);
     // short: the sign says it in full for the car looked at
     const duel = SPRINTS.find((x) => x.boss?.car === car.id);
-    const text = b.state === "owned" ? (pickFor(save, regionOfCar(car)) === car ? "★" : "") : `🔒 ${duel ? `Beat ${duel.boss!.rival}` : `${starsForCar(car)} ★`}`;
+    const text = b.state === "owned" ? (pickFor(save, regionOfCar(car)) === car ? "★" : "") : `🔒 ${duel ? `Beat ${duel.boss!.rival}` : `${stopsForCar(car)} stops`}`;
     return text ? `<div class="bay-tag ${b.state}" style="left:${l.x}px;top:${l.y}px">${text}</div>` : "";
   }).join("");
   $("tags").innerHTML = html;
@@ -1018,7 +1018,7 @@ function sprintResults() {
   if (pay.record && recording) { recording.time = time; ghosts[sp.id] = recording; pal.storage.set("ghosts", ghosts).catch((e: unknown) => console.error("highway: ghost", e)); }
   if (pay.record && lastTape && !scene && !trial) { tapes[sp.id] = lastTape; pal.storage.set("tapes", tapes).catch((e: unknown) => console.error("highway: tape", e)); }
   // the map opens on this stop, its new stars landing on its pin, then moves on to the next to play (advance)
-  const ahead = (closed(sp, save.sprints) === null && pay.stars < 3 && !sp.boss ? sp : nextStop(save.sprints)).id;
+  const ahead = (closed(sp, save.sprints) === null && pay.stars < 3 && !sp.boss ? sp : nextStop(save.sprints, sp.region)).id;
   save.stop = sp.id;
   advance = ahead !== sp.id ? ahead : null;
   persist();

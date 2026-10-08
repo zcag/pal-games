@@ -15,7 +15,7 @@ as a view level whose body is the extension's own page (`surface/`, a
   ghost of your best beside you, R tries again at once. A duel is the same
   against a rival; win it for their car and the next region.
 - **The garage**: every car in its bay, the ones not yours yet under covers
-  with what opens them (a region's stars, or its duel). Left and right walk
+  with what opens them (stops finished in a region, or its duel). Left and right walk
   the bays, up and down pick car or paint, Enter makes a car the one its
   region's Sprints are driven in. A car new to you gets a showcase.
 - **Free Drive**: Endless, Two-Way, Time Attack and Speed Trap with any car

@@ -108,6 +108,10 @@ one strong run bought the top car.
   landing on its pin; when the run finished it (three stars, a duel), the
   pick then glides up the road to the next stop. Jumping straight to the
   next one lost where you had been.
+- **The next stop stays in the region while it has one open you have never
+  driven** (the Legend a duel's three stars just opened, a stop passed by),
+  then goes to the furthest region: winning a duel once skipped its Legend
+  for the region it opened.
 - **A first launch drops you on the first stop** with one line: Enter to
   drive. Nothing else is explained until it matters.
 
@@ -135,24 +139,27 @@ one strong run bought the top car.
 
 - **You drive your own car**, any you have of the region's class (the garage
   remembers which, per class; a car new to you takes over).
-- **Stars are set against the class's first car** (the Compact, the Tozzo,
-  the Thunderbolt, the Stinger, the Roadster), as margins over the best time
-  a search finds on that road: +20% (★, a good first try), +9% (★★, the road
-  learned), +3% (★★★, near-perfect). A better car makes them easier. Three
-  stars in the first car stays the hardest way to play.
+- **Stars are set in the car you have on reaching the stop**: the latest of
+  the region's class come by then (`carAt`, `game/sprint.ts`), the duel and
+  the Legend in its last. They were set in the class's first car, and once
+  a player had the region's faster cars every three stars came almost free
+  (a player's Countryside, 2026-10-08: three stars on all nine, one to ten
+  per cent under the best in the Kiri and the Milano, level with it in the
+  Compact). Margins are in "Stars" below.
 
 ### Cars come with the trip
 
 No money, no prices, no upgrades: the trip is linear, so a second economy
 on top of it only blurred it (cash, prices and upgrades were cut on
-2026-10-07). Stars are the one thing earned, and they open everything:
+2026-10-07). Finishing the road is what opens everything:
 
 - **A class's first car comes with its region**: the Compact from the
   start, the others from the duel before (Ines's Tozzo opens High Noon).
-- **Its other cars open by the region's stars**: the second at 8, the third
-  at 16, the fourth at 24 (`CAR_STARS`, `game/trip.ts`). So stars open
-  better cars, a better car makes the region's other stars easier, and those
-  open the next car.
+- **Its other cars open by the region's Sprints finished**, spread over its
+  eight: three cars after 3 and 6, four after 2, 4 and 6 (`stopsForPlace`,
+  `game/sprint.ts`). They opened at 8, 16 and 24 of the region's stars, but
+  then the car a stop is driven in hung on how well you drove the others, so
+  no star time could be set for it; by stops, every stop has its car.
 - **A car new to you gets the garage's showcase**: the room dims, the camera
   flies round it, its cover comes off, its title shows; Enter on a duel's
   results goes straight to it.
@@ -247,10 +254,13 @@ map was built on them.
   a player's keys (a tap of left or right, or neither, and gas or brake),
   colliding as the game's outlines (`surface/cars/hulls.json`), and keeps
   the best of each kind of place to be; it knows the road as someone who
-  has learned it does, driving the region's first car stock. It chooses at
-  a person's pace (`HUMAN` in `game/bestrun.ts`): every 0.6 s, each choice
-  felt 0.25 s late, a key held 0.2, 0.4 or 0.6 s; of equal choices it
-  takes no key.
+  has learned it does, in the car a player has there (`carAt`). It drives as
+  a person does (`HUMAN` in `game/bestrun.ts`): a choice every 0.25 s, felt
+  0.15 s late, a tap meant to be 0.08, 0.12 or 0.18 s that comes out up to
+  30% longer or shorter (fixed by the road and the moment, so it sees where
+  a tap left it and fixes it with the next), and a pass under 0.15 m from a
+  car a gamble it takes only when it pays (it costs up to a quarter metre
+  of road). Of equal choices it takes no key.
   Three stars are that time +2%, two +6% (the road learned), one +15% (a
   good first try), each rounded up to the tenth. Three began at +0%, rounded down: on First Light
   (nothing to slow for, so every flat-out run is within hundredths of the
@@ -277,7 +287,23 @@ map was built on them.
     Commuters 51.0-51.9 (noisy, not monotone); 0.6 s, 0.25 s late, taps of
     0.2/0.4/0.6 s gave 65.92 and 51.02, the old search's standing against
     his three roads.
-    At that pace three dense roads (Big Block, Convoy, The Storm) found no
+  - Watched, that drove like a machine still: it always knew how much to
+    turn and whether a pass would make it. Against the player's saved runs
+    (`scripts/style.ts` re-drives them and a search's, and compares): they
+    tap 70-97 times a minute, most 0.1-0.15 s, a third to a half of them
+    fixing the one before; it tapped 26-63, 0.2-0.4 s. Their passes sit a
+    median 0.27-0.42 m from the car, a tenth to a quarter under 0.1 m; it
+    passed a median 0.03 m off, every pass at the edge since a hair pays as
+    a gap does. They do not pass wider to be sure, so a minimum gap is still
+    wrong; a pass close in is a cost instead. At 0.4 m, even at 1 m of road
+    a pass, it never went under 0.1 m and fell 2-6 s behind them; at 0.15 m
+    and a quarter metre it drives First Light 55.02, Three Lanes 60.37 and
+    Dry Run 64.28 (theirs 55.23, 60.51, 64.85), passes a median 0.24-0.29 m
+    off and taps 61-110 times a minute. Commuters (53.4 against their 51.15)
+    is the road they drive better than every setting tried. Checking that a
+    tap would survive coming out at either end of its range changed
+    nothing, and went.
+    At the 0.6 s pace three dense roads (Big Block, Convoy, The Storm) found no
     finish with the usual beam of 30, every run in it crashing; 120 did.
   - Behaviour was tried before margin, against the same player's three
     roads (First Light 55.01, Commuters 53.46, Dry Run 64.85; the search

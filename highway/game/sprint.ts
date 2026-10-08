@@ -5,17 +5,17 @@
 // scripts/sprint.ts finds on that road: a search that sees the road the way
 // someone who has learned it does, and acts only as often as a player can.
 import type { Layout } from "./layout.ts";
-import { CLASSES } from "./content.ts";
+import { CARS, CLASSES } from "./content.ts";
 
 export type Sprint = {
   id: string; name: string; about: string;
-  car: string; // the car its stars are set on: its region's class's first (you drive any of the class you have)
+  car: string; // the car its stars are set on: the latest of its class you have on reaching it (carAt)
   location: string;
   layout: Layout;
   length: number; // m on the dial
   density: number; // 0..1, the traffic from the first metre
   seed: number;
-  best: number; // s: the best time scripts/sprint.ts found (beam 150); 0 until it has
+  best: number; // s: the best time scripts/sprint.ts found; 0 until it has
   region: number; // 0..4
   /** A region's last Sprint: a duel with a rival, who drives the search's best line (surface/rivals/<id>.json) to
    *  finish in `rivalTime`; beating it opens the next region and gives you the rival's car. */
@@ -35,6 +35,23 @@ export const REGIONS = [
   { id: "night-run", name: "Night Run", place: "night", cls: "super", about: "Headlights only, and the fastest cars there are." },
 ] as const;
 export const BOSS_STARS = 12;
+/** A region's Sprints, before its duel and Legend. */
+export const REGION_STOPS = 8;
+
+/** A class's cars, first to last. */
+export function carsOfClass(cls: string) {
+  const i = CLASSES.findIndex((c) => c.id === cls), from = (k: number) => (k < CLASSES.length ? CARS.findIndex((x) => x.id === CLASSES[k].from) : CARS.length);
+  return CARS.slice(from(i), from(i + 1));
+}
+/** How many of its region's Sprints finished give a class's `place`th car (0, its first, comes with the region): the
+ *  others spread over the Sprints, three cars after 3 and 6, four after 2, 4 and 6. */
+export const stopsForPlace = (place: number, cars: number) => Math.ceil((REGION_STOPS * place) / cars);
+/** The car a region's stop is driven in with `done` of its Sprints finished: the latest of its class come by then. A
+ *  stop's stars are set on it (its Sprints in order before it; every one before its duel and Legend). */
+export function carAt(region: number, done: number) {
+  const cars = carsOfClass(REGIONS[region].cls);
+  return cars.filter((_, p) => stopsForPlace(p, cars.length) <= done).at(-1)!.id;
+}
 
 const FOUR: Layout = { lanes: 4, oncoming: 0, median: 0 }, THREE: Layout = { lanes: 3, oncoming: 0, median: 0 };
 const TWO_WAY: Layout = { lanes: 2, oncoming: 2, median: 0.4 };
@@ -97,58 +114,58 @@ const ROWS: Row[] = [
   [4, "legend-long-night", "The Long Night", "Everything the trip has thrown at you, at once.", 3, 4.2, 1, 5990],
   [4, "duel-kaz", "Kaz", "Kaz is the fastest driver on the road. The last race.", 4, 4.2, 0.9, 5909],
 ];
-/** The best times scripts/sprint.ts found, each on the region's first car, stock (beam 150). */
+/** The best times scripts/sprint.ts found, each in its stop's car (carAt). */
 const BEST: Record<string, number> = {
-  "first-light": 55.32,
-  "three-lanes": 60.41,
-  "commuters": 51.02,
-  "long-haul": 80.33,
-  "farm-road": 54.99,
-  "hedgerows": 70.6,
-  "squeeze": 60.32,
-  "last-light": 64.63,
-  "heat-haze": 57.09,
-  "dry-run": 65.92,
-  "old-road": 51.24,
-  "noon-rush": 65.49,
-  "long-straight": 81.59,
-  "white-lines": 70.95,
-  "overtaker": 61,
-  "glare": 67.03,
-  "big-block": 57.25,
-  "canyon-run": 65.57,
-  "head-on": 51.25,
-  "sundown": 67.05,
-  "the-mile": 82.34,
-  "low-sun": 76.18,
-  "dust": 61.42,
-  "rush-hour": 67.79,
-  "overcast": 60.85,
-  "drizzle": 70.98,
-  "b-road": 54.41,
-  "motorway": 70.03,
-  "grand-tour": 82.2,
-  "convoy": 82.88,
-  "fog-line": 61.5,
-  "slipstream": 75.04,
-  "neon": 56.56,
-  "midnight": 67.18,
-  "high-beams": 54.41,
-  "red-lights": 67.54,
-  "all-night": 82.95,
-  "tunnel-vision": 77.53,
-  "graveyard": 62.02,
-  "afterburn": 68.09,
-  "duel-ines": 69.78,
-  "duel-mika": 71.12,
-  "duel-rook": 72.08,
-  "duel-vega": 76.21,
-  "legend-harvest": 69.12,
-  "legend-mirage": 73.02,
-  "legend-red-sky": 83.43,
-  "legend-storm": 72.92,
-  "legend-long-night": 80.72,
-  "duel-kaz": 73.19,
+  "first-light": 55.02,
+  "three-lanes": 60.37,
+  "commuters": 53.4,
+  "long-haul": 78.28,
+  "farm-road": 53.97,
+  "hedgerows": 67.96,
+  "squeeze": 55.97,
+  "last-light": 59.72,
+  "heat-haze": 58.01,
+  "dry-run": 64.28,
+  "old-road": 50.15,
+  "noon-rush": 63.86,
+  "long-straight": 76.28,
+  "white-lines": 64.22,
+  "overtaker": 56.35,
+  "glare": 61.62,
+  "big-block": 57.48,
+  "canyon-run": 60.64,
+  "head-on": 50.63,
+  "sundown": 65.06,
+  "the-mile": 80.75,
+  "low-sun": 71.87,
+  "dust": 58.35,
+  "rush-hour": 63.54,
+  "overcast": 56.97,
+  "drizzle": 60.43,
+  "b-road": 52.17,
+  "motorway": 62.56,
+  "grand-tour": 78.13,
+  "convoy": 67.27,
+  "fog-line": 56.47,
+  "slipstream": 60.75,
+  "neon": 56.63,
+  "midnight": 61.99,
+  "high-beams": 51.16,
+  "red-lights": 63.44,
+  "all-night": 77.53,
+  "tunnel-vision": 68.74,
+  "graveyard": 56.97,
+  "afterburn": 62.02,
+  "duel-ines": 64.21,
+  "duel-mika": 66.77,
+  "duel-rook": 67.08,
+  "duel-vega": 65.36,
+  "legend-harvest": 63.54,
+  "legend-mirage": 64.54,
+  "legend-red-sky": 70.28,
+  "legend-storm": 64.5,
+  "legend-long-night": 69.19,
+  "duel-kaz": 65.5,
 };
 const RIVALS: Record<string, { rival: string; car: string }> = {
   "duel-ines": { rival: "Ines", car: "tozzo-98" }, "duel-mika": { rival: "Mika", car: "thunderbolt-96" },
@@ -161,8 +178,9 @@ const LEGENDS: Record<string, { paint: string; name: string }> = {
   "legend-long-night": { paint: "#101114", name: "Legend obsidian" },
 };
 
-export const SPRINTS: Sprint[] = ROWS.map(([region, id, name, about, lanes, km, density, seed]) => ({
-  id, name, about, car: CLASSES.find((c) => c.id === REGIONS[region].cls)!.from, location: REGIONS[region].place,
+export const SPRINTS: Sprint[] = ROWS.map(([region, id, name, about, lanes, km, density, seed], i) => ({
+  id, name, about, location: REGIONS[region].place,
+  car: carAt(region, RIVALS[id] || LEGENDS[id] ? REGION_STOPS : ROWS.slice(0, i).filter((r) => r[0] === region && !RIVALS[r[1]] && !LEGENDS[r[1]]).length),
   layout: LANES[lanes], length: km * 1000, density, seed, best: BEST[id] ?? 0, region, boss: RIVALS[id], legend: LEGENDS[id],
 }));
 

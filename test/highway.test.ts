@@ -8,7 +8,7 @@ import { ONE_WAY, edges, laneX, RAIL } from "../highway/game/layout.ts";
 import { SPRINTS, starTimes, starsFor, ghostTimeAt, ghostAt, GHOST_DT } from "../highway/game/sprint.ts";
 import { fresh, load, stored, has, pickFor, finishSprintRun, type Save } from "../highway/game/meta.ts";
 import { REGIONS, BOSS_STARS, sprintsOf, rivalTime } from "../highway/game/sprint.ts";
-import { closed, regionOpen, starsIn, bossOf, nextStop, carNeeds, CAR_STARS } from "../highway/game/trip.ts";
+import { closed, regionOpen, starsIn, bossOf, nextStop, carNeeds } from "../highway/game/trip.ts";
 import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
 import { bestDrive, chooser, decode, encode, HUMAN, type Hulls } from "../highway/game/bestrun.ts";
 import hulls from "../highway/surface/cars/hulls.json";
@@ -69,12 +69,14 @@ test("a near miss counts only fast and close, and builds a combo", () => {
 for (const sp of SPRINTS) sp.best ||= 60;
 const timed = (time: number) => Object.assign(new Score(), { time, distance: 3000 });
 
-test("cars come with the trip: a region's first with it, its others by its stars, and a save survives a round trip", () => {
+test("cars come with the trip: a region's first with it, its others by its Sprints finished, and a save survives a round trip", () => {
   const s = fresh(), [compact, kiri, milano] = CARS;
   expect([has(s, compact), has(s, kiri), has(s, milano), has(s, CARS[3])]).toEqual([true, false, false, false]);
-  expect(carNeeds(kiri)).toBe(`${CAR_STARS} stars in Countryside`);
+  expect([carNeeds(kiri), carNeeds(milano)]).toEqual(["Finish 3 stops in Countryside", "Finish 6 stops in Countryside"]);
   expect(carNeeds(CARS[3])).toBe("Beat Ines in Countryside");
-  for (const sp of sprintsOf(0).slice(0, 4)) s.sprints[sp.id] = starTimes(sp)[1]; // eight stars
+  for (const sp of sprintsOf(0).slice(0, 2)) s.sprints[sp.id] = starTimes(sp)[2];
+  expect(has(s, kiri)).toBe(false); // stars do not open a car: Sprints finished do
+  for (const sp of sprintsOf(0).slice(2, 4)) s.sprints[sp.id] = 999;
   expect([has(s, kiri), has(s, milano)]).toEqual([true, false]);
   expect(pickFor(s, 0)).toBe(kiri); // the best you have drives the region
   s.pick.city = compact.id;
@@ -99,7 +101,7 @@ describe("the road trip", () => {
     const first = finishSprintRun(s, list[0], timed(starTimes(list[0])[2]));
     expect([first.stars, first.before, first.cars]).toEqual([3, 0, []]);
     finishSprintRun(s, list[1], timed(starTimes(list[1])[2]));
-    const third = finishSprintRun(s, list[2], timed(starTimes(list[2])[1])); // 3 + 3 + 2: the Kiri's eight
+    const third = finishSprintRun(s, list[2], timed(starTimes(list[2])[1])); // three finished: the Kiri
     expect(third.cars.map((c) => c.id)).toEqual([CARS[1].id]);
     expect(pickFor(s, 0)?.id).toBe(CARS[1].id); // a new car drives its region
     const boss = bossOf(0);
@@ -115,6 +117,18 @@ describe("the road trip", () => {
     expect(nextStop(times).id).toBe(sprintsOf(0)[0].id);
     times[sprintsOf(0)[0].id] = starTimes(sprintsOf(0)[0])[2];
     expect(nextStop(times).id).toBe(sprintsOf(0)[1].id);
+  });
+  test("after a run the map stays in its region while a stop there is open and never driven: the Legend a won duel opened", () => {
+    const times: Record<string, number> = {}, list = sprintsOf(0), boss = bossOf(0);
+    for (const x of list.slice(0, 8)) times[x.id] = starTimes(x)[2];
+    times[boss.id] = Math.min(starTimes(boss)[2], rivalTime(boss) - 1);
+    expect(regionOpen(1, times)).toBe(true);
+    expect(nextStop(times).region).toBe(1);
+    expect(nextStop(times, 0).id).toBe(list[9].id);
+  });
+  test("each stop's stars are set in the latest car of its class come by then: three cars after 3 and 6 Sprints, four after 2, 4 and 6", () => {
+    expect(sprintsOf(0).map((x) => x.car)).toEqual([...Array(3).fill("compact-07"), ...Array(3).fill("kiri-10"), ...Array(4).fill("milano-95")]);
+    expect(sprintsOf(1).map((x) => x.car)).toEqual(["tozzo-98", "tozzo-98", "sigil-07", "sigil-07", "tiara-gt-83", "tiara-gt-83", "asti-stradale-89", "asti-stradale-89", "asti-stradale-89", "asti-stradale-89"]);
   });
 
 });
