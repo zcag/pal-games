@@ -1,252 +1,252 @@
 {
  "first-light": {
-  "key": "ca634976509c4a97",
+  "key": "c55887739599b2ef",
   "best": 54.99,
-  "choices": "6200000046aeimieaaea62000048404620004620268466200000462026620026aeimiea66aeimieea6624622662266268400004846a66a6262048400026a62468468466200"
+  "choices": "aaaaaaaa86aeimmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmkkkkmmmkkmkkkmmkkkmmkkkkkkmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmommmmkgeeeeecceeeeeeeeeccccccccccc"
  },
  "farm-road": {
-  "key": "e690f909cb4ad7e7",
-  "best": 54.99,
-  "choices": "cegkmmokgc846266484000000046620046620046624662684664620046a6666462662684484048446466486666666666646484620048ceaac846862684840000048c864662"
+  "key": "d19dce8b1d2c478a",
+  "best": 55,
+  "choices": "cgkmmmooooookkkkkmmmmmmmmmmmmkmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmkkkkkkkkkkkmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
  },
  "commuters": {
-  "key": "316ece8791bbb572",
-  "best": 51.03,
-  "choices": "aeeeimqmmkgc84026a6200462026626aegc866462266248400262004626aegea66626a6226266aeeceaeimmimimkmkmookmmkmiecececgcaegecea6268404840"
+  "key": "2b0682bdc6aa3c7e",
+  "best": 51.02,
+  "choices": "aeeeeeimokkkkkkmmmmmmkgecccccccaegggggggecgeeecgggeeeeeeeeimmkkkmkgeeeegeeeeimkkmmmmmmmmmmmmmmmmooomkmmmmmmmmmmmmmmkmmmmmmmkmmmm"
  },
  "old-road": {
-  "key": "40f0e7eeae72acad",
-  "best": 51.14,
-  "choices": "aacceea866666666646200000462686666664664646666266468466664666668cea6666668448462048466646646666668646484866484664666acgceieegcea"
+  "key": "709715bea0d2a144",
+  "best": 51.13,
+  "choices": "aacceea86666666666666666666668666666666466666666668ceec846666668ceeeccca66666666666666666666666668666666666666666666646aeiiigcee"
  },
  "three-lanes": {
-  "key": "b9cb2403cc320905",
-  "best": 60.42,
-  "choices": "646626626a6200026620266200046246266246aea646646626666266266226626646466246226aaea66aeaeeceaecegeceeeeecea64666466646226a62266466aeea62626846462046262000"
+  "key": "49663118669fe4cc",
+  "best": 60.39,
+  "choices": "aaeec8444488888888444664444466666666666488666666666666666666666466464666466448ceeeeeeeeeeececgeeceeeeeeeeeeeeeeceeeeeecceeceeeeeeeeccccec84666444646666"
  },
  "squeeze": {
-  "key": "bfe1a3fa6cf1bdf6",
-  "best": 64.03,
-  "choices": "66aea66248aeiea62666a62620000046202624664666646262684624646aeiea6646aeea66666464684626646466626aeieeceeceaeggc844624844624626aegcea6466aeea646aeeceaeccecgcgeea62"
+  "key": "3086df9696efd354",
+  "best": 61.22,
+  "choices": "86aeeeeccccceeeeeeeeeeeeeeeeeegceeeeeecggggeeeeeeeeeeec866aeeeeeeeeeeeeegeccecccceeeegeeeeecgeeeeec84866664486666666468cec844668466666666aeeeeeeeeeeceeccc"
  },
  "hedgerows": {
-  "key": "765eadd5fc04966e",
+  "key": "811d5f52cc3ba8fb",
   "best": 69.67,
-  "choices": "66aeeigc8426a626200002662000000484026846248400466aeeceeieeecgcceaeaeaegceaeaeaeececeeeimimmkmiecgcceaaeeceeieaeeimiea8aeaeimmimmiececea64620266486646226626620026aeeimiimmieeie"
+  "choices": "aaaegeimqqqqqqqqqqmkkkkkkkkkkkkkkkkmkgeeeeeccccecceeeeeeeimmmmkmmmmmmmkkgeeeimmmmmmkmoookmmmmmmmmkmmmmmmmmmkkmkkkmmkkkooookkmmmmmkmmmmmmmmmmmmkgcceeeeeeecceec84446444466666644"
  },
  "last-light": {
-  "key": "41dde34a9d3ed73c",
-  "best": 65.34,
-  "choices": "ea6624662004844626624624626aea66aegc8462664646662462484626aeea624648ceaecececcgc84664866aeeaea664666668aea6466aeaeeceeeeeaeea6624846262662466666aeeaeeaeaeeceeaeccea"
+  "key": "6323c5625f49aa86",
+  "best": 64.92,
+  "choices": "eeeec86666666666666666666446488886666aeeeeec86664464484666646666aeeeceeeeeceeeeeeeeeceeeeceeeeec84886666aeeccceeeeceeeeccec866666aeeeceeec84666aeeeeeeeeeeeeeeceeee"
  },
  "heat-haze": {
-  "key": "eda3010ac431c053",
-  "best": 56.96,
-  "choices": "866aea86622666aeeea66204624626620026aeimimmiececceegcegcea620462046aea6aeeaceaeea6262046a6204646aeeieccececeeimmieeecgkmigc8426664648cgceceaeea"
+  "key": "0ba70fb52a29cd3d",
+  "best": 56.59,
+  "choices": "886666666aeimmmmmmmmmmmmmmmkkkookgccceeceeeeececeeeeeeeeeeeceeeeccccecceeeec8466646646448444646aeeeeeeeceeeeeeceeeeeimmkkkkmkkgegeeecgeeeeeeee"
  },
  "dry-run": {
-  "key": "f656cc961504df1e",
-  "best": 64.61,
-  "choices": "a86aaeeeec8884000266202626646646648aeceeeeieceeaceaeeacgceeaea6664648486666666aecgcececeeeeceeeeccgcgceaceaea6aea6648646666466664666266aeaeceeec8466466648ceceacea"
+  "key": "79fb08896e140ed1",
+  "best": 64.78,
+  "choices": "a8666666666666666666aeeecgggceggceeeceeeeegcceeeeceeceeceeeeeeecececeeeec8666aecgceeeeeeeeceeeeecgeeeeeceeceeeeeecceeecc8466466648464666648466aec864846666aececcee"
  },
  "long-haul": {
-  "key": "e9c8783b1ad58f6d",
-  "best": 80.33,
-  "choices": "6aeea6aeea6204620000026840000466aeieceaaea64664620484026a6462662262000000262466246a6246a666620000002620026aeea6626aegeieaeieeaeaegcecgc84620046466466aea66200468488402666aeea646484466aeeimqmieceaeecea62"
+  "key": "ee706d4d34e27c07",
+  "best": 80.36,
+  "choices": "aaeeeeec844444444444446666666666aeeeeecceeccecc84446666666666666666644444466666446666666666666664444444446aeeeeeeeceeegggggggggeeeeceeceeeeeeeeeeeeeeceeeeeeeeeeecceeeeeeeeeeimmmmmmmmmmmmmmmkgceeeeceeee"
  },
  "noon-rush": {
-  "key": "04ef1bc35624bea9",
-  "best": 65.49,
-  "choices": "ceiimmmmmiea6200000026a624620026aeimiegkokmqmikmieecgeeeimiececeaeaea646646268cgceaegeiea62262626aeeimokmmmmmimkmieimkokmimmmkmmomkmmkmkmikmimokmmkkgceea62026226620"
+  "key": "dd402e83b9810084",
+  "best": 66.02,
+  "choices": "ceiimmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmkkmmmmmkgceeceecceceeeeimmkkkmkkokgeeeeeccgeimmkmmmmkmokmommmmkgccegeeeceimmmokoommmmmmmkmmkmmmmmmmmkkgcec86226aeecccc"
  },
  "overtaker": {
-  "key": "64e619a8673b2beb",
+  "key": "aaf7f65d2ab22e1d",
   "best": 60.94,
-  "choices": "6666666666aaa644446204620004624622622684626626204846662666664666666aegegc84622646666268462466846486466246666666466226864646226846648468464666462026846662"
+  "choices": "6666666666666666666666664444666664666666666666666666666666666666666aegggc84666666666666644486868466466666666aeeeeeeeeeeeeccgeeimmmmmmmmmmmmmmmmmmmmmmmmmm"
  },
  "canyon-run": {
-  "key": "b11e77a7f606a3c5",
-  "best": 64.68,
-  "choices": "866664446aeeea6444646464648468ceea662646646464646464864884864666aeceeeeeaeeiecea666448626204864646aeeeeeaeaeaeaeeacec846646466486aeeeceeeeeaeaceeccgcgcecea64848cc"
+  "key": "38e428439857cb1f",
+  "best": 66.34,
+  "choices": "866666446aeeeeeeeecec8446484688446aegcgggececgecceccececcceecgggeeeceeeeeeceeeceeeeceeaeeeececgceccegcggeeeececeeccececeegcec8466666266648cgggcc84486aeeeeeccec866aeee"
  },
  "white-lines": {
-  "key": "1fecb2e2a477d1c4",
-  "best": 70.1,
-  "choices": "acccc8644888620000000046aeea6426226626266668ceaceegceeeceaea626648aegcea66626666666684464624626aeea666464646666246aeeecea624664666466264846884846484264664626488648cea6226aeea62"
+  "key": "f619f2efd063c0ce",
+  "best": 70.62,
+  "choices": "a866666666666644444444468846642664664666666aeeecegceeeaeeceeecceecceggggccgccc866666846666426646aeecgc8466646664866aeeeeca66668466666aeeececa8464666646666664646866866466666aeeee"
  },
  "head-on": {
-  "key": "cbf459dd10615575",
-  "best": 51.43,
-  "choices": "ceccceeea86666666462268664666626622684646666466466264840048666aeieeea66684466666666aeimqmkmmmieaegc884646666620268aeeeea648466662"
+  "key": "6676e0955b25ac38",
+  "best": 51.27,
+  "choices": "ceccceeeaa6666666666668884666664884666aeimmmkmmmkkkmmmooommmmmmmmmmmookmmkgeeeegc84666646666666668888484846666646aeeeecca66466666"
  },
  "big-block": {
-  "key": "9bd3fb77749afd40",
-  "best": 57.22,
-  "choices": "8466666666aeimmmkkokimieaeimokmkmqmimieea8448ceimmiimmieaegceeimmmimqmikmimokmmimokmimiecgcea8446226aeeeeimmiea6aeeaeecgceeeaecgcceeceaceea62000"
+  "key": "884058cbf7d41998",
+  "best": 57.07,
+  "choices": "8466666666aeimmmmmmmmmkkmmmmmmmmmomkmkgcc8448ceimmkkkmkgceeeeegcecgcgccgccceeeeeeimmkmmmkmokkkmkmmmmmmkokkmmkkgcceeceeeecgggeeeimmmkgccceccceee"
  },
  "long-straight": {
-  "key": "ddf868acb5a14b46",
-  "best": 81.97,
-  "choices": "848aecccc86222668884266464840026646aeaeeimkgcceaecgegkmmieeea620046246204848cgceaeeacgimmkmimimomkmmigcgceceeceeimimmimieimokmkmkmkmimmkgc84626aeeimmqmigcgea6aeggceeea664664626aeeeimmieimmieecgcgimmieeeiea"
+  "key": "8eb5b6ae6d122a01",
+  "best": 81.1,
+  "choices": "848aecccc86644468888466664888446666aeeeeimmkgceeeimmmkmmmkmmkokkmmmkgeeeeeimmkokgcegc8664666aeeeeeeceeeeceeeeeimkokimkkkmmmmkmmmmmmmkmommkmmkokmmmmmmkomkkmmkmmmkkookokgeeeeeeimmmmkmkkimmmmmmkkkkmmkgececc"
  },
  "low-sun": {
-  "key": "bdd0aa7d621749ce",
-  "best": 75.36,
-  "choices": "a8686666666aaa662002620026aea6262466486468846268846664846664684646aeeeieecea66aea666aeacea6466246200266266204846226aegeiecea64626268462620484666666aegceeecgeec8484266226466aeeaeacgceea64840"
+  "key": "8081ac0ff861a8e9",
+  "best": 74.85,
+  "choices": "a8686666666666666664666444846646666aeeeeeeaecec86466848464846aeecec846646aeeceeec846aeecec864664666446464448462248cgeegcec864666484646666646666666664844844648648446aececeeeeeceeeeceececcee"
  },
  "glare": {
-  "key": "32a56d7ee24678cf",
-  "best": 66.73,
-  "choices": "ceikmmmkgc8400046aeceimmieacgimieimokmkomkmmmkmmimqmimqmkkokmmimmieeaeieacea64842686aeecgimimmmieaeimkokmmimkmkmimieaeimqmkkokmiegc84048462046246262666468466aeea620462"
+  "key": "ffe9ab450115369f",
+  "best": 66.67,
+  "choices": "ceikmmmkgcc844446644846666aeeimkkkkooommmmmmmmmmmmmmkmmmkkokmmmmkgeeeeegccccccceecc866446666666666aeeeimmmkmmmmmmmmmmmmkkmkmmmmmmmmmmmmkokkmqokkmmokkkmkmkgeecec8444666"
  },
  "sundown": {
-  "key": "b8c28c6b1d983093",
-  "best": 66.65,
-  "choices": "8446666aeeeeeeiikmokgcea64626aeaceaeecgc8ceaeeaea622622648ceeceeceaccgeimmmkmkgcegcaeaeimmikmmkmimimikmieaeceeimimieceaeaceaeimmmqmkgkmmmkmmkmkmmmkgkokmqmiimikokgc8462"
+  "key": "9fc8c12768a678e1",
+  "best": 66.63,
+  "choices": "8446666aeeeeeeeeeeeeeeeeceeegggeeeeeecggccecgccec844664666aegceeeecceecgcececceeecececeimmmkmmkmkmmmmkmmmokookkmkmkgeeeecceeeeeeeec848448466aeeaceeeecgkmmkgcecggec8466"
  },
  "dust": {
-  "key": "034fcbd6e8ac1533",
-  "best": 62.55,
-  "choices": "cceecceeca66666664000000046462662484626626aeimomiea666666686664626a66464664668468666646466484646466646626beimmiea66666666204646466266664666646646462666666620"
+  "key": "34e2d2a0bc8f230c",
+  "best": 61.52,
+  "choices": "cceecceeccccc84886444444444466666666666666aeimqqqqqqqqmmmmkgca666668888448666684686684666484846668486666aeeeeccggkommmmmmkgccccccgcceca6666666666666666666"
  },
  "the-mile": {
-  "key": "7779cb86bcacf591",
-  "best": 83.41,
-  "choices": "84466aeeeea6446666200026aeimokmmqmieceeimigcceaeimimmkmimkomkmmqokgeeeecgcea666aeimimieacecgkmimkmkmkmmkmkmmkokmmigceaeaeecegcgceaececeeeaeaeaeaaeceea6426266a6466a64486aeeeaeeimmkomiimkmimmmkookgc8446246466662"
+  "key": "1e12131c8ad79ad7",
+  "best": 81.63,
+  "choices": "84466aeeeec8446666644444446446aeecgeceeimmkmkkmmkmkkokmkmkookmmmkmmmmmkgceeeec8464646646aeimkmmmmkmkokmmkmkmmkkmmmkmmkommmmmkmmkkmmkgceeeeecc84466644646666466884466aeeecgceeccecca8486648464644666aeeeeccegg"
  },
  "b-road": {
-  "key": "9bc3ce7e2500a7dd",
-  "best": 54.75,
-  "choices": "a6664668ceeeaaaeimiea6666626a66aeimqmmieceimmieeimoookgccea666466646648cea66662262026466646648666666676647648464626aegc846aeieaeeeaeeiea6"
+  "key": "4e17cd0d276d274a",
+  "best": 51.91,
+  "choices": "a6664668ceeeccceeccecccccegccccceimqmmmmkkkmmmmmmmoookgeceeeec84866666aeeeeccegggccc866666664888866666aeaececea6666aeeeeeeeeeceeee"
  },
  "drizzle": {
-  "key": "60091510b836ef99",
-  "best": 68.36,
-  "choices": "864464444488866aaa64620268462026aeeaeeegcgecceaeeeceeceegdecfggc848aea648866aec8404622624642666a8484484446646264846646262004846466aeceeeceeaeaea6266426246aec846a8466620048"
+  "key": "93f8fb9e70d3c458",
+  "best": 68.63,
+  "choices": "86446444448886666664666666666446aeeeeeeecgecceceeceeegcecedggceeec84866aeceggc84444844668846646aeec844646664666666444484856668aececeeeeeeceecec844646446aeccecgggc8466466666"
  },
  "overcast": {
-  "key": "2972125e19e79852",
-  "best": 58.67,
-  "choices": "eeimmmmkgeccc844462026aeaceceimokgeimimkommokmmimmmqokokkmkmkmimokmieaecgceeeeeimimkmmmkokokmkmmmmmmimmikomigcgecgceeea6464624842626466aeceimookmie"
+  "key": "d652140dea105bc9",
+  "best": 63.1,
+  "choices": "eeeecccca8444444484446aeeceeeeeeeeeimmmmmmmokmmkmmnmmkkoookmmkgeeeeceimkgeceeeeeeeeeeeceeececeeceegeimookkokmmmkgcggceaecgeeeeecegceec8446666aegcceecececegcee"
  },
  "rush-hour": {
-  "key": "edc86f1c14c2297b",
-  "best": 66.83,
-  "choices": "866666accgggcca62266aaeimokgkokgeimmieeceimkgcecgeecceeeeea66aeeaeimieaceimmimmimiea64646266aeeegcegecgc86266aeimmiimmmkgimqokommmkmkimieeceimmikkmiecea6626204624664000"
+  "key": "4bdd3a98c858454b",
+  "best": 66.85,
+  "choices": "866666accggggeccceeeeeeimoomkmmmkkmmkgceeimkkkkokgceceeeeeeeececceimkkkmmkkmimokmkgc8466666666466466646668466aeimmmmmmmkkimqokooomkmkkmmkgcegceeimmmkmmkkkokmkkkmkkkkmmm"
  },
  "convoy": {
-  "key": "7236e5a2dad4369b",
-  "best": 79.49,
-  "choices": "a86466666446aeeeeaeaeeaea66686248666a846aeieaceec86646aeea846aeefgceeegecceceaegea6464626aeeceeeeec844648484646aeeceaccececgceeeceececgcea6468ceceigcgeceeea6666aeeceeeaefeaeccgeccecececgceaeceaeced84"
+  "key": "5352abf6367a07c5",
+  "best": 80.91,
+  "choices": "a86466666446aeeeeceececeeecccccggc8468666aegcaegeceeaec8488846aeeececggcecedggc846666664666aeeecececcccececeeeececccegcecfecfcceegeceeeeeceeeeecccceeeccgecgcceccceeeeeececececeecea8448cgeeececeeceeececgg"
  },
  "fog-line": {
-  "key": "dde924fb1741b06f",
-  "best": 63.51,
-  "choices": "eeeeeeea844666200026620468426200048486486aeeegc846248646646666648666666648624666664664666666486262026646666624666666846aeea6646afa646a6648664400586664662264662"
+  "key": "c851b388d8aef066",
+  "best": 61.69,
+  "choices": "eeeeeeea666666666646664466666666666666666aeeegc846666666648666668666666aeceggggkokmmmmmmmkkkgccc86666666666666666666aeeceeec84484644888666aeccc866488888866"
  },
  "motorway": {
-  "key": "25ff4a47047c71de",
-  "best": 71.09,
-  "choices": "a86666666accc84444684004846aeigcgcceacegeceeceeeeimkmmmkmomkmkmkokkokkmimimieeeceeececeea666264646266666aea62626aeea666662684626aeimkgceeeccgccecec8466aeeeimkmmmmkmmmmokgecea6445"
+  "key": "4645c3f1f48997b7",
+  "best": 70.33,
+  "choices": "a86666666accccccccccceecaeeeeimmmmkgccegeceeceeeeimkmmmmkookmkokmkgccaaeececeeeeceegceimkokimmmkmmkmmmmkgcegc846684666aeimokmkkkmmmkgeceeecceceeeeececgeeimkokmmmmokomkgececgeii"
  },
  "grand-tour": {
-  "key": "9b60f0ec5321f2f1",
-  "best": 84.15,
-  "choices": "6666488646466662000002684840026aeaeaeeimiececeigcgceimmieacea6aeececeeceeimimieimkmmieceeieimmkokgceeeceeeacecececeaec8458486464664666266626662626266864840266aecceeceeeec8464846404840466aeeeeeeaeeceimmkmikokmkgc"
+  "key": "1c4a74be5da312e8",
+  "best": 82.69,
+  "choices": "666648864646666444444468488444464646446444266246666aeeceimmkmmmmkmmokkmkmmmimmkkmkmmkokmmkmkmmmmkmokgceeeecceeeceaeaececgceceegcececgkmmomkmmmmmmmmmmmkkimmmiimmmmmmmkooookgcggkmmmmmmmmmkgcceeceedeimmmmmmkmkk"
  },
  "neon": {
-  "key": "9e7a4a45f80e278e",
-  "best": 56.77,
-  "choices": "aaeeeeeceeeeeacgeeacecgeaea644666aeaceaaeecegeeaeeea6262646666666aegcecgceceimkmkmmmmmmmmkgeiimmmmkmkmiimmimokmiimkmkmkgcecgc84046884666426200"
+  "key": "dfdbe187344e5cc2",
+  "best": 57.64,
+  "choices": "aaeeeeeceeeeeeeeeeeceeeeeec846666aeeeeeeceeegceceeec856226466666666666aecgceceimmmkmmmmmmmmmmmkgcgececgceimmkgcgceimmmmmmkgceec844466666646664444"
  },
  "midnight": {
-  "key": "b8928e7d26e839b0",
-  "best": 63.98,
-  "choices": "a866666aeeeeaeaeeea6246466aeegiecgeegceeeeecgcgceeceeieeeeecgea6885864666aeacegceegeaeeacgceaegcgceeceieecececeacgeceeeeeaeeceeaeeeceaeeaeeggccgcea6466646646262"
+  "key": "102d24c235019ee3",
+  "best": 63.41,
+  "choices": "a866666aeeeeeeeeeeeeeeegcggggggceeeeeeecgeeeceeceececggeeeecgggcc8466666666646666684866aec86846646466aeceeac866648464666666466aeeceeceeeeecgecgcec8466666666466"
  },
  "slipstream": {
-  "key": "53515fed322faf92",
-  "best": 72.83,
-  "choices": "eeccaceimmmoookgcaea6262026aeeaeea66aeeiimmmkmkkgcceimimmkokkmieaaeeaeeacgceeccgfeceeimokmimmkokmommmkokmkmkmkimimimigceegcgceececeeaeaceimookmmkokmokkomkmmkomigceceeaeea646aceaeceea6"
+  "key": "709b4e5a5669308b",
+  "best": 70.21,
+  "choices": "eeccccgimmmmmmkgececcecceeeccgeeeecccceeeeaegeimmmkookkmkokkmkkgcceeeeeimmmkmmkokmmkomkokmkokomkmokmkmimkmmkmlgceceimkmkokgcececeeimmmmmmkmmmmkgcececeeceeeeeececec846aeimmmkkkk"
  },
  "high-beams": {
-  "key": "27c294ad1fd56002",
-  "best": 52.14,
-  "choices": "eecccggggea6204620264662666486666662662668466466662669ceac8466aeieaeeigea6684648648426646646666666646666664624846686666262466668662"
+  "key": "94639eb2e8c21101",
+  "best": 51.49,
+  "choices": "eecccggggggggkooommmmmmmmommmmmiea62662668666646664668cccceecccggimmiea6686666666666666664888666646666666664666688888446666666666"
  },
  "tunnel-vision": {
-  "key": "c55f422571f95739",
-  "best": 75.42,
-  "choices": "6668ceeeegceeeieecgecgeaeieeacgcgceeeeegcea62624848aeeaea6466aeeececeec846626462666626648466426266666648462002666464684648ceeccgcecgc84620464666666aeeeeeeceegdgccgceeacgceaeeeeeegcgeea64662"
+  "key": "9303ae3bca9b7654",
+  "best": 74.13,
+  "choices": "6668ceeeegceeeieecggggggcggggeeeceeeeeeeeea62684666aeecec8486aeeeeceeececgeeeecgceeeaeeeeeeeeeea66684664666aeecgeeegceeeeec846846646644466666666aeeeegcecegcecggggcececeefeecgcgeeeceeeecc"
  },
  "red-lights": {
-  "key": "d07660d773bb8df7",
-  "best": 67.32,
-  "choices": "a666aeimmiea6626200048484844866666664666466aeeceecgeigceeeeaceaceea620266aeeeeeegceeimkgceimkomkmmmkmmmmkmmmimmkimikmiecceececgc88ceaea846aeececeeeeeeceeimqokmqmmmmkmmkg"
+  "key": "9e03570cc8d91093",
+  "best": 67.3,
+  "choices": "a666aeimmkkmmmmmmmmkmkmmmmmkmmmmkmmkgceeeeeeeimmmmkmmkookmmmmmmmmmmmmmmmmmkmokmmmmmmmkmmmmkmmokmmmmmmmmmmkmmmmmmmkmkmmkgcegceeeeaaaeeecceeceececceeeeceeeimqokmokmmmkmmmm"
  },
  "graveyard": {
-  "key": "c1e550911c480d9a",
-  "best": 61.77,
-  "choices": "aeeeeeggcc840026642666648464668cea666662626aea6866aeea640048ccgkmmkmmpokmiea646466624666684466626686aea66666664666662466aeeeeaegcea666646666246666648666200"
+  "key": "14d7ea273aaa296b",
+  "best": 61.22,
+  "choices": "aeeeeeggcc844446666666666666668cea666664646aeeea66aeimmmmmmmmmiea66866666aa664466666668486666aeeegccecc866666666666666666666aegceccgggggimmmmmieaeeeea6666"
  },
  "all-night": {
-  "key": "00060be79cfaadde",
-  "best": 82.77,
-  "choices": "aeeeimmmmkkmmiecaeeaaeeecgeaea84646846aegceeeecgceaeaeeeeaecgceaeea8468462484464844846aeacgccgc846624664446262666448446264626aeimimmmmmokmmmmkokokmmmmmmikokokmmkokmmimimmmmmkmmmmkmmkmmkmkokokkmieimkmikokmiea"
+  "key": "f9a7cb7a6fb38465",
+  "best": 82.79,
+  "choices": "aeeeimmmmkkmmkkkokgecceeeeimkmmmkkmkgeecgceeeeeeec8426666648666648a6464666644646466aeecgkmkmmkgcegceeeeceeeec846aeeeeceaeeeeeceimkmkookmkmmmmmmmmmmmmmmmkgeceeeeccgcegeimmmmmkmmmmkmmkmmkmkokokkmmmmmmmmkoookkk"
  },
  "duel-ines": {
-  "key": "ae65195b4bb3d087",
+  "key": "c3ac1446fbd9e5f8",
   "best": 69.67,
-  "choices": "66aeimmqmkmimiea6466226226846226a646484846624624622684620466204662002662626aeeimmimkgceeeeececea662666aeaecea66262026a6246646462266246666a66aeaea646626648466aeeieeaeececeaeiea"
+  "choices": "aaaaaeeimmmmmmmmmmmmmmmmmmmmmmmmmmkkkkkkmooomkoooookmmmmmmmmmmkgeeeceeeeeeeeeeeeeimmmmmmmommmmmmmmmmmmmmmmmmmmkmmmmkmmmiimmmmkkkmkkgecgeccccceeeeeeeeeeeeeeegkookkmmmkkmmmmmmmm"
  },
  "duel-mika": {
-  "key": "593435a668e614d1",
-  "best": 71.15,
-  "choices": "ceeeeeeeeimmmmmmiea6aeea6446aea6444620046226aegccgceaeeimmkmmkmmkmmokmmimimieeea66226aea6264026620466aecaeeaeaeaeeaeeceieaeimmmmiea6aeeaeea66462666aeaceieaaecea64646aeimmieeaaeea"
+  "key": "a90e2f099c7bb262",
+  "best": 72.43,
+  "choices": "ceeeeeeeeimmmmmmkkgeacggimmmkkkgeeimmkkkkkkkmmkmkgeecec844448aeceeececeegceceeeeeec86446aeccgecceceimmmkookgceeceeeeeeceeeeeec866666666aeeeeeccccccggeceeeeeeeimkmoookmmmmkkmkkkmmkkkk"
  },
  "duel-rook": {
-  "key": "ffde4e77922afdee",
-  "best": 73.97,
-  "choices": "8446466aeeimmmkkmmieacea62048404846aeaececcegceaeaeceeikmkmmkookokmkokmimmimmqmmimiecececea66a6226aegc846a6666266484666aeimmmimkmkokmmmieimqmkmkmikokgceceeeeececea622662026aea6226846a62"
+  "key": "8b7aca47d19d1261",
+  "best": 75.09,
+  "choices": "8446466aeeimmmkkmmmmmkgc84446444666aeeceecgceeccececeeimmmmmmmimookmookkmmmmmmmmmmmmokgceeeeccc8444886446664466646448466488646464846aeeccggggkoookkmmmmmkgceeeeeececgccggeeeegccec8444844888"
  },
  "afterburn": {
-  "key": "4cd3590a2e74cab9",
+  "key": "90a8dd4447ec4bf8",
   "best": 67.87,
-  "choices": "aeeccegimmmmmkkmieaceceggccgc8466666466644646466aeceeeeeegcecgc86226aegccecgceaeeeceeeeaeeeceeec8462484466266664262004646a6666666846404666466aeeeeeegceeeeeccgeacea6484620"
+  "choices": "aeeccegimmmmmkkmmmokgceeeccgc8466648466644646466aeeeeeeimkokokmkomkmmmkmkokmmkgceeceeeeceecceeec846aeceeeegimmmmmmmmmkmmmkmokmkmmmmmimmmmmmmmmmmmmmmmkgceeeecgggcec8484666"
  },
  "duel-vega": {
-  "key": "83f6fb95741aba47",
-  "best": 77.61,
-  "choices": "aeimmikokgccea64462626aeeaeeieceimimmimimiecgeeeaaeceeeimmokokmmkokmmkokmmmkmnkokkmkokgcgegkmmifececegcecgceaeaeimkmkmkomkmkmkgcegceceeeimmkmimikmikmiimkgceimokgcgceaeeiimokmkmokkmimikmmkmmmmkmmi"
+  "key": "d5aec4bb2f52a102",
+  "best": 76.7,
+  "choices": "aeimmkmmkgccecgimmmmmkkkkgecgeceimkmmkmmmmkmmmmkmmmkmmmkokokokmmkonkmokkmmmmmkmmkmokmmomigeeeimmieeeimkommmikmmkoommkmkokmmmmkookmokmmkommmkmkmkmkgcgecgkokmkgceggceceimmkmmmmigcgceeceecgceecee"
  },
  "duel-kaz": {
-  "key": "2feba4024a9451d7",
-  "best": 71.65,
-  "choices": "ec86648cgeikmimmiea66262466426aegceimokmkgecgeegcgccgeimkmmimkmomimkmmmmkmmmmmmmmkommmmokmimkmmkmmokmkokkgcecgc846466648a6462666622666626aeeaeaeeimqmimimimmkmmikmikmokimmokmkmmmkok"
+  "key": "264405262db52738",
+  "best": 71.57,
+  "choices": "ec86648cgeikmkmmmkkkkmmmmmmmomkgc84466468cgceeeeeeecgceeaeeceeeeeimmmmmmkmmmmmmmmmmmmmmokmmmkmmmmmmkmmmmkgceeccc86466648a6464666666666644846aeeeeimmmkmmkmmmmmkgceimokkmmmmmmkmmmmm"
  },
  "legend-harvest": {
-  "key": "aa110a79582e894f",
-  "best": 68.78,
-  "choices": "aeea662666846626aeea64626aeeaeiec8426646626246246266204624626aeeaeeaeecea66aeea624846266266a64626846200026aeeceeaeecea66aeceeeeeceeeegcceececea648aegcecea66aec8466646462462"
+  "key": "ebfe75edf386225e",
+  "best": 70.2,
+  "choices": "aeec866666888666aeeeeeeeeeeeeeeeccceeeeecec846664466444666666664448ceeceeeeeeec844846666464864646666666aeeceeeeeeec84466aeeeeeeeeeeeeeeeeeaeceeeeeeeeeeeeeeeeeeeeec8466666466666"
  },
  "legend-mirage": {
-  "key": "62a119b73438caa0",
-  "best": 71.68,
-  "choices": "6aeca86666222688866266462266266266462664664664844626666686622666264866486666646464846204846464648488486666666aeggimmmkokgeaeea620464620000466a6aeea66846666666666466646226aeecea6462"
+  "key": "b454a24cb341d35b",
+  "best": 69.8,
+  "choices": "6aecccccccccccccccgccceeecceeeeeeeeeec8666666666662666648666666666686666666666666666666846668cgceeeggggggggggkmmmmkgcaeecc8446666622226666626666aeca6666666666666aegkmmmkgccggg"
  },
  "legend-storm": {
-  "key": "d6b04cf40a6e594a",
-  "best": 72.13,
-  "choices": "ceaeeeeeea86668884846202664626a626248486664866aeimiegc844626466666664468474846486686aeecea62464646846268a6664666476666262466626626462048466648466848486aea668646484026266666646266200"
+  "key": "f36302300252451f",
+  "best": 72.16,
+  "choices": "ceaeeeeeeccccccccccccceeccccccc8664486aeggkoooommmiigca64666aeeea666666666466466786aeeeea666666666666448866666666686666666666666464484664664668666aeeeaaegkmmkiedeea64666666646446666"
  },
  "legend-red-sky": {
-  "key": "e3c6665e9c2e6508",
-  "best": 82.28,
-  "choices": "866666488aceeeea62002626aaeaeeeecgcgccgegeaeeeceeececeaeeacgceaegeeaeceeeceaeaeaeececgeeeeaeaaeggc84648aeeeaccaeaceceegeaeeecgcec846626446aeeaceeecceeaecgcgccgecgeeigc84466aeeaceaea6266648846aeeaeeeecgcgcea"
+  "key": "ddf9be793fc5782b",
+  "best": 82.97,
+  "choices": "866666488aceeeeeecceeeeaacecgeeeegcgc8446846aeeeeeececeeceeeeeeegceeeeceaececa684666646466aeeec864648aeeeececeegccecgeeeeecgc84846646646aeeeececeec8484627aeeeecgggceggcccea8648cgcceccgeecggecaceeceeceeceigcee"
  },
  "legend-long-night": {
-  "key": "da0f9489da37efac",
-  "best": 77.27,
-  "choices": "86aeeeeeceea62462666268cegcgc8aeeceeeeecfceeegeceaeaeaeeeaececggceeecedgecea626646aeeeeeeecegcgceaeaaecgcecefceeeeeceeeeeeeceeeec8446266664846666686246246aeacgceceeeeea644666aeaea666666666466462"
+  "key": "dca7c72440264e99",
+  "best": 75.53,
+  "choices": "a666666664466646466666aececggcceeeceeeeeceeeeeecec846666844864264674666488446646846844466668466648846646686566446484664464486664666aegc866666646666446664664866666666466aeecec866aeeeeecgeecc"
  }
 }

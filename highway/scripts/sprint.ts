@@ -40,50 +40,68 @@ type Path = { up: Path | null; slot: number; pedal: number };
 type Node = { d: Drive; slot: number; value: number; path: Path | null };
 
 /** Search one Sprint at a step size: the choices of the best run found, or null. */
-function search(s: Sprint, beam: number, pace: Pace) {
-  const d0 = bestDrive(s), { xOf, last, at } = slotsOf(s, d0), every = stepsOf(pace.every), late = stepsOf(pace.delay);
-  const MOVES = Array.from({ length: 2 * pace.moves + 1 }, (_, i) => i - pace.moves);
+/** A turn's choices from each run: every move (staying first, so where nothing is gained a run keeps its lane rather
+ *  than drift to the rail) and pedal, driven at the pace; the runs that carry on, and those that reached the line. */
+function expand(nodes: Node[], t: { xOf: (i: number) => number; last: number; every: number; late: number; start: Choice; moves: number[] }) {
+  const kids: Node[] = [], done: { time: number; path: Path }[] = [];
+  for (const n of nodes) {
+    for (const m of t.moves) {
+      const slot = n.slot + m;
+      if (slot < 0 || slot > t.last) continue;
+      for (let p = 0; p < PEDALS.length; p++) {
+        const d = n.d.clone(), prev = n.path ?? t.start;
+        // the turn's choice is felt `late` steps in: the last one holds till then (game/bestrun.ts's chooser)
+        // a pass closer than the pace's nerve allows is as good as a crash: a person would not have gone there
+        for (let i = 0; i < t.every && !d.over; i++) d.step(DT, inputOf(d, t.xOf, i < t.late ? prev : { slot, pedal: p }));
+        if (d.ended === "crash") continue;
+        const path: Path = { up: n.path, slot, pedal: p };
+        if (d.ended === "line") { done.push({ time: d.score.time, path }); continue; }
+        // how far it got, and what it carries on with: its speed and the combo's surge
+        kids.push({ d, slot, value: d.score.distance + (d.veh.u / FEEL.pace) * 0.8 + d.surge * 0.6, path });
+      }
+    }
+  }
+  return { kids, done };
+}
+
+/** The best of each kind of place to be (where across, how fast), then the best overall: a beam that keeps its
+ *  options rather than every run in the same spot. A stable sort: of equals, the first tried (the one that stayed). */
+function prune(kids: Node[], beam: number) {
+  kids.sort((a, b) => b.value - a.value);
+  const seen = new Map<string, number>(), out: Node[] = [];
+  for (const k of kids) {
+    const key = `${Math.round(k.d.veh.x / 1.8)}/${Math.round(k.d.kmh / 12)}`;
+    if ((seen.get(key) ?? 0) >= 3) continue;
+    seen.set(key, (seen.get(key) ?? 0) + 1);
+    out.push(k);
+    if (out.length >= beam) break;
+  }
+  return out;
+}
+
+/** A road's start at a pace: the car after its rolling start, and what each turn needs. */
+function begin(s: Sprint, pace: Pace) {
+  const d0 = bestDrive(s), { xOf, last, at } = slotsOf(s, d0);
   while (d0.intro > 0) d0.step(DT, { throttle: 0, brake: 0, steer: 0 }); // the rolling start, as a player gets it
   const start: Choice = { slot: at(d0.veh.x), pedal: 0 };
+  const moves = [0, ...Array.from({ length: pace.moves }, (_, i) => [-(i + 1), i + 1]).flat()];
+  return { d0, start, turn: { xOf, last, every: stepsOf(pace.every), late: stepsOf(pace.delay), start, moves } };
+}
+const choicesOf = (path: Path | null) => { const c: Choice[] = []; for (let p = path; p; p = p.up) c.unshift({ slot: p.slot, pedal: p.pedal }); return c; };
+
+/** Search one Sprint: the choices of the best run found, or null. */
+function search(s: Sprint, beam: number, pace: Pace) {
+  const { d0, start, turn } = begin(s, pace);
   let nodes: Node[] = [{ d: d0, slot: start.slot, value: 0, path: null }];
   let best: { time: number; path: Path | null } | null = null;
   for (let round = 0; nodes.length && round < 4000; round++) {
-    const kids: Node[] = [];
-    for (const n of nodes) {
-      for (const m of MOVES) {
-        const slot = n.slot + m;
-        if (slot < 0 || slot > last) continue;
-        for (let p = 0; p < PEDALS.length; p++) {
-          const d = n.d.clone(), prev = n.path ?? start;
-          // the turn's choice is felt `late` steps in: the last one holds till then (game/bestrun.ts's chooser)
-          for (let i = 0; i < every && !d.over; i++) d.step(DT, inputOf(d, xOf, i < late ? prev : { slot, pedal: p }));
-          if (d.ended === "crash") continue;
-          const path: Path = { up: n.path, slot, pedal: p };
-          if (d.ended === "line") { if (!best || d.score.time < best.time) best = { time: d.score.time, path }; continue; }
-          // how far it got, and what it carries on with: its speed and the combo's surge
-          kids.push({ d, slot, value: d.score.distance + (d.veh.u / FEEL.pace) * 0.8 + d.surge * 0.6, path });
-        }
-      }
-    }
-    // the best of each kind of place to be (where across, how fast), then the best overall: a beam that keeps
-    // its options rather than every run in the same spot
-    kids.sort((a, b) => b.value - a.value);
-    const seen = new Map<string, number>();
-    nodes = [];
-    for (const k of kids) {
-      const key = `${Math.round(k.d.veh.x / 1.8)}/${Math.round(k.d.kmh / 12)}`;
-      if ((seen.get(key) ?? 0) >= 3) continue;
-      seen.set(key, (seen.get(key) ?? 0) + 1);
-      nodes.push(k);
-      if (nodes.length >= beam) break;
-    }
+    const { kids, done } = expand(nodes, turn);
+    for (const f of done) if (!best || f.time < best.time) best = f;
+    nodes = prune(kids, beam);
     // once a run has finished, the rest are only worth carrying while they could still beat it
     if (best) nodes = nodes.filter((n) => n.d.score.time < best!.time);
   }
-  if (!best) return null;
-  const choices: Choice[] = [];
-  for (let p: Path | null = best.path; p; p = p.up) choices.unshift({ slot: p.slot, pedal: p.pedal });
-  return choices;
+  return best ? choicesOf(best.path) : null;
 }
 
 /** Drive a run's choices at its pace, as the page does: its time and its line (a duel's rival drives it). */

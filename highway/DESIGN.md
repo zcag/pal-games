@@ -249,9 +249,10 @@ map was built on them.
   kind of place to be; it knows the road as someone who has learned it
   does, driving the region's first car stock. It chooses at a person's pace
   (`HUMAN` in `game/bestrun.ts`): 2.5 times a second, each choice felt
-  0.15 s late, at most a lane's width each. Three stars are that time
-  +0.5%, two +6% (the road learned), one +15% (a good first try), each
-  rounded up to the tenth. Three began at +0%, rounded down: on First Light
+  0.15 s late, at most a lane's width each; of equal choices it keeps its
+  lane (it once drifted to the rail, where every slot scored the same).
+  Three stars are that time +2%, two +6% (the road learned), one +15% (a
+  good first try), each rounded up to the tenth. Three began at +0%, rounded down: on First Light
   (nothing to slow for, so every flat-out run is within hundredths of the
   best) that was 54.9 s against a best of 54.99, and a player at 55.01
   could not get it.
@@ -264,6 +265,16 @@ map was built on them.
     75-81 s; two slots every 0.4 s, 0.15 s late, drove 64.61, so that best
     is three stars a quarter second under the player's. A wider beam found
     the same times.
+  - Behaviour was tried before margin, against the same player's three
+    roads (First Light 55.01, Commuters 53.46, Dry Run 64.85; the search
+    54.99, 51.02, 64.78). His gap to it is the near-miss surge: on
+    Commuters both are flat out for a kilometre, then its chained passes
+    carry it 15-20 km/h past top speed. Planning only 1-3 s ahead (no
+    whole-road hindsight) changed little: Commuters 51.0-51.6, Dry Run
+    66.7-67.3. A nerve, never passing closer than a gap, could not fit
+    both: at 0.1 m Commuters 52.33 (just under him) and Dry Run 74.82 (ten
+    seconds over: he threads gaps under 0.1 m there), at 0.31 m 56.17 and
+    81.51. A person's edge differs by road, so the margin carries it.
 - **Trying again is instant.** R, from the run, the pause or the end; your
   best run drives beside you as a ghost, and the clock shows how far ahead
   or behind it you are at that point of the road.
