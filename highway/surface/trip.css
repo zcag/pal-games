@@ -211,3 +211,17 @@
 .trip-map .legendpaint span { min-width: 0; white-space: normal; line-height: 1.25; }
 .trip-map .legendpaint i { flex: none; width: 1.3em; height: 1.3em; border-radius: 50%; box-shadow: 0 0 0 2px rgba(255,255,255,.7), 0 2px 6px rgba(0,0,0,.5); }
 .trip-map .legendpaint b { color: var(--white, #f3f5f1); }
+
+/* the story (game/story.ts): how far she is and her latest text on the region's sign, a duel's rival on its card,
+   and a first stop's word on what a stop is, beside the card */
+.trip-map .region .story { margin-top: 0.35em; padding-top: 0.35em; border-top: 1px solid rgba(255, 255, 255, 0.2); font-size: 0.85em; }
+.trip-map .region .story b { display: block; font-weight: 800; }
+.trip-map .region .story span { display: block; color: var(--dim); line-height: 1.25; margin-top: 0.1em; }
+.trip-map .card .rival { display: flex; gap: 0.55em; align-items: center; margin-top: 0.45em; }
+.trip-map .card .rival img { width: 2.5em; height: 2.5em; border-radius: 50%; box-shadow: 0 0 0 0.12em var(--white); }
+.trip-map .card .rival b { display: block; font-size: 1.05em; }
+.trip-map .card .rival span { display: block; font-size: 0.78em; color: var(--dim); }
+.trip-map .card .says { margin-top: 0.4em; padding: 0.42em 0.7em 0.3em; border-radius: 0.9em 0.9em 0.9em 0.25em; background: rgba(0, 0, 0, 0.28); font-size: 0.86em; line-height: 1.3; }
+.trip-map .card-slot .coach { position: absolute; right: calc(100% + 0.8em); top: 50%; width: 13em; transform: translateY(-50%); background: var(--yellow); color: #1a1a14; border-radius: 0.6em; padding: 0.55em 0.8em 0.4em; font-weight: 700; font-size: 0.86em; line-height: 1.3; box-shadow: 0 0.6em 1.6em rgba(0, 0, 0, 0.4); animation: coach-in 420ms cubic-bezier(.2, 1.3, .4, 1) 900ms backwards; }
+.trip-map .card-slot .coach::after { content: ""; position: absolute; right: -0.5em; top: 50%; margin-top: -0.5em; border: 0.5em solid transparent; border-right: 0; border-left-color: var(--yellow); }
+@keyframes coach-in { 0% { opacity: 0; transform: translate(-0.8em, -50%); } }

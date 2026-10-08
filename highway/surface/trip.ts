@@ -10,7 +10,7 @@ import { clock } from "../game/sprint.ts";
 
 export type Stop = {
   id: string; name: string; about: string; facts: string;   // facts e.g. "3 lanes · 2.1 km · busy"
-  boss?: { rival: string; car: string; time: number };      // a duel: the rival, the car you win, the time to beat (s)
+  boss?: { rival: string; car: string; time: number; face?: string; role?: string; says?: string }; // a duel: the rival, the car you win, the time to beat (s); in the story, their picture, who they are, their message
   legend?: { paint: string; name: string; got: boolean };    // a Legend: the paint its first finish gives, and whether you have it
   stars: number; best?: number; times: number[];            // stars earned 0..3, your best (s), the three star times (s)
   closed: string | null;                                    // why it is closed, or null
@@ -18,8 +18,8 @@ export type Stop = {
 };
 /** A run to watch: its name, what it is, its time (s); `off` says why it cannot be watched (yet). */
 export type Replay = { name: string; about: string; time?: number; off?: string };
-export type Region = { name: string; about: string; open: boolean; why?: string; stars: number; max: number; duelAt: number; next?: string }; // next: the car its stars open next, "Kiri '10 at 8 ★"
-export type MapView = { region: number; regions: Region[]; stops: Stop[]; selected: string; stars: number; car: string; yours?: number; replays: number | null }; // replays: the row picked in the open replays panel
+export type Region = { name: string; about: string; open: boolean; why?: string; stars: number; max: number; duelAt: number; next?: string; km?: string; text?: string }; // next: the car its stops open next, "Kiri '10 after 3 stops"; km: how far she is, "231 km to Lina's"; text: her latest
+export type MapView = { region: number; regions: Region[]; stops: Stop[]; selected: string; stars: number; car: string; yours?: number; replays: number | null; coach?: string }; // replays: the row picked in the open replays panel; coach: a first stop's word on what a stop is
 
 const STAR = `<svg viewBox="0 0 24 24"><path d="M12 1.8l3 6.6 7.2.7-5.4 4.8 1.6 7.1L12 17.3 5.6 21l1.6-7.1L1.8 9.1l7.2-.7z"/></svg>`;
 const LOCK = `<svg viewBox="0 0 24 24"><path d="M7 10V7.5a5 5 0 0 1 10 0V10h1.2c.7 0 1.3.6 1.3 1.3v8.4c0 .7-.6 1.3-1.3 1.3H5.8c-.7 0-1.3-.6-1.3-1.3v-8.4c0-.7.6-1.3 1.3-1.3zm2.4 0h5.2V7.5a2.6 2.6 0 0 0-5.2 0z"/></svg>`;
@@ -150,7 +150,8 @@ function drawHead(v: MapView) {
   const need = (R.open && duel?.closed ? `<div class="need">${LOCK}<span>The duel opens at ${R.duelAt} ★</span></div>` : "")
     + (R.open && R.next ? `<div class="need next">${CAR}<span>${esc(R.next)}</span></div>` : "");
   head.innerHTML = `<div class="nav"><button data-step="-1" ${v.region === 0 ? "disabled" : ""}>‹</button><span class="dots">${pips}</span><button data-step="1" ${v.region === v.regions.length - 1 ? "disabled" : ""}>›</button></div>
-    <h1>${esc(R.name)}</h1><div class="count">${R.open ? `<b>${R.stars}</b> / ${R.max} <span class="s">★</span>` : `<span class="blurb">${esc(R.about)}</span>`}</div>${need}`;
+    <h1>${esc(R.name)}</h1><div class="count">${R.open ? `<b>${R.stars}</b> / ${R.max} <span class="s">★</span>` : `<span class="blurb">${esc(R.about)}</span>`}</div>${need}
+    ${R.open && R.km ? `<div class="story"><b>${esc(R.km)}</b>${R.text ? `<span>“${esc(R.text)}”</span>` : ""}</div>` : ""}`;
   if (headFor !== v.region) { head.classList.remove("in"); void head.offsetWidth; head.classList.add("in"); headFor = v.region; }
 }
 
@@ -164,7 +165,8 @@ function drawCard(v: MapView) {
   const times = s.times.map((t, n) => `<div class="${n < s.stars ? "got" : ""}"><span>${"★".repeat(n + 1)}</span><b>${clock(t)}</b></div>`).join("");
   const best = s.best !== undefined ? `Your best <b>${clock(s.best)}</b>` : `Not driven yet`;
   const body = s.boss
-    ? `<div class="duelbox"><div><span>Rival</span><b>${esc(s.boss.rival)}</b></div><div><span>Time to beat</span><b>${clock(s.boss.time)}</b></div><div><span>Win</span><b>${esc(s.boss.car)}</b></div></div>`
+    ? (s.boss.face ? `<div class="rival"><img src="${s.boss.face}" alt=""><div><b>${esc(s.boss.rival)}</b><span>${esc(s.boss.role ?? "")}</span></div></div>${s.boss.says ? `<div class="says">${esc(s.boss.says)}</div>` : ""}` : "")
+    + `<div class="duelbox">${s.boss.face ? "" : `<div><span>Rival</span><b>${esc(s.boss.rival)}</b></div>`}<div><span>Time to beat</span><b>${clock(s.boss.time)}</b></div><div><span>Win</span><b>${esc(s.boss.car)}</b></div></div>`
     : `<div class="times">${times}</div>` + (s.legend ? `<div class="legendpaint"><i style="background:${s.legend.paint}"></i><span>${s.legend.got ? "Yours:" : "Finish it for"} <b>${esc(s.legend.name)}</b>, a paint for every car</span></div>` : "");
   // the runs it has to watch: one quiet line that says what it opens; R opens them as a panel beside the card
   const runs = s.closed ? [] : s.replays, open = v.replays !== null && runs.length > 0;
@@ -183,7 +185,7 @@ function drawCard(v: MapView) {
     <div class="you"><span>${CAR}Your car <b>${esc(v.car)}</b>${R.open && v.car ? `<button class="change" data-key="c"><kbd>c</kbd> change</button>` : ""}</span><span class="mine">${best}</span></div>
     ${body}
     ${watch}
-    ${foot}</div>${panel}`;
+    ${foot}</div>${panel}${v.coach && !s.closed ? `<div class="coach">${esc(v.coach)}</div>` : ""}`;
   if (cardFor !== s.id) { const c = card.firstElementChild!; c.classList.add(cardFor ? "swap" : "rise"); cardFor = s.id; }
 }
 

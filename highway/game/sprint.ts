@@ -102,17 +102,17 @@ const ROWS: Row[] = [
   [4, "graveyard", "Graveyard Shift", "Two-Way, packed.", 2, 3.6, 0.8, 5108],
   [4, "afterburn", "Afterburn", "Everything at once.", 4, 3.9, 0.95, 5107],
   // the duels: a rival in the next class's first car
-  [0, "duel-ines", "Ines", "Ines drives a Tozzo and wants it to stay that way. Beat her to the line and it is yours.", 4, 2.45, 0.4, 1909],
-  [1, "duel-mika", "Mika", "Mika has a Thunderbolt and no patience. Beat him and it is yours.", 4, 2.95, 0.6, 2909],
-  [2, "duel-rook", "Rook", "Rook's Stinger has never been passed. Be the first.", 4, 3.35, 0.7, 3909],
-  [3, "duel-vega", "Vega", "Vega races a Roadster for money. Take hers.", 4, 3.75, 0.8, 4909],
+  [0, "duel-ines", "Ines", "Her sister wants the empty house too. Get there first, and her Tozzo is yours.", 4, 2.45, 0.4, 1909],
+  [1, "duel-mika", "Mika", "Her ex, 'just passing by' in a Thunderbolt. Beat him and it is yours.", 4, 2.95, 0.6, 2909],
+  [2, "duel-rook", "Rook", "The neighbour has your plate. Outrun his Stinger and he saw nothing.", 4, 3.35, 0.7, 3909],
+  [3, "duel-vega", "Vega", "Her cousin has the spare key and a Roadster. First one there gets the couch.", 4, 3.75, 0.8, 4909],
   // the Legends: each region's hardest road, open with three stars on its duel
   [0, "legend-harvest", "Harvest Rush", "The Countryside at its worst: three lanes, packed tight.", 3, 2.4, 0.9, 1990],
   [1, "legend-mirage", "Mirage", "Two-Way at noon, packed on both sides.", 2, 2.9, 0.85, 2990],
   [2, "legend-red-sky", "Red Sky", "Three packed lanes with the sun in your eyes.", 3, 3.35, 0.95, 3990],
   [3, "legend-storm", "The Storm", "Two-Way in the grey, nose to tail both ways.", 2, 3.7, 0.9, 4990],
   [4, "legend-long-night", "The Long Night", "Everything the trip has thrown at you, at once.", 3, 4.2, 1, 5990],
-  [4, "duel-kaz", "Kaz", "Kaz is the fastest driver on the road. The last race.", 4, 4.2, 0.9, 5909],
+  [4, "duel-kaz", "Kaz", "Her dad, home from the airport early. Beat him to the driveway.", 4, 4.2, 0.9, 5909],
 ];
 /** The best times scripts/sprint.ts found, each in its stop's car (carAt). */
 const BEST: Record<string, number> = {

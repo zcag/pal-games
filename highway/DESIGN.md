@@ -112,8 +112,9 @@ one strong run bought the top car.
   driven** (the Legend a duel's three stars just opened, a stop passed by),
   then goes to the furthest region: winning a duel once skipped its Legend
   for the region it opened.
-- **A first launch drops you on the first stop** with one line: Enter to
-  drive. Nothing else is explained until it matters.
+- **A first launch plays the story's opening** ("The story" below), then
+  drops you on the first stop with one word on what a stop is. Nothing else
+  is explained until it matters.
 
 ### A region
 
@@ -231,6 +232,41 @@ with yours, so every car meets the same road): a faster car truly outruns it.
 | Two-Way | ×1.2 | the oncoming side scores three times, touching it ends the run |
 | Time Attack | ×1.15 | a clock from 60 s; every 2.5 km adds time, a little less each time; the clock and the road left to the next checkpoint sit side by side at one size |
 | Speed Trap | ×1.3 | stay above a speed that rises every 10 s; 3 s below it ends the run |
+
+## The story
+
+A reason to floor it, told the way it would be: in texts. Lina texts that her
+parents are away and the house is empty; she is 412 km off. A "there's a
+race on" story was the generic one; this one gives every duel a reason to be
+on the same road and makes the last one funny.
+
+- **Only on what the game already shows**, never in the way of a run: the
+  opening, the region's sign, a run's results, a duel's card. What is said
+  is in `game/story.ts`; nothing about it is stored, it comes from the best
+  times (a stop's texts with its first finish, a duel's with the win).
+- **The opening** plays over the map on the first launch (and from Actions):
+  the phone lights up in the dark ("you up? 👀"), her three texts type in, you
+  pick a reply (1 or 2; both get you in the car), then the trip's sign:
+  "come over?", 412 km, five stretches, they land at 23:40. Each beat waits
+  for Enter, so nothing goes by unread. The first stop then carries one
+  yellow word on what a stop is.
+- **The kilometres come down** with the road: each region's Sprints and its
+  duel are a share of the 412 (a Legend is a detour). The region's sign
+  shows them and her latest text.
+- **Four texts a region**, on its first, third, fifth and seventh stops,
+  escalating: her sister wants the house too, the ex is "just passing by",
+  the neighbour has your plate, the cousin has a key and a drummer, then her
+  parents' flight is moved up.
+- **The rivals are the people on the same road**: Ines her sister, Mika her
+  ex, Rook the neighbour, Vega her cousin, Kaz her dad. Their card has their
+  picture and message; a duel lost gets their gloat, a duel won their
+  surrender and Lina's reply.
+- **Two endings**, from the last duel: win and the lights are off and she
+  opens the door ("that was fast 😳"); lose and the porch light comes on and
+  it is her dad with his suitcase. Raced again, the trip can still be won.
+- **Texts while driving** (a setting, off by default): halfway down a stop
+  not yet finished, its text lands in a corner for four seconds. Off, the
+  run is only the road.
 
 ## Sprints
 

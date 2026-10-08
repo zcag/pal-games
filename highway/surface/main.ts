@@ -14,6 +14,8 @@ import { Sound } from "./audio.ts";
 import { Garage, type Bay } from "./garage.ts";
 import { showMap, hideMap, onPick, onRegion, onReplay, pinsAt, hold, reveal, framing, PLAY, type MapView, type Replay } from "./trip.ts";
 import { MapWorld } from "./mapworld.ts";
+import { playOpening, openingKey, playing, textsHtml, face } from "./story.ts";
+import { DUELS, OPENING, PEOPLE, HER, LAST_DUEL, kmLeft, latest, brought, pending, ending } from "../game/story.ts";
 import { ONE_WAY, TWO_WAY, laneX, type Layout } from "../game/layout.ts";
 import { CARS, LOCATIONS, MODES, PAINTS, FEEL, stats, classOf, type PlayerCar, type Location } from "../game/content.ts";
 import { load, stored, fresh, carOf, paintOf, has, places, pickFor, finishSprintRun, finishFree, countRun, type Save, type Scene } from "../game/meta.ts";
@@ -22,7 +24,7 @@ import { ROLLING_START, type Drive, type End, type Packed } from "../game/drive.
 import { acrossAt, type Input } from "../game/vehicle.ts";
 import { bestDrive, chooser, decode, HUMAN, type Hulls } from "../game/bestrun.ts";
 import { REGIONS, SPRINTS, BOSS_STARS, sprintOf, sprintsOf, starTimes, rivalTime, clock, GHOST_DT, ghostAt, ghostTimeAt, type Ghost, type Sprint } from "../game/sprint.ts";
-import { bossOf, carNeeds, carsHad, legendPaints, closed, nextStop, regionOfCar, regionOpen, stopsForCar, starsIn, starsOf, totalStars, type SprintResult } from "../game/trip.ts";
+import { bossOf, won, carNeeds, carsHad, legendPaints, closed, nextStop, regionOfCar, regionOpen, stopsForCar, starsIn, starsOf, totalStars, type SprintResult } from "../game/trip.ts";
 
 declare const pal: SurfaceKit;
 const $ = (id: string) => document.getElementById(id)!;
@@ -179,6 +181,8 @@ const finishLine = (() => {
  *  a distance, fading out as it comes within a few car lengths of yours. A duel's rival is the same, warmer and clearer. */
 const GHOST_OPACITY = 0.12, RIVAL_OPACITY = 0.3;
 let ghostOn = true; // pal's Ghost setting
+let textsOn = false; // pal's Texts while driving setting
+let glanced: Run | null = null; // the run a text has landed in (one a run)
 const ghostMat = new THREE.MeshBasicMaterial({ color: 0x8fb8ff, transparent: true, opacity: GHOST_OPACITY, depthWrite: false });
 const rivalMat = new THREE.MeshBasicMaterial({ color: 0xff8a3c, transparent: true, opacity: RIVAL_OPACITY, depthWrite: false });
 
@@ -254,6 +258,7 @@ const dir = (k: string) => (k === "arrowleft" || k === "a" ? -1 : k === "arrowri
 const vdir = (k: string) => (k === "arrowup" || k === "w" ? -1 : k === "arrowdown" || k === "s" ? 1 : 0);
 
 function onKey(k: string) {
+  if (openingKey(k)) return;
   if (k === "m") { muted = !muted; sound.setVolume(muted ? 0 : save.settings.sound); return; }
   if (state === "garage" && garageScene?.showing) { garageScene.skip(); return; }
   if (PLACES.includes(state as Place) && tabKey(k)) return;
@@ -495,10 +500,12 @@ function mapView(): MapView {
       name: g.name, about: g.about, open: regionOpen(i, times),
       why: regionOpen(i, times) ? undefined : `Win the duel in ${REGIONS[i - 1].name}`,
       stars: starsIn(i, times), max: sprintsOf(i).length * 3, duelAt: BOSS_STARS, next: nextCar(i),
+      km: kmLeft(times) ? `${kmLeft(times)} km to ${HER}'s` : `At ${HER}'s`, text: latest(times, i)?.text,
     })),
     stops: sprintsOf(mapRegion).map((s) => ({
       id: s.id, name: s.boss ? `Duel: ${s.name}` : s.name, about: s.about, facts: factsOf(s),
-      boss: s.boss && { rival: s.boss.rival, car: carOf(s.boss.car).name, time: rivalTime(s) },
+      boss: s.boss && { rival: DUELS[s.id] ? PEOPLE[DUELS[s.id].who].name : s.boss.rival, car: carOf(s.boss.car).name, time: rivalTime(s),
+        face: DUELS[s.id] && face(DUELS[s.id].who), role: DUELS[s.id] && PEOPLE[DUELS[s.id].who].role, says: DUELS[s.id]?.before },
       legend: s.legend && { ...s.legend, got: !!times[s.id] },
       stars: starsOf(s, times), best: times[s.id], times: s.best ? starTimes(s) : [],
       closed: closed(s, times),
@@ -507,6 +514,8 @@ function mapView(): MapView {
     selected: sel.region === mapRegion ? sel.id : sprintsOf(mapRegion)[0].id,
     stars: totalStars(times), car: car?.name ?? "none yet",
     yours: times[sel.id], replays: replaysAt,
+    // the first stop, nothing driven yet: what a stop is
+    coach: mapRegion === 0 && !Object.keys(times).length ? OPENING.coach : undefined,
   };
 }
 /** The next car a region's Sprints open, in words: "Kiri '10 after 3 stops"; none when every one is yours. */
@@ -516,6 +525,17 @@ function nextCar(region: number) {
 }
 const traffic = (d: number) => (d < 0.2 ? "light traffic" : d < 0.45 ? "steady" : d < 0.7 ? "busy" : "packed");
 const factsOf = (s: Sprint) => `${s.layout.oncoming ? "Two-Way" : `${s.layout.lanes} lanes`} · ${(s.length / 1000).toFixed(1)} km · ${traffic(s.density)}`;
+
+/** The story's opening, over the map; once, then from Actions. */
+function opening() {
+  sound.play("ui_select", { gain: 0.5 });
+  playOpening(() => {
+    if (!save.seen.includes("story:opening")) save.seen.push("story:opening");
+    persist();
+    sound.play("ui_confirm", { gain: 0.5 });
+    if (state === "map") mapShow();
+  });
+}
 
 /** The stop the map moves on to once it is up, after a Sprint that finished its own (three stars, a duel). */
 let advance: string | null = null;
@@ -541,6 +561,7 @@ function openMap(at?: Sprint) {
   hold();
   showMap(mapView());
   void stageMap();
+  if (!scene && !trial && !save.seen.includes("story:opening")) opening();
   setTimeout(() => { if (state === "map") void buildGarage(pickFor(save, mapRegion)?.id ?? save.car); }, 1500);
 }
 onPick((id) => { if (state !== "map") return; replaysAt = null; if (save.stop === id) mapKey("enter"); else { save.stop = id; persist(); sound.play("ui_select", { gain: 0.4 }); mapShow(); } });
@@ -1013,7 +1034,7 @@ function sprintResults() {
     showBoard(sp);
     return;
   }
-  const time = d.score.time, before = save.sprints[sp.id];
+  const time = d.score.time, before = save.sprints[sp.id], was = { ...save.sprints };
   const pay: SprintResult = scene || trial ? { stars: 0, before: 0, record: false, cars: [] } : finishSprintRun(save, sp, d.score);
   if (pay.record && recording) { recording.time = time; ghosts[sp.id] = recording; pal.storage.set("ghosts", ghosts).catch((e: unknown) => console.error("highway: ghost", e)); }
   if (pay.record && lastTape && !scene && !trial) { tapes[sp.id] = lastTape; pal.storage.set("tapes", tapes).catch((e: unknown) => console.error("highway: tape", e)); }
@@ -1030,12 +1051,19 @@ function sprintResults() {
   const got = pay.cars.map((c) => c.name).join(" and ");
   const reward = got ? `<div class="reward">${got} ${pay.cars.length > 1 ? "are" : "is"} yours${duel?.opened ? `, and ${duel.opened} is open` : ""}</div>` : duel?.opened ? `<div class="reward">${duel.opened} is open</div>`
     : pay.paint ? `<div class="reward">A Legend: ${pay.paint.name} is yours, for every car</div>` : "";
-  card(`<div class="sprint-end">
+  // the story: what this run brought, a rival's word after a duel lost, the trip's end after the last
+  const said = scene || trial ? [] : brought(was, save.sprints);
+  if (duel && !duel.won && DUELS[sp.id]) said.push({ from: DUELS[sp.id].who, text: DUELS[sp.id].lost });
+  const end = sp.id === LAST_DUEL && !scene && !trial ? ending(save.sprints) : null;
+  // until the trip is won: once it is, a faster win is only a time
+  const finale = end && !won(sp.region, was) ? `<div class="ending"><div class="eyebrow">${end.eyebrow}</div><h2>${end.title}</h2><p>${end.text}</p>${textsHtml([{ from: "lina", text: end.her }])}</div>` : "";
+  card(`${finale}<div class="sprint-end">
       <div class="headline"><h2>${clock(time)}</h2>${pay.record && before ? `<span class="plate">New best, ${(before - time).toFixed(2)} s faster</span>` : pay.record ? `<span class="plate">First finish</span>` : ""}</div>
       <div class="big">${stars(pay.stars)}</div>
       <div class="why">${headline}${!pay.record && before ? `. Your best is ${clock(before)}` : ""}</div>
       ${reward}
       ${targets(time)}</div>${wonCar ? wonKeys : hasBest && (next || (duel && !duel.won)) ? nudge("b", "See how the 3★ run drives it") + keys("b") : keys()}`);
+  if (said.length) $("card").querySelector(".sign")!.insertAdjacentHTML("afterbegin", textsHtml(said, "above"));
   if (duel?.won) sound.play("bell_ding", { gain: 0.7 });
   // your time on its board first, so the board read after it has it
   void post(`sprint/${sp.id}`, Math.round(time * 100) / 100, pay.record).then(() => showBoard(sp));
@@ -1130,6 +1158,12 @@ function hud() {
   if (s.combo) { c.querySelector("b")!.innerHTML = `Combo ×${s.combo}${d.surge >= 1 ? ` <small>+${Math.round(kmh(d.surge))} ${unit()}</small>` : ""}`; c.style.setProperty("--left", String(s.comboLeft / 4)); }
   $("gauge").classList.toggle("surging", k > d.car.top + 1);
   const cell = (value: string, label: string, low = false) => `<div><b class="${low ? "low" : ""}">${value}</b><span>${label}</span></div>`;
+  // halfway down a stop not finished yet, its text lands in a corner for a glance (Texts while driving)
+  if (sp && textsOn && !sp.boss && !watching && glanced !== run && d.toLine < sp.length / 2) {
+    glanced = run;
+    const t = pending(sp, save.sprints)[0], box = $("ptext");
+    if (t) { box.innerHTML = textsHtml([t]); box.classList.remove("gone"); sound.play("ui_select", { gain: 0.35 }); setTimeout(() => box.classList.add("gone"), 4000); }
+  }
   if (sp) {
     if (rival) { $("modebox").innerHTML = cell(distance(d.toLine), "to the line") + cell(clock(rival.time), `to beat ${sp.boss!.rival}`, rival.time - s.time < 5); return; }
     const want = starTimes(sp).slice().reverse().find((t) => t > s.time) ?? null, n = want === null ? 0 : starTimes(sp).indexOf(want) + 1;
@@ -1304,6 +1338,7 @@ pal.onAction((id: string) => {
   if (id === "mute") onKey("m");
   if (id === "give-up" && (state === "run" || state === "paused")) giveUp();
   if (id === "start-over" && state !== "loading") startOver();
+  if (id === "opening" && state === "map" && !playing()) opening();
 });
 pal.onHidden(() => { if (state === "run") pause(); sound.suspend(); keepRun(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) keepRun(); });
@@ -1356,6 +1391,7 @@ pal.storage.onChange((k, v) => {
 pal.onSettings((s: Record<string, unknown>) => {
   if (typeof s.volume === "number") { save.settings.sound = s.volume / 100; sound.setVolume(muted ? 0 : save.settings.sound); }
   if (typeof s.ghost === "boolean") ghostOn = s.ghost;
+  if (typeof s.texts === "boolean") textsOn = s.texts;
 });
 
 // `?dev`: the page's state on window.hw, so a headless check can look inside
@@ -1403,6 +1439,7 @@ async function stage(sc: Scene) {
   const settings = (await pal.settings().catch(() => ({}))) as Record<string, unknown>;
   if (typeof settings.volume === "number") save.settings.sound = settings.volume / 100;
   if (typeof settings.ghost === "boolean") ghostOn = settings.ghost;
+  if (typeof settings.texts === "boolean") textsOn = settings.texts;
   sound.volume = save.settings.sound;
   names = new Map((await fetch("./cars/cars.json").then((x) => x.json())).map((c: { id: string; name: string }) => [c.id, c.name]));
   // the place the page opens on: the map's region (its stop's road), else Free Drive's

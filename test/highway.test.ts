@@ -13,6 +13,8 @@ import { declared, manifestOf, merge, problems, storedKeys } from "./game-accoun
 import { bestDrive, chooser, decode, encode, HUMAN, type Hulls } from "../highway/game/bestrun.ts";
 import hulls from "../highway/surface/cars/hulls.json";
 import best from "../highway/surface/best.json";
+import { existsSync } from "node:fs";
+import { DUELS, TEXTS, PEOPLE, TRIP_KM, LAST_DUEL, kmLeft, brought, latest, pending, ending, textsSoFar, type Who } from "../highway/game/story.ts";
 
 
 test("every car reaches about its top speed, and brakes from 100 km/h to a crawl in about a second", () => {
@@ -131,6 +133,48 @@ describe("the road trip", () => {
     expect(sprintsOf(1).map((x) => x.car)).toEqual(["tozzo-98", "tozzo-98", "sigil-07", "sigil-07", "tiara-gt-83", "tiara-gt-83", "asti-stradale-89", "asti-stradale-89", "asti-stradale-89", "asti-stradale-89"]);
   });
 
+});
+
+describe("the story", () => {
+  test("every duel has its rival's lines, every text sits on a Sprint, and everyone has a picture", () => {
+    for (const s of SPRINTS.filter((x) => x.boss)) expect(DUELS[s.id]).toBeDefined();
+    for (const id of Object.keys(TEXTS)) { const s = SPRINTS.find((x) => x.id === id); expect(s && !s.boss && !s.legend).toBe(true); }
+    for (const who of Object.keys(PEOPLE) as Who[]) expect(existsSync(new URL(`../highway/surface/story/${who}.webp`, import.meta.url))).toBe(true);
+    expect(bossOf(4).id).toBe(LAST_DUEL);
+  });
+  test("a region's sign has the latest text said in it or before it, in the road's order", () => {
+    const times: Record<string, number> = {};
+    for (const r of [0, 1, 2, 3, 4]) for (const s of sprintsOf(r)) times[s.id] = s.boss ? rivalTime(s) - 1 : 60;
+    expect(latest(times, 4)).toEqual(TEXTS.graveyard.at(-1));
+    expect(latest(times, 3)).toEqual(DUELS["duel-vega"].won.at(-1));
+  });
+  test("a stop's texts come with its first finish, a duel's with the win, and the kilometres come down to none", () => {
+    const times: Record<string, number> = {};
+    expect(kmLeft(times)).toBe(TRIP_KM);
+    const first = sprintsOf(0)[0], before = { ...times };
+    times[first.id] = 60;
+    expect(brought(before, times)).toEqual(TEXTS[first.id]);
+    expect(brought({ ...times }, times)).toEqual([]); // driven again: nothing new
+    expect(pending(first, times)).toEqual([]);
+    expect(latest(times, 0)).toEqual(TEXTS[first.id].at(-1));
+    expect(kmLeft(times)).toBeLessThan(TRIP_KM);
+    const boss = bossOf(0), was = { ...times };
+    times[boss.id] = rivalTime(boss) + 5;
+    expect(brought(was, times)).toEqual([]); // a duel lost says nothing new
+    times[boss.id] = rivalTime(boss) - 1;
+    expect(brought(was, times)).toEqual(DUELS[boss.id].won);
+    for (const s of SPRINTS) times[s.id] = s.boss ? rivalTime(s) - 1 : 60;
+    expect(kmLeft(times)).toBe(0);
+    expect(textsSoFar(times).length).toBe(Object.values(TEXTS).flat().length + Object.values(DUELS).flatMap((d) => d.won).length);
+  });
+  test("the trip ends after the last duel: driven and lost, then won", () => {
+    const times: Record<string, number> = {}, last = bossOf(4);
+    expect(ending(times)).toBeNull();
+    times[last.id] = rivalTime(last) + 5;
+    expect(ending(times)?.title).toBe("The porch light comes on.");
+    times[last.id] = rivalTime(last) - 1;
+    expect(ending(times)?.title).toBe("The lights are off.");
+  });
 });
 
 describe("accounts", () => {

@@ -10,6 +10,11 @@ as a view level whose body is the extension's own page (`surface/`, a
   Noon, Golden Hour, Grey Day, Night Run), eight Sprints and a duel each.
   Left and right walk the road, up and down change region, Enter drives the
   stop. G opens the garage, F Free Drive; Backspace comes back to the map.
+- **The story**, told in texts: Lina's parents are away, the house is empty,
+  and she is 412 km off. The first launch plays the opening (her texts, your
+  reply), and Actions plays it again; each stop's first finish brings her
+  next text, a duel's card has the rival's message, and the last duel ends
+  it. "Texts while driving" (a setting, off) lands a stop's text mid-run.
 - **A Sprint** is a run to a finish line on a road that is the same every
   try, in your car for the region's class; three stars for the time, a
   ghost of your best beside you, R tries again at once. A duel is the same
@@ -71,6 +76,8 @@ as a view level whose body is the extension's own page (`surface/`, a
   Freesound, Kenney's UI sounds (CC0), music CC0 and CC BY.
   `surface/audio/LICENSES.md` has every credit.
 - **Type**: Overpass (SIL OFL 1.1), `surface/font/OFL.txt`.
+- **Portraits** (`surface/story/`): made for the game with FLUX.2 [klein] 4B
+  (Apache 2.0) on our own machine.
 - **three.js** (MIT): `surface/vendor/three.js`, rebuilt by
   `scripts/vendor.sh`.
 

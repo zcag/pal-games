@@ -1,0 +1,76 @@
+/* The story (story.ts): the opening over the map, and texts as the phone shows them. Sized like the map (trip.css). */
+
+/* ---- texts: a notification each, in the HUD's asphalt glass */
+.texts { display: flex; flex-direction: column; gap: 0.4em; }
+.txt { display: flex; gap: 0.6em; align-items: flex-start; text-align: left; background: rgba(16, 18, 21, 0.86); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 1em; padding: 0.55em 0.85em 0.45em 0.55em; box-shadow: 0 0.6em 1.6em rgba(0, 0, 0, 0.4); animation: txt-in 420ms cubic-bezier(.2, 1.3, .4, 1) backwards; }
+.txt:nth-child(2) { animation-delay: 700ms; }
+.txt:nth-child(3) { animation-delay: 1400ms; }
+@keyframes txt-in { 0% { opacity: 0; transform: translateY(-0.8em) scale(0.96); } }
+.txt img { width: 2.2em; height: 2.2em; border-radius: 50%; flex: none; }
+.txt .who { font-size: 0.78em; font-weight: 800; }
+.txt .who i { font-style: normal; font-weight: 600; color: var(--faint); margin-left: 0.5em; }
+.txt .msg { line-height: 1.3; }
+/* on a run's results: above its card */
+#card .sign { position: relative; }
+#card .texts.above { position: absolute; left: 50%; bottom: calc(100% + 12px); width: min(330px, 86%); transform: translateX(-50%); font-size: 13px; }
+/* in a run, a glance (Texts while driving): under the distance, gone in a few seconds */
+#ptext { position: absolute; right: 14px; top: 64px; width: min(270px, 40vw); font-size: 12px; transition: opacity 400ms ease; }
+#ptext.gone { opacity: 0; }
+
+/* the end of the trip, on the last duel's results */
+.ending { text-align: center; margin: 2px 0 10px; }
+.ending .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); }
+.ending h2 { font-size: 26px !important; }
+.ending p { margin: 4px 0 8px; color: var(--dim); line-height: 1.35; }
+.ending .txt { display: inline-flex; animation-delay: 900ms; }
+
+/* ---- the opening: over the map and its tabs, under the loading sign */
+#story { position: fixed; inset: 0; z-index: 27; display: none; font-size: clamp(12px, min(1.8vw, 3.35vh), 21px); color: var(--white); cursor: pointer; }
+#story.on { display: block; background: rgba(4, 6, 6, 0.84); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); animation: story-in 600ms ease; }
+@keyframes story-in { 0% { opacity: 0; } }
+#story kbd { font-size: 0.72em; line-height: 1.45em; }
+#story .go { position: absolute; left: 50%; bottom: 1.2em; transform: translateX(-50%); color: var(--dim); font-size: 0.85em; }
+
+/* 1: the phone lights up */
+#story .lock { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -54%); width: min(26em, 86vw); text-align: center; }
+#story .clock { font-size: 4.4em; font-weight: 300; letter-spacing: -0.04em; line-height: 1; }
+#story .day { color: var(--dim); }
+#story .note { margin-top: 1.4em; display: flex; gap: 0.7em; align-items: center; text-align: left; background: rgba(255, 255, 255, 0.1); border-radius: 1.2em; padding: 0.75em 1em 0.65em 0.75em; animation: drop 700ms cubic-bezier(.2, 1.3, .3, 1) 500ms backwards, buzz 380ms 1300ms 2; }
+@keyframes drop { 0% { opacity: 0; transform: translateY(-2.5em) scale(0.95); } }
+@keyframes buzz { 25% { transform: translateX(-0.25em); } 75% { transform: translateX(0.25em); } }
+#story .note img { width: 2.8em; height: 2.8em; border-radius: 50%; }
+#story .note i { font-style: normal; color: var(--faint); font-size: 0.8em; margin-left: 0.5em; }
+#story .note div div { font-size: 1.15em; margin-top: 0.1em; }
+
+/* 2: her texts, then yours */
+#story .phone { position: absolute; left: 50%; top: 4%; bottom: 13%; transform: translateX(-50%); width: min(22em, 90vw); background: #0d0f10; border-radius: 1.8em; padding: 1em; display: flex; flex-direction: column; box-shadow: 0 1em 3em rgba(0, 0, 0, 0.6), inset 0 0 0 0.15em rgba(255, 255, 255, 0.1); cursor: default; }
+#story .phone .ph-head { display: flex; align-items: center; gap: 0.6em; padding-bottom: 0.7em; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+#story .phone .ph-head img { width: 2.3em; height: 2.3em; border-radius: 50%; }
+#story .phone .ph-head span { display: block; font-size: 0.72em; color: #5fd38a; }
+#story .feed { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; padding-top: 0.5em; }
+#story .b { max-width: 80%; width: fit-content; padding: 0.48em 0.8em 0.32em; margin: 0.24em 0; border-radius: 1.1em; line-height: 1.3; animation: pop 260ms cubic-bezier(.2, 1.4, .4, 1) backwards; }
+@keyframes pop { 0% { opacity: 0; transform: translateY(0.6em) scale(0.9); } }
+#story .b.her { background: #262a2c; border-bottom-left-radius: 0.3em; }
+#story .b.me { background: #1f8a55; margin-left: auto; border-bottom-right-radius: 0.3em; }
+#story .b.typing { display: flex; gap: 0.25em; padding: 0.7em 0.8em; }
+#story .b.typing i { width: 0.45em; height: 0.45em; border-radius: 50%; background: var(--dim); animation: dot 1s infinite; }
+#story .b.typing i:nth-child(2) { animation-delay: 0.15s; }
+#story .b.typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes dot { 50% { opacity: 0.2; transform: translateY(-0.2em); } }
+#story .replies { display: flex; gap: 0.5em; padding-top: 0.7em; min-height: 3em; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+#story .replies button { flex: 1; font: inherit; font-weight: 700; color: var(--white); background: #1f8a55; border: 0; border-radius: 1em; padding: 0.5em 0.4em 0.35em; cursor: pointer; animation: pop 300ms backwards; }
+#story .replies button:hover { background: #26a065; }
+#story .replies kbd { background: rgba(0, 0, 0, 0.3); margin-right: 0.35em; }
+
+/* 3: the trip's sign */
+#story .title { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(25em, 90vw); text-align: center; padding: 1.2em 1.4em 1.1em; animation: title-in 700ms cubic-bezier(.2, 1, .3, 1) 200ms backwards; }
+@keyframes title-in { 0% { opacity: 0; transform: translate(-50%, -40%); } }
+#story .title .eyebrow { font-size: 0.74em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); }
+#story .title .big { font-size: 3em; font-weight: 900; letter-spacing: -0.04em; line-height: 1; margin: 0.15em 0 0.1em; }
+#story .title p { margin: 0.2em 0 0; color: var(--dim); }
+#story .title .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.35em; margin-top: 0.8em; }
+#story .title .facts div { background: rgba(0, 0, 0, 0.22); border-radius: 0.5em; padding: 0.35em 0.3em 0.2em; }
+#story .title .facts b { display: block; font-size: 1.3em; }
+#story .title .facts span { font-size: 0.7em; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; }
+#story .title .getin { margin-top: 0.8em; background: var(--white); color: var(--sign-deep); border-radius: 0.5em; font-weight: 800; padding: 0.38em 0 0.22em; font-size: 1.05em; }
+#story .title .getin kbd { background: var(--sign-deep); color: var(--white); margin-right: 0.4em; }

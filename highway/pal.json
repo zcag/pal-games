@@ -26,6 +26,13 @@
       "default": 80
     },
     {
+      "id": "texts",
+      "label": "Texts while driving",
+      "kind": "boolean",
+      "text": "A stop's text from the story lands in a corner halfway down the road, for a glance",
+      "default": false
+    },
+    {
       "id": "ghost",
       "label": "Ghost",
       "kind": "boolean",
@@ -588,6 +595,7 @@
     ],
     "features": [
       "A road trip across five regions, from a quiet countryside morning to a night run, each with its own sky, its own car class and busier roads",
+      "A story told in texts: Lina's parents are away, the house is empty, and she is 412 km off; her sister, her ex, the neighbour and her cousin are on the same road, and her dad's flight lands early",
       "Sprints: about a minute to a finish line on a road that is the same every try, so it can be learned; three stars for the time, your best run beside you as a ghost, R tries again at once",
       "A duel at the end of every region against a rival driving the best line; win it for their car and the next region",
       "A Legend in every region, its hardest road, open once you have three stars on its duel: finish it for a Legend paint every car can wear",
