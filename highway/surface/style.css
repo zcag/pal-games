@@ -193,9 +193,11 @@ button[data-key]:hover { background: rgba(255, 255, 255, 0.12); }
 .sprint-end .total, .free-end .total { font-weight: 800; color: var(--yellow); border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 3px; }
 .sprint-end .reward { margin: 6px auto; padding: 6px 12px; border-radius: 8px; background: var(--yellow); color: #1a1a14; font-weight: 800; display: inline-block; }
 /* a Sprint's board beside its results */
-#card .sign.with-board { width: min(600px, calc(100vw - 32px)); display: grid; grid-template-columns: 1fr 172px; column-gap: 16px; }
+/* the results never wider than their column: the keys under them wrap, so a long row (a new car's "see your new car")
+   does not push the board out past the card's edge */
+#card .sign.with-board { width: min(600px, calc(100vw - 32px)); display: grid; grid-template-columns: minmax(0, 1fr) 172px; column-gap: 16px; }
 #card .sign.with-board > .board { grid-column: 2; grid-row: 1 / span 2; border-left: 1px solid rgba(255, 255, 255, 0.18); padding-left: 14px; text-align: left; animation: board-in 300ms ease both; }
-#card .sign.with-board > .keys { grid-column: 1; }
+#card .sign.with-board > .keys { grid-column: 1; flex-wrap: wrap; justify-content: center; row-gap: 0; }
 .board h3 { margin: 2px 0 6px; font-size: 12px; font-weight: 800; color: var(--dim); text-transform: uppercase; letter-spacing: 0.4px; }
 .board ol { list-style: none; margin: 0; padding: 0; }
 .board li { display: grid; grid-template-columns: 18px 1fr auto; gap: 6px; align-items: baseline; padding: 3px 0; font-size: 12px; }
