@@ -296,7 +296,8 @@ export class Drive {
     }
 
     // contact (none for a staged run, which plays on while a picture is taken)
-    if (!this.ghost && !rolling) for (const n of this.traffic.cars) {
+    // nor past the line: the page's autopilot drives on behind the results for as long as they show, and never into anyone
+    if (!this.ghost && !rolling && this.ended !== "line") for (const n of this.traffic.cars) {
       // the cars as they are drawn: the player turned FEEL.yaw of its heading, the traffic into its lane change
       const nyaw = heading(n, (l) => (n.oncoming ? oncomingX(L, l) : laneX(L, l)));
       const c = collide({ x: v.x, z: v.z, yaw: v.yaw * FEEL.yaw, ...this.outline(this.size) }, { x: n.x, z: n.z, yaw: nyaw, ...this.outline(this.sizeOf(n.kind) ?? { x: n.width, z: n.length }) });

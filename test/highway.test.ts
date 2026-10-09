@@ -242,6 +242,19 @@ test("a ghost packs to a few kB and comes back exactly; one kept as arrays still
   expect(unpackGhost({ time: 1 })).toBeNull();
 });
 
+test("past the line nothing can be hit: the autopilot drives on behind the results", () => {
+  const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
+  const sp = SPRINTS[0];
+  let bumps = 0;
+  const d = new Drive(sp.layout, CARS[6], size, 2.6, sizeOf, { bump: () => bumps++ }, { sprint: sp });
+  d.ghost = true;
+  for (let i = 0; i < 120 * 200 && !d.ended; i++) d.step(1 / 120, { throttle: 1, brake: 0, steer: 0 });
+  expect(d.ended).toBe("line");
+  d.ghost = false;
+  for (let i = 0; i < 120 * 60; i++) d.step(1 / 120, { throttle: 1, brake: 0, steer: 0 }); // straight on through everyone
+  expect([d.ended, bumps]).toEqual(["line", 0]);
+});
+
 test("Zen: flat out through the traffic, nothing ends the run and nothing is scored", () => {
   const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
   const run = (mode: "endless" | "zen") => {

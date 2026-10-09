@@ -718,12 +718,14 @@ async function openGarage(focus?: string, purpose: GarageFor = { back: "map" }) 
   veil(false);
   drawGarage();
   sound.setEngine(null);
-  // a car the trip gave you and not yet seen: it is shown off now, one after another
-  for (const c of CARS) if (unseen(c)) {
+  // the cars the trip gave you and not yet seen, shown off one after another: the one you came for (a car just won) first,
+  // then any others in the garage's order (it showed only the first of those, so a car won came after an older one)
+  const due = CARS.filter(unseen).sort((a, b) => +(b.id === focus) - +(a.id === focus));
+  for (const c of due) {
+    if (state !== "garage") break;
     browse = CARS.indexOf(c); garageScene!.focus(c.id); drawGarage();
     save.seen.push(`car:${c.id}`); persist();
     await showcase(c.id);
-    break;
   }
 }
 
