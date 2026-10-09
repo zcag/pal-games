@@ -117,7 +117,8 @@ kbd { display: inline-block; min-width: 18px; padding: 1px 5px 0; border-radius:
 #card dt { color: var(--dim); }
 #card dd { margin: 0; text-align: right; font-weight: 700; }
 #card dt.total, #card dd.total { color: var(--yellow); font-weight: 800; font-size: 15px; }
-#card .keys { display: flex; gap: 14px; margin-top: 4px; }
+/* keys wrap when a row is longer than the card (a new car's "see your new car" with the replay keys), each one whole */
+#card .keys { display: flex; flex-wrap: wrap; gap: 0 14px; margin-top: 4px; }
 
 /* the three places, on top of each: the road trip, the garage, Free Drive */
 /* centred in the room right of the garage's and Free Drive's signs (12 + 262 px); over the map's layer (z 20, trip.css) and its pins */
@@ -193,11 +194,10 @@ button[data-key]:hover { background: rgba(255, 255, 255, 0.12); }
 .sprint-end .total, .free-end .total { font-weight: 800; color: var(--yellow); border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 3px; }
 .sprint-end .reward { margin: 6px auto; padding: 6px 12px; border-radius: 8px; background: var(--yellow); color: #1a1a14; font-weight: 800; display: inline-block; }
 /* a Sprint's board beside its results */
-/* the results never wider than their column: the keys under them wrap, so a long row (a new car's "see your new car")
-   does not push the board out past the card's edge */
+/* the results never wider than their column, so their keys wrap rather than push the board past the card's edge */
 #card .sign.with-board { width: min(600px, calc(100vw - 32px)); display: grid; grid-template-columns: minmax(0, 1fr) 172px; column-gap: 16px; }
 #card .sign.with-board > .board { grid-column: 2; grid-row: 1 / span 2; border-left: 1px solid rgba(255, 255, 255, 0.18); padding-left: 14px; text-align: left; animation: board-in 300ms ease both; }
-#card .sign.with-board > .keys { grid-column: 1; flex-wrap: wrap; justify-content: center; row-gap: 0; }
+#card .sign.with-board > .keys { grid-column: 1; }
 .board h3 { margin: 2px 0 6px; font-size: 12px; font-weight: 800; color: var(--dim); text-transform: uppercase; letter-spacing: 0.4px; }
 .board ol { list-style: none; margin: 0; padding: 0; }
 .board li { display: grid; grid-template-columns: 18px 1fr auto; gap: 6px; align-items: baseline; padding: 3px 0; font-size: 12px; }
@@ -220,7 +220,7 @@ button[data-key]:hover { background: rgba(255, 255, 255, 0.12); }
 .sprint-end .targets { margin-top: 6px; }
 .sprint-end .targets > div { padding: 3px 8px; }
 .sprint-end .targets b { font-size: 13px; }
-#card .sign:has(.sprint-end) .keys { margin-top: 6px; }
+#card .sign:has(.sprint-end) .keys { margin-top: 6px; justify-content: center; }
 /* a new car's title, over its showcase */
 #newcar { position: fixed; left: 50%; bottom: 13%; transform: translate(-50%, 12px); text-align: center; opacity: 0; pointer-events: none; transition: opacity 500ms ease, transform 700ms cubic-bezier(.2, 1, .3, 1); text-shadow: 0 2px 18px rgba(0, 0, 0, 0.7); }
 #newcar.on { opacity: 1; transform: translate(-50%, 0); }
