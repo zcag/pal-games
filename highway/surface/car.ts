@@ -294,6 +294,25 @@ function physical(src: THREE.Material) {
   return m;
 }
 
+/** A window mirrors what is below it faintly: tinted glass seen from above is dark, and at full strength the grass and
+ *  road beside the car, mirrored in a side window from the high views, read as a hole through the car. */
+function groundless(m: THREE.Material) {
+  const prev = m.onBeforeCompile.bind(m), key = m.customProgramCacheKey.bind(m);
+  m.onBeforeCompile = (sh, r) => {
+    prev(sh, r);
+    sh.fragmentShader = sh.fragmentShader.replace("#include <lights_fragment_maps>", `#include <lights_fragment_maps>
+      #if defined( USE_ENVMAP ) && defined( RE_IndirectSpecular )
+      { float up = smoothstep( 0.0, 0.3, inverseTransformDirection( reflect( - geometryViewDir, geometryNormal ), viewMatrix ).y );
+        radiance *= mix( 0.15, 1.0, up );
+        #ifdef USE_CLEARCOAT
+        clearcoatRadiance *= mix( 0.15, 1.0, up );
+        #endif
+      }
+      #endif`);
+  };
+  m.customProgramCacheKey = () => key() + "|groundless";
+}
+
 const BAY = new THREE.MeshBasicMaterial({ color: 0x050607, side: THREE.DoubleSide });
 /** Behind the grilles: a dark block inside the lower body, the car's outline from above drawn in, from just off the
  *  ground to below the windows. The models leave a grille or a vent open onto nothing (the Kiri '10's, the Tozzo's,
@@ -446,7 +465,7 @@ export class Car {
         g.color.set(lens ? 0xf4f4f4 : 0x06090c); g.opacity = lens ? 0.3 : 0.9;
         g.envMapIntensity = lens ? 1.5 : 2.2;
         g.depthWrite = !lens; // a window is the surface the depth-based finishing sees, not the cabin behind it
-        if (!lens) this.shiny.push(g);
+        if (!lens) { this.shiny.push(g); groundless(g); }
         mesh.material = g;
         mesh.renderOrder = 2;
       } else if (TYRE.test(mat.name)) mesh.material = rubber(mat);
