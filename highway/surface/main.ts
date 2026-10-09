@@ -1392,7 +1392,10 @@ pal.onSettings((s: Record<string, unknown>) => {
   if (typeof s.volume === "number") { save.settings.sound = s.volume / 100; sound.setVolume(muted ? 0 : save.settings.sound); }
   if (typeof s.ghost === "boolean") ghostOn = s.ghost;
   if (typeof s.texts === "boolean") textsOn = s.texts;
+  resolution(s.resolution);
 });
+/** The Resolution setting: a pixel ratio, as its option's id. */
+const resolution = (v: unknown) => { if (typeof v === "string" && +v > 0) r.setResolution(+v); };
 
 // `?dev`: the page's state on window.hw, so a headless check can look inside
 if (q.has("dev")) Object.assign(window, { hw: { get run() { return run; }, get save() { return save; }, get state() { return state; }, get camera() { return r.camera; }, get world() { return world; }, get map() { return mapWorld; }, r, THREE } });
@@ -1440,6 +1443,7 @@ async function stage(sc: Scene) {
   if (typeof settings.volume === "number") save.settings.sound = settings.volume / 100;
   if (typeof settings.ghost === "boolean") ghostOn = settings.ghost;
   if (typeof settings.texts === "boolean") textsOn = settings.texts;
+  resolution(settings.resolution);
   sound.volume = save.settings.sound;
   names = new Map((await fetch("./cars/cars.json").then((x) => x.json())).map((c: { id: string; name: string }) => [c.id, c.name]));
   // the place the page opens on: the map's region (its stop's road), else Free Drive's

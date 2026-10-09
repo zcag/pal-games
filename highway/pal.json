@@ -26,6 +26,31 @@
       "default": 80
     },
     {
+      "kind": "select",
+      "id": "resolution",
+      "label": "Resolution",
+      "description": "How many pixels the road is drawn with. Sharp is the crispest and takes about twice the power of Balanced, which warms a laptop; Battery is a little softer and takes a third of Sharp's.",
+      "options": [
+        {
+          "id": "2",
+          "title": "Sharp"
+        },
+        {
+          "id": "1.5",
+          "title": "Balanced"
+        },
+        {
+          "id": "1.25",
+          "title": "Battery"
+        },
+        {
+          "id": "1",
+          "title": "Lowest"
+        }
+      ],
+      "default": "1.5"
+    },
+    {
       "id": "texts",
       "label": "Texts while driving",
       "kind": "boolean",
@@ -111,7 +136,8 @@
     },
     "run": "local",
     "scene": "local",
-    "ghosts": "local", "tapes": "local"
+    "ghosts": "local",
+    "tapes": "local"
   },
   "leaderboards": [
     {

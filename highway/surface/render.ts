@@ -1,4 +1,4 @@
-// The renderer: three's WebGL renderer, sized to the page at devicePixelRatio, drawing through the
+// The renderer: three's WebGL renderer, sized to the page at the Resolution setting's pixel ratio, drawing through the
 // finishing chain (looks.ts). Two of three's shader chunks are changed here, before anything compiles:
 // the sun's shadows are softer and fade out toward the shadow map's edge, and the sky photo is drawn
 // as the light it was made from (un-tone-mapped), so the one tone map at the end treats it like the
@@ -30,6 +30,11 @@ export type Fx = { speed?: number; hit?: number; dim?: number };
   bg.fragmentShader = bg.fragmentShader.replace("void main() {", `${ACES}\nvoid main() {`).replace("texColor.rgb *= backgroundIntensity;", "texColor.rgb = unaces( texColor.rgb ) * backgroundIntensity;");
 }
 
+/** The Resolution setting's pixel ratio until the settings are read (pal.json's default, kept equal). Every pass is paid per pixel: measured on an M5 Max at
+ *  60 fps, the GPU drew 13.8 W at 2, 9.3 W at 1.75, 7.3 W at 1.5, 4.7 W at 1.25 and 3.6 W at 1, and 1.5 is hard to
+ *  tell from 2 on a Retina screen. */
+export const RESOLUTION = 1.5;
+
 export class Renderer {
   gl: THREE.WebGLRenderer;
   camera = new THREE.PerspectiveCamera(50, 1, 0.1, 4000);
@@ -38,7 +43,7 @@ export class Renderer {
 
   constructor(canvas: HTMLCanvasElement) {
     const gl = (this.gl = new THREE.WebGLRenderer({ canvas, powerPreference: "high-performance", antialias: false }));
-    gl.setPixelRatio(Math.min(2, devicePixelRatio));
+    gl.setPixelRatio(Math.min(RESOLUTION, devicePixelRatio));
     gl.shadowMap.enabled = true;
     gl.shadowMap.type = THREE.PCFShadowMap;
     // the shadow map is drawn once a frame, by the frame's own render (not the reflections'), with what only
@@ -69,6 +74,14 @@ export class Renderer {
       const m = (o as THREE.Mesh).material;
       for (const mat of Array.isArray(m) ? m : m ? [m] : []) for (const v of Object.values(mat)) if ((v as THREE.Texture)?.isTexture) this.gl.initTexture(v as THREE.Texture);
     });
+  }
+
+  /** Draw at `ratio` pixels per CSS pixel (the Resolution setting), never more than the screen has. */
+  setResolution(ratio: number) {
+    const pr = Math.min(ratio, devicePixelRatio);
+    if (pr === this.gl.getPixelRatio()) return;
+    this.gl.setPixelRatio(pr);
+    this.resize();
   }
 
   resize(w = innerWidth, h = innerHeight) {

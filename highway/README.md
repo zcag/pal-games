@@ -33,6 +33,9 @@ as a view level whose body is the extension's own page (`surface/`, a
   or anything coming the other way, ends the run. A car collides as its
   shape from above, a little inside what is drawn: a gap you see is a miss.
 - C changes the view, P pauses, M mutes.
+- **Resolution** (a setting, Balanced): how many pixels the road is drawn
+  with. Every pass is paid per pixel, so Sharp (2×) takes about twice the GPU
+  power of Balanced (1.5×) for a picture hard to tell apart; Battery is 1.25×.
 - **Signed in** to a pal account, the save syncs: best times by `min`,
   totals by `sum`; what is open and which cars you have are worked out from
   the best times, so machines never disagree. A kept run and the ghosts stay on
