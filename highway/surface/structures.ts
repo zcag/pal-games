@@ -5,7 +5,7 @@
 // the road, a halo at the head).
 import * as THREE from "./vendor/three.js";
 import type { Part } from "./env.ts";
-import { DECK } from "./terrain.ts";
+import { DECK, BUILT } from "./terrain.ts";
 
 type Box = [x0: number, x1: number, y0: number, y1: number, z0: number, z1: number];
 
@@ -106,8 +106,10 @@ export function halo(color: THREE.ColorRepresentation, strength: number): Part {
   const geo = new THREE.PlaneGeometry(1, 1);
   const mat = new THREE.ShaderMaterial({
     uniforms: { color: { value: new THREE.Color(color).multiplyScalar(strength) } },
-    vertexShader: `varying vec2 vUv; void main() { vUv = uv; vec4 c = modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0); c.xy += position.xy * length(instanceMatrix[0].xyz); gl_Position = projectionMatrix * c; }`,
-    fragmentShader: `uniform vec3 color; varying vec2 vUv; void main() { float r = length(vUv - 0.5) * 2.0; float a = exp(-r * r * 9.0) + 0.25 * exp(-r * r * 2.0); gl_FragColor = vec4(color * a * (1.0 - smoothstep(0.8, 1.0, r)), 1.0); }`,
+    // faded out toward the edge of the built land as the haze fades everything else (looks.ts `edge`): a halo writes no
+    // depth, and against the sky the haze never touched it, so a far lamp's glow popped in at the edge
+    vertexShader: `varying vec2 vUv; varying float vFar; void main() { vUv = uv; vec4 c = modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0); vFar = 1.0 - smoothstep(${BUILT - 520}.0, ${BUILT - 120}.0, length(c.xyz)); c.xy += position.xy * length(instanceMatrix[0].xyz); gl_Position = projectionMatrix * c; }`,
+    fragmentShader: `uniform vec3 color; varying vec2 vUv; varying float vFar; void main() { float r = length(vUv - 0.5) * 2.0; float a = exp(-r * r * 9.0) + 0.25 * exp(-r * r * 2.0); gl_FragColor = vec4(color * a * vFar * (1.0 - smoothstep(0.8, 1.0, r)), 1.0); }`,
     transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
   });
   return { geo, mat };

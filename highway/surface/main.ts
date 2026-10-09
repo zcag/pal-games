@@ -13,6 +13,7 @@ import { Car } from "./car.ts";
 import { Sound } from "./audio.ts";
 import { Garage, type Bay } from "./garage.ts";
 import { Streaks } from "./rush.ts";
+import { BUILT } from "./terrain.ts";
 import { showMap, hideMap, onPick, onRegion, onReplay, pinsAt, hold, reveal, framing, PLAY, type MapView, type Replay } from "./trip.ts";
 import { MapWorld } from "./mapworld.ts";
 import { playOpening, openingKey, playing, textsHtml, face } from "./story.ts";
@@ -36,6 +37,7 @@ const world = new World(r.gl);
 const chase = new Chase(r.camera);
 const sound = new Sound();
 const mapWorld = new MapWorld(r, world);
+r.finish.edge = BUILT; // the land fades into the haze before its built edge (terrain.ts)
 const streaks = new Streaks(); // the rush's air (rush.ts), in the road's scene
 world.scene.add(streaks.mesh);
 let garageScene: Garage | null = null, garageBuilt: Promise<void> | null = null;

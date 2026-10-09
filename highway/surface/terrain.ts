@@ -9,6 +9,9 @@ import { shadowOnly } from "./shadow.ts";
 
 export const CHUNK = 120; // m along the road
 const AHEAD = 9, BEHIND = 1;
+/** The nearest the far edge of the built land ever is, m ahead: a chunk past it is built in one go, so things there
+ *  appear at once; the finishing fades everything into the haze before it (looks.ts `edge`), so they emerge instead. */
+export const BUILT = (AHEAD - 1) * CHUNK;
 const WIDTH = 900; // each side
 const COLS = 80, ROWS = 24;
 const NEAR = 220; // chunks starting closer than this ahead draw their full meshes, the rest their impostors
