@@ -580,7 +580,7 @@ function moveOn() {
   const to = advance && sprintOf(advance);
   advance = null;
   if (!to) return;
-  if (to.region !== mapRegion) { save.stop = to.id; persist(); toRegion(to.region); return; }
+  if (to.region !== mapRegion) { save.stop = to.id; persist(); toRegion(to.region); mapShow(); return; }
   setTimeout(() => {
     if (state !== "map" || replaysAt !== null || save.stop === to.id) return;
     save.stop = to.id;
