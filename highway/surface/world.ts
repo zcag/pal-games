@@ -11,6 +11,7 @@ import { overpass, barrierPanel, lampPool, halo, signFace } from "./structures.t
 import { LANDS, groundMaterial, water, tinted, windows, type Assets, type Style } from "./lands.ts";
 import { LOCATIONS, type LandId } from "../game/content.ts";
 import { SKY_LOOKS, type SkyLook } from "./skylooks.ts";
+import { carLight } from "./car.ts";
 
 const LAMP = 260; // a street lamp's candela, in the night look's units
 
@@ -70,6 +71,7 @@ export class World {
     this.scene.userData.look = look; // for the finishing (skylooks.ts lookOf)
     // moonlight and the glow of the sky: enough to see the shape of a car at night
     this.fill.intensity = this.night ? 0.55 : 0;
+    carLight.value.set(this.night ? 0.35 : 1.2, this.night ? 0.22 : 100); // a car in your headlights lit, not blazing (car.ts)
 
     // the road
     if (this.road) this.scene.remove(this.road.mesh);

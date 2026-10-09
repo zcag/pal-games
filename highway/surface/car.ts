@@ -285,6 +285,29 @@ function carAlpha(m: THREE.Material) {
   m.customProgramCacheKey = () => key() + "|car";
 }
 
+/** How much direct light a car's surfaces take, at most: a light's reflection off clear coat, chrome or glass (`spec`),
+ *  and all of it (`all`), on every car material through one uniform. At night your headlights are spotlights with no
+ *  dipped beam's cut-off, so the car ahead, nine metres off, took them full on its back and went past white, flaring
+ *  into glare through the bloom; World.build tightens it at night (world.ts) and opens it by day. Reflections of the
+ *  world (the sky, the reflection cube) are left as they are. */
+export const carLight = { value: new THREE.Vector2(1.2, 100) };
+function tamed(m: THREE.Material) {
+  if (m.userData.tamed || !(m as THREE.MeshStandardMaterial).isMeshStandardMaterial) return;
+  m.userData.tamed = true;
+  const prev = m.onBeforeCompile.bind(m), key = m.customProgramCacheKey.bind(m);
+  m.onBeforeCompile = (sh, r) => {
+    prev(sh, r);
+    sh.uniforms.uCarLight = carLight;
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec2 uCarLight;").replace("#include <lights_fragment_end>", `#include <lights_fragment_end>
+      reflectedLight.directSpecular = min(reflectedLight.directSpecular, vec3(uCarLight.x));
+      reflectedLight.directDiffuse = min(reflectedLight.directDiffuse, vec3(uCarLight.y));
+      #ifdef USE_CLEARCOAT
+      clearcoatSpecularDirect = min(clearcoatSpecularDirect, vec3(uCarLight.x));
+      #endif`);
+  };
+  m.customProgramCacheKey = () => key() + "|tamed";
+}
+
 /** A physical material with a standard one's maps and settings (copying a standard material into a
  *  physical one directly reads physical-only fields it does not have). */
 function physical(src: THREE.Material) {
@@ -514,7 +537,7 @@ export class Car {
     model.add(new THREE.Mesh(cached(info, "bay", () => bay(info)), BAY));
     if (panes.length) model.add(new THREE.Mesh(cached(info, "lining", () => lining(panes)), BAY));
     // every part of the car writes alpha 0: the motion blur (looks.ts) leaves cars sharp
-    this.body.traverse((o) => { const m = (o as THREE.Mesh).material; if (m) for (const x of Array.isArray(m) ? m : [m]) carAlpha(x); });
+    this.body.traverse((o) => { const m = (o as THREE.Mesh).material; if (m) for (const x of Array.isArray(m) ? m : [m]) { carAlpha(x); tamed(x); } });
 
     // the wheels, on the ground (not the sprung body): pivots at their centres steer, the wheel spins inside;
     // all of them and the calipers of a material drawn as one mesh that turns each part in its shader
