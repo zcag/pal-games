@@ -23,7 +23,7 @@ import type { Miss } from "../game/score.ts";
 import { ROLLING_START, type Drive, type End, type Packed } from "../game/drive.ts";
 import { acrossAt, type Input } from "../game/vehicle.ts";
 import { bestDrive, chooser, decode, HUMAN, type Hulls } from "../game/bestrun.ts";
-import { REGIONS, SPRINTS, BOSS_STARS, sprintOf, sprintsOf, starTimes, rivalTime, clock, GHOST_DT, ghostAt, ghostTimeAt, type Ghost, type Sprint } from "../game/sprint.ts";
+import { REGIONS, SPRINTS, BOSS_STARS, ROADS, sprintOf, sprintsOf, starTimes, rivalTime, clock, GHOST_DT, ghostAt, ghostTimeAt, type Ghost, type Sprint } from "../game/sprint.ts";
 import { bossOf, won, carNeeds, carsHad, legendPaints, closed, nextStop, regionOfCar, regionOpen, stopsForCar, starsIn, starsOf, totalStars, type SprintResult } from "../game/trip.ts";
 
 declare const pal: SurfaceKit;
@@ -329,7 +329,9 @@ function drawTabs() {
 
 /** A Sprint run's inputs, as changes: each the steps since the last (base 36) and a digit for the keys held
  *  (gas 1, brake 2, steer: 0 right, 4 none, 8 left), joined by commas: a minute's driving is a kilobyte or two. */
-type Tape = { sprint: string; car: string; paint: string; seed: number; time: number; tape: string };
+/** `roads`: the roads' version it was driven on (ROADS), 1 when missing. */
+type Tape = { sprint: string; car: string; paint: string; seed: number; time: number; tape: string; roads?: number };
+const current = (t: Tape) => (t.roads ?? 1) === ROADS;
 const packTape = (t: [number, number, number, number][]) => t.map(([n, th, br, st], i) => `${(n - (i ? t[i - 1][0] : 0)).toString(36)}${(th + 2 * br + 4 * (st + 1)).toString(36)}`).join(",");
 function unpackTape(s: string) {
   let n = 0;
@@ -357,7 +359,8 @@ let replaysAt: number | null = null;
  *  before replays were kept says so), the 3★ run. A record from the leaderboard is the next to come. */
 function replaysOf(s: Sprint): { row: Replay; go?: () => void; star?: boolean }[] {
   const out: { row: Replay; go?: () => void; star?: boolean }[] = [], t = tapes[s.id], mine = save.sprints[s.id];
-  if (t) out.push({ row: { name: "Your best", about: "your fastest finish here", time: t.time }, go: () => watchTape(s, t, "Your best") });
+  if (t && current(t)) out.push({ row: { name: "Your best", about: "your fastest finish here", time: t.time }, go: () => watchTape(s, t, "Your best") });
+  else if (t) out.push({ row: { name: "Your best", about: "", time: t.time, off: "Driven before the road changed: your next best is kept" } });
   else if (mine) out.push({ row: { name: "Your best", about: "", time: mine, off: "Not recorded yet: a new best is kept" } });
   if (s.best && bestRunOf(s) !== false) out.push({ row: { name: "3★ run", about: "the run the stars are drawn from", time: s.best }, go: () => watchBest(s), star: true });
   const rec = records.get(s.id)?.top;
@@ -387,6 +390,7 @@ async function watchRecord(s: Sprint, rec: Record_) {
   try { t = JSON.parse(r?.data ?? "null"); } catch { t = null; }
   const ok = !!t && typeof t === "object" && t.sprint === s.id && CARS.some((c) => c.id === t!.car) && Number.isInteger(t.seed) && typeof t.time === "number" && typeof t.tape === "string" && /^[0-9a-z,]*$/.test(t.tape);
   if (!ok) { sound.play("ui_error", { gain: 0.5 }); hint("That run could not be read"); return; }
+  if (!current(t!)) { sound.play("ui_error", { gain: 0.5 }); hint("That run was driven before the road changed"); return; }
   watchTape(s, t!, `Record · ${rec.name}`);
 }
 function replaysKey(k: string) {
@@ -1025,7 +1029,7 @@ function sprintResults() {
   const keys = (except?: string) => `<div class="keys"><button data-key="r"><kbd>r</kbd> try again</button><button data-key="enter"><kbd>enter</kbd> map</button>${watchKeys(except)}</div>`;
   const wonKeys = `<div class="keys"><button data-key="enter"><kbd>enter</kbd> see your new car</button><button data-key="backspace"><kbd>⌫</kbd> map</button><button data-key="r"><kbd>r</kbd> race again</button>${watchKeys()}</div>`;
   const targets = (time?: number) => targetsRow(sp, time);
-  lastTape = d.tape && { sprint: sp.id, car: trip!.car.id, paint: paintOf(save, trip!.car), seed: d.seed, time: d.score.time, tape: packTape(d.tape) };
+  lastTape = d.tape && { sprint: sp.id, car: trip!.car.id, paint: paintOf(save, trip!.car), seed: d.seed, time: d.score.time, tape: packTape(d.tape), roads: ROADS };
   if (d.ended !== "line") {
     if (!scene && !trial) { countRun(save, run!.score); persist(); }
     card(`<div class="sprint-end"><h2>${crashInfo ? "Crashed" : "Stopped"}</h2>

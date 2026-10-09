@@ -374,7 +374,9 @@ test("drivers decide on their own: cars placed together do not change lanes all 
     // the most signals switched on within any half second
     for (const t of started) worst = Math.max(worst, started.filter((u) => u >= t && u < t + 0.5).length);
   }
-  expect(worst).toBeLessThanOrEqual(3); // it was 6 when every car placed together waited the same 2 s
+  // it was 6 when every car placed together waited the same 2 s; 4 comes by chance (seeds 1-10 reach it, before the
+  // walls were taken out of the roads too), the lanes being open more often
+  expect(worst).toBeLessThanOrEqual(4);
 });
 
 test("a rolling start: the car cruises, nothing counts and nothing touches until it ends, then the clock runs", () => {

@@ -97,7 +97,7 @@ export class Drive {
     this.traffic = new Traffic(layout.lanes, layout.oncoming);
     // a Sprint plans its rows as far ahead as the car can see at its fastest, so every speed meets the same road
     const course: Course | undefined = this.sprint ? { seed: this.sprint.seed, density: this.sprint.density, reach: Math.max(320, (this.veh.spec.top ?? 60) * 1.25 * 7), span: this.sprint.span } : undefined;
-    this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: trafficTop(car) / 3.6, rnd: () => this.rnd(), density: o.density ?? 1, course });
+    this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: trafficTop(car) / 3.6, rnd: () => this.rnd(), density: o.density ?? 1, course, you: (car.top / 3.6) * FEEL.pace });
     this.director.spare = { lane: Math.min(1, layout.lanes - 1), until: 150 };
     this.place();
   }
@@ -188,7 +188,7 @@ export class Drive {
    *  shows its traffic before the first step). */
   private place() {
     const v = this.veh;
-    const rows = this.director.plan(v.z, v.u, this.traffic.cars.map((n) => ({ lane: n.lane, z: n.z, oncoming: n.oncoming })));
+    const rows = this.director.plan(v.z, v.u, this.traffic.cars.map((n) => ({ lane: n.lane, z: n.z, oncoming: n.oncoming, v: n.v })));
     for (const row of rows) {
       // a course's row draws its cars from its own seed, so the same row always brings the same cars
       let rs = row.seed ?? 0;

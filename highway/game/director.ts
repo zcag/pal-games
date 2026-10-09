@@ -29,9 +29,23 @@ export type DirectorOpts = {
   rnd: () => number;
   density?: number; // the place's traffic, 1 normal
   course?: Course;
+  you?: number; // m/s: your top speed on the world's pace, what a row is checked for walls against (Director.walls)
 };
 
-export type Occupant = { lane: number; z: number; oncoming: boolean };
+/** A car on the road or planned: where it is, and for the wall check its speed and where you were (`at`) when it was
+ *  there. */
+export type Occupant = { lane: number; z: number; oncoming: boolean; v?: number; at?: number };
+
+/** A wall: a car in every lane, each within the road you cover on the traffic while you cross a lane (CROSS s, a tap
+ *  held) of one in the lane beside it: abreast, a diagonal or a V, no gap to cut. Lanes drive at different speeds, so
+ *  cars placed apart drew into one about every 3 s of a packed three-lane road; a car that would make one as you come
+ *  up to it is not placed. */
+export const CROSS = 0.45;
+/** The speeds you are checked at, times your top: at it, and carried past it by a combo. */
+const SURGE = [1, 1.12];
+/** A car caught up to a slower one keeps this many metres behind it, and 1.35 s more (traffic.ts: its jam gap, a car's
+ *  length and its time gap). */
+const FOLLOW = 7;
 
 const PATTERNS: { name: string; weight: (d: number) => number; make: (o: DirectorOpts, r: () => number) => { lane: number; dz: number; heavy?: boolean }[] }[] = [
   { name: "single", weight: (d) => 3 - d * 1.5, make: (o, r) => [{ lane: Math.floor(r() * o.lanes), dz: 0 }] },
@@ -97,14 +111,16 @@ export class Director {
     const rows: Row[] = [], c = this.o.course;
     const reach = playerZ + (c ? c.reach : Math.max(320, playerV * 7)); // past where you can make anything out
     if (this.frontier < playerZ + 45) this.frontier = playerZ + 45; // the first cars close enough to matter at once
-    if (c) { this.planned = this.planned.filter((p) => p.z > this.frontier - 60); cars = this.planned; }
+    // the rows planned so far, kept until you are past where they were placed: a wall is made of cars placed rows apart
+    if (c) { this.planned = this.planned.filter((p) => p.z > this.frontier - c.reach - 50); cars = this.planned; }
+    else cars = cars.map((x) => ({ ...x, at: x.at ?? playerZ }));
     while (this.frontier < reach) {
       if (c) this.rowSeed = seedOf(c.seed, this.rows++);
       const d = this.density();
-      const row = this.row(this.frontier, d, cars);
+      const row = this.row(this.frontier, d, cars, playerZ);
       if (c) row.seed = seedOf(c.seed ^ 0x5bd1e995, this.rows);
       if (row.spawns.length) rows.push(row);
-      for (const s of row.spawns) cars.push({ lane: s.lane, z: row.z + s.dz, oncoming: s.oncoming });
+      for (const s of row.spawns) cars.push({ lane: s.lane, z: row.z + s.dz, oncoming: s.oncoming, v: s.v0, at: this.at(row.z, playerZ) });
       // the next row: spaced so the 140 m ahead (a course's span) holds the cars the moment calls for
       const ours = row.spawns.filter((s) => !s.oncoming).length || 1;
       const gap = ((c?.span ?? SPAN) * ours / this.cap()) * (0.75 + this.rnd() * 0.5);
@@ -115,7 +131,41 @@ export class Director {
     return rows;
   }
 
-  private row(z: number, d: number, cars: Occupant[]): Row {
+  /** Where you are taken to be as a row at `z` is planned: on a course a fixed reach behind it, so what it places never
+   *  depends on how you drive; else where you are. */
+  private at(z: number, playerZ: number) { return this.o.course ? z - this.o.course.reach : playerZ; }
+
+  /** Whether `c` would make a wall with `cars` as you come up to it (from 150 m off to 30 m), you at your top speed or
+   *  a combo's past it (SURGE). */
+  private walls(c: Occupant, cars: Occupant[]) {
+    return !!this.o.you && this.o.lanes >= 3 && SURGE.some((k) => this.wallAt(c, cars, this.o.you! * k));
+  }
+  private wallAt(c: Occupant, cars: Occupant[], u: number) {
+    const L = this.o.lanes;
+    if (c.v === undefined || c.v >= u) return false;
+    const own = [...cars.filter((x) => !x.oncoming && x.v !== undefined && x.at !== undefined), c];
+    const meet = (c.z - (c.v * c.at!) / u) / (1 - c.v / u); // where you draw level with it
+    const mean = own.reduce((a, x) => a + x.v!, 0) / own.length, span = Math.min(30, Math.max(6, (u - mean) * CROSS));
+    const at = new Map<Occupant, number>();
+    for (let P = meet - 150; P <= meet - 30; P += 15) {
+      // everyone where they will be, a lane a queue: a car that catches a slower one falls in behind it
+      for (let l = 0; l < L; l++) {
+        const lane = own.filter((x) => x.lane === l).map((x) => ({ x, z: x.z + (x.v! * (P - x.at!)) / u })).sort((a, b) => b.z - a.z);
+        for (let i = 0; i < lane.length; i++) {
+          if (i) lane[i].z = Math.min(lane[i].z, lane[i - 1].z - FOLLOW - lane[i - 1].x.v! * 1.35);
+          at.set(lane[i].x, lane[i].z);
+        }
+      }
+      const cz = at.get(c)!;
+      // a chain from c to each edge of the road, each car within span of one in the next lane
+      const chain = (z: number, lane: number, side: number): boolean =>
+        lane < 0 || lane >= L || own.some((x) => x !== c && x.lane === lane && Math.abs(at.get(x)! - z) < span && chain(at.get(x)!, lane + side, side));
+      if (chain(cz, c.lane - 1, -1) && chain(cz, c.lane + 1, 1)) return true;
+    }
+    return false;
+  }
+
+  private row(z: number, d: number, cars: Occupant[], playerZ: number): Row {
     const r = () => this.rnd();
     const total = PATTERNS.reduce((a, p) => a + Math.max(0, p.weight(d)), 0);
     let pick = r() * total, p = PATTERNS[0];
@@ -132,7 +182,12 @@ export class Director {
     if (this.spare && z < this.spare.until) spawns = spawns.filter((s) => s.lane !== this.spare!.lane);
     // and keep clear of a car already in the same spot
     spawns = spawns.filter((s) => !cars.some((c) => !c.oncoming && c.lane === s.lane && Math.abs(c.z - (z + s.dz)) < 14));
-    const out: Spawn[] = spawns.map((s) => ({ lane: s.lane, dz: s.dz, heavy: s.heavy, v0: this.speed(s.lane, s.heavy, false), oncoming: false }));
+    // and never one that would make a wall by the time you reach it
+    const out: Spawn[] = [], at = this.at(z, playerZ), placed = (s: Spawn): Occupant => ({ lane: s.lane, z: z + s.dz, oncoming: false, v: s.v0, at });
+    for (const s of spawns) {
+      const o: Spawn = { lane: s.lane, dz: s.dz, heavy: s.heavy, v0: this.speed(s.lane, s.heavy, false), oncoming: false };
+      if (!this.walls(placed(o), [...cars, ...out.map(placed)])) out.push(o);
+    }
     // the other carriageway, on a two-way road: steady oncoming traffic
     if (this.o.oncomingLanes && r() < 0.35 + d * 0.5) {
       const lane = Math.floor(r() * this.o.oncomingLanes), heavy = r() < 0.2;
