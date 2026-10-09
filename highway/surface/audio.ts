@@ -107,7 +107,7 @@ export class Sound {
   }
 
   /** Every frame: the engine at an rpm and throttle; the road, wind and tyres at a speed and slip. */
-  drive(rpm: number, throttle: number, speed: number, slip: number, redline: number) {
+  drive(rpm: number, throttle: number, speed: number, slip: number, redline: number, rush = 0) {
     const ctx = this.ctx, e = this.engine;
     if (!ctx || !e || !this.ready) return;
     const t = ctx.currentTime;
@@ -122,7 +122,7 @@ export class Sound {
     e.filter.frequency.setTargetAtTime(hasOff ? 8000 : 700 + 7000 * (0.25 + 0.75 * throttle) * (0.5 + r * 0.5), t, 0.06);
     const kmh = speed * 3.6;
     this.loop("road_asphalt", Math.min(1, kmh / 140) * 0.45, 0.7 + kmh / 360);
-    this.loop("wind_rush", Math.pow(Math.max(0, (kmh - 50) / 220), 1.5) * 0.7, 0.85 + kmh / 600);
+    this.loop("wind_rush", Math.min(1, Math.pow(Math.max(0, (kmh - 50) / 220), 1.5) * 0.7 + rush * 0.3), 0.85 + kmh / 600 + rush * 0.12);
     this.loop("tire_squeal", Math.max(0, Math.min(1, (slip - 0.75) * 2.5)) * 0.5 * Math.min(1, kmh / 40), 0.9 + slip * 0.1);
   }
 

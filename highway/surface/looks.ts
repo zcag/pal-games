@@ -254,7 +254,7 @@ export class Finish {
     c.tAO.value = this.ao[1].texture; c.aoAmt.value = ao ? 1 : 0;
     c.viewInv.value.copy(cam.matrixWorld); c.prevVP.value.copy(this.prevVP); c.camPos.value.copy(pos);
     c.texel.value.set(1 / W, 1 / H);
-    c.shutter.value = this.off.has("blur") ? 0 : (1 / 60) * 0.55 / dt; // a 1/110 s shutter
+    c.shutter.value = this.off.has("blur") ? 0 : ((1 / 60) * 0.55 / dt) * (1 + (fx.rush ?? 0) * 1.1); // a 1/110 s shutter, longer in a rush
     c.maxBlur.value = 0.045 * W;
     const bg = scene.background as THREE.Texture | null;
     // the night photo's sky is stars and a bright moon: sampled per direction it streaks the haze, so
@@ -286,7 +286,7 @@ export class Finish {
     f.grade.value = this.off.has("grade") ? 0 : 1;
     f.contrast.value = g.contrast; f.saturation.value = g.saturation; f.warmth.value = g.warmth;
     f.lift.value.set(...g.lift); f.gain.value.set(...g.gain);
-    f.vignette.value = g.vignette;
+    f.vignette.value = g.vignette + (fx.rush ?? 0) * 0.14;
     f.hit.value = fx.hit ?? 0; f.dim.value = fx.dim ?? 0;
     f.time.value = now / 1000;
     this.finQ.draw(gl, null);

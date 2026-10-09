@@ -9,7 +9,7 @@ import { Traffic, crossing, heading, type Npc } from "./traffic.ts";
 import { Director, type Course } from "./director.ts";
 import { Score, DOUBLE_SURGE, type Miss } from "./score.ts";
 import { collide, resolve, type Pt, type Rigid } from "./crash.ts";
-import { TRAFFIC, FEEL, spec, trafficTop, type ModeId, type PlayerCar } from "./content.ts";
+import { TRAFFIC, FEEL, MODES, spec, trafficTop, type ModeId, type PlayerCar } from "./content.ts";
 import { laneX, oncomingX, edges, LANE_W, RAIL, type Layout } from "./layout.ts";
 
 /** Closing speed that ends a run (km/h on the dial), as in the original; any touch of an oncoming car does too. */
@@ -147,6 +147,28 @@ export class Drive {
 
   /** The most a combo can push past the top speed, km/h: 15% of it. */
   get surgeMax() { return this.car.top * SURGE_MAX; }
+  /** Zen: a car knocked to a crawl drives on two seconds after its first knock (more knocks do not start it again), easing into the lane it stands nearest (as a lane change
+   *  from where it is), so a road that no knock ends is never left blocked. */
+  private recover(dt: number) {
+    const L = this.layout;
+    for (const n of this.traffic.cars) {
+      const h = n.hit;
+      if (!h) continue;
+      h.rest = (h.rest ?? 0) + dt;
+      if (h.rest < 2 || Math.abs(n.v) > 4 || Math.abs(h.vx) > 2) continue;
+      const at = (l: number) => (n.oncoming ? oncomingX(L, l) : laneX(L, l)), lanes = n.oncoming ? L.oncoming : L.lanes;
+      // the lanes either side of where it stands, and how far across from one to the other it is
+      let a = 0;
+      for (let l = 0; l < lanes - 1; l++) if (Math.abs(at(l + 1) - n.x) < Math.abs(at(a) - n.x)) a = l + 1;
+      const b = Math.max(0, Math.min(lanes - 1, a + (n.x > at(a) === at(1) > at(0) ? 1 : -1)));
+      n.from = b; n.lane = a; n.t = b === a ? 1 : Math.max(0, Math.min(1, (n.x - at(b)) / (at(a) - at(b))));
+      n.hit = undefined; n.signal = 0; n.v = Math.max(n.v, 3);
+      this.traffic.relane();
+    }
+  }
+
+  /** Zen: no near misses scored, and no knock ends the run. */
+  get calm() { return !this.sprint && !!MODES.find((m) => m.id === this.mode)?.calm; }
 
   /** A Sprint's metres left to the line. */
   get toLine() { return this.sprint ? Math.max(0, this.sprint.length - this.score.distance) : 0; }
@@ -266,7 +288,7 @@ export class Drive {
       const side = n.x > v.x ? -1 : 1; // -1: it went by on the left of the screen
       ev.pass?.(n, gap, closing, side);
       if (this.over || rolling) continue;
-      const m = this.score.pass(gap, kmh, n.oncoming || lp.oncoming);
+      const m = this.calm ? null : this.score.pass(gap, kmh, n.oncoming || lp.oncoming);
       if (m) {
         this.surge = Math.min(this.surgeMax, this.surge + m.grade.surge + (m.double ? DOUBLE_SURGE : 0));
         ev.miss?.(m, n, side);
@@ -288,12 +310,12 @@ export class Drive {
       const j = resolve(me, them, c);
       v.x = me.x; v.z = me.z; v.r = me.r;
       v.u = Math.max(0, me.vx * sy + me.vz * cy);
-      const fatal = closing / FEEL.pace >= FATAL_KMH || n.oncoming;
+      const fatal = !this.calm && (closing / FEEL.pace >= FATAL_KMH || n.oncoming);
       if (fatal) { v.v = me.vx * cy - me.vz * sy; v.knocked = 2; } // the run is over: the tyres slide it to a stop
       else { v.v = clamp(me.vx * cy - me.vz * sy, -4, 4); v.r = 0; } // a shove sideways your steering soaks up
       n.x = them.x; n.z = them.z;
       n.v = Math.abs(them.vz);
-      n.hit = { vx: them.vx, yaw: nyaw, r: them.r };
+      n.hit = { vx: them.vx, yaw: nyaw, r: them.r, rest: n.hit?.rest };
       n.signal = 0;
       if (!this.over && fatal) {
         ev.crash?.({ you: Math.round(kmh), them: Math.round((n.v * 3.6) / FEEL.pace), kind: n.kind, oncoming: n.oncoming });
@@ -301,6 +323,7 @@ export class Drive {
       } else ev.bump?.(j, n.x > v.x ? -1 : 1);
     }
     this.traffic.remove((n) => n.z < v.z - 70 || n.z > v.z + 1000);
+    if (this.calm) this.recover(dt);
 
     // the body on its springs: squat, dive, and a lean with the steering as the original's does
     // (4 degrees + 0.05 per km/h at full lock, times `lean`)

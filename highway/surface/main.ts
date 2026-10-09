@@ -114,6 +114,7 @@ const events = {
     const label = m.double ? "Threaded the gap" : m.grade.name;
     pop(`${label}<small>+${m.points.toLocaleString("en-US")}</small>`, m.oncoming ? "oncoming" : m.double || m.grade.mult > 2 ? "big" : "");
     sound.play("combo_ding", { gain: 0.45, rate: Math.pow(2, Math.min(12, m.combo - 1) / 12) });
+    if (rushOn) chase.punch(m.double ? 3 : m.grade.mult * 0.9);
     const c = $("combo");
     c.classList.remove("bump");
     void c.offsetWidth;
@@ -182,6 +183,7 @@ const finishLine = (() => {
 const GHOST_OPACITY = 0.12, RIVAL_OPACITY = 0.3;
 let ghostOn = true; // pal's Ghost setting
 let textsOn = false; // pal's Texts while driving setting
+let rushOn = true; // pal's Speed rush setting
 let glanced: Run | null = null; // the run a text has landed in (one a run)
 const ghostMat = new THREE.MeshBasicMaterial({ color: 0x8fb8ff, transparent: true, opacity: GHOST_OPACITY, depthWrite: false });
 const rivalMat = new THREE.MeshBasicMaterial({ color: 0xff8a3c, transparent: true, opacity: RIVAL_OPACITY, depthWrite: false });
@@ -873,7 +875,7 @@ function drawFree() {
         <div class="about">${mode.about}</div>
       </div>
       <div class="drive">
-        <div><div class="go">${mode.name} in the ${car.name}</div><div class="best">${best ? `Best ${best.score.toLocaleString("en-US")} in ${(best.distance / 1000).toFixed(1)} km` : "No runs yet"}</div></div>
+        <div><div class="go">${mode.name} in the ${car.name}</div><div class="best">${mode.calm ? "No score, nothing ends it" : best ? `Best ${best.score.toLocaleString("en-US")} in ${(best.distance / 1000).toFixed(1)} km` : "No runs yet"}</div></div>
         <div class="keys"><button data-key=" "><kbd>space</kbd> drive</button><br><button data-key="backspace"><kbd>⌫</kbd> map</button></div>
       </div>
     </div>`;
@@ -978,8 +980,8 @@ function pause() {
       <div class="keys" style="margin-top:12px"><button data-key="enter"><kbd>enter</kbd> carry on</button><button data-key="backspace"><kbd>⌫</kbd> map</button></div>`);
     return;
   }
-  card(`<h2>Paused</h2><div class="why">${!run ? "" : sp ? `${clock(run.score.time)}, ${(run.drive.toLine / 1000).toFixed(1)} km to go` : `${Math.round(run.score.points).toLocaleString("en-US")} points so far`}</div>
-    <div class="keys" style="margin-top:12px"><button data-key="enter"><kbd>enter</kbd> carry on</button>${sp ? `<button data-key="r"><kbd>r</kbd> try again</button>` : ""}<button data-key="q"><kbd>q</kbd> ${sp ? "back to the map" : "end the run"}</button></div>`);
+  card(`<h2>Paused</h2><div class="why">${!run ? "" : sp ? `${clock(run.score.time)}, ${(run.drive.toLine / 1000).toFixed(1)} km to go` : run.drive.calm ? `${(run.score.distance / 1000).toFixed(1)} km so far` : `${Math.round(run.score.points).toLocaleString("en-US")} points so far`}</div>
+    <div class="keys" style="margin-top:12px"><button data-key="enter"><kbd>enter</kbd> carry on</button>${sp ? `<button data-key="r"><kbd>r</kbd> try again</button>` : ""}<button data-key="q"><kbd>q</kbd> ${sp ? "back to the map" : run?.drive.calm ? "pull over" : "end the run"}</button></div>`);
 }
 function resume() { state = "run"; resuming = 1.5; wasRolling = 0; $("card").hidden = true; sound.start(); last = performance.now(); banner("3"); sound.play("countdown_beep", { gain: 0.5 }); }
 function giveUp() { if (trip) { if (run) { countRun(save, run.score); persist(); } openMap(trip.sprint); } else if (run) { crashInfo = null; results(); } }
@@ -992,6 +994,17 @@ function results() {
   keepRun(); // a finished run is not carried over
   $("hud").hidden = true;
   const s = run.score;
+  if (run.drive.calm) {
+    // Zen: how far and how long, nothing kept as a best and nothing on a board
+    countRun(save, s);
+    persist();
+    card(`<div class="sprint-end free-end">
+        <div class="headline"><h2>${(s.distance / 1000).toFixed(1)} km</h2></div>
+        <div class="why">${clock(s.time)} on the road, ${placeOf(save.location).name}</div>
+      </div>
+      <div class="keys"><button data-key="enter"><kbd>enter</kbd> drive again</button><button data-key="backspace"><kbd>⌫</kbd> map</button><button data-key="g"><kbd>g</kbd> garage</button></div>`);
+    return;
+  }
   const res = finishFree(save, s, save.mode);
   persist();
   post(save.mode, Math.round(s.points), res.record);
@@ -1147,6 +1160,10 @@ function hud() {
     const against = rival ? { at: ghostTimeAt(rival.line, dz), scale: rival.time / rival.line.time, who: sp.boss!.rival } : ghosts[sp.id] ? { at: ghostTimeAt(ghosts[sp.id], dz), scale: 1, who: "your best" } : null;
     const split = against && against.at !== null ? s.time - against.at * against.scale : null;
     $("rate").innerHTML = split === null ? "" : `<em class="${split <= 0 ? "ahead" : "behind"}">${split <= 0 ? "−" : "+"}${Math.abs(split).toFixed(2)}</em> on ${against!.who}`;
+  } else if (d.calm) {
+    // Zen: the time on the road where the score would be
+    $("score").querySelector("b")!.textContent = clock(s.time);
+    $("rate").textContent = "";
   } else {
     $("score").querySelector("b")!.textContent = Math.round(s.points).toLocaleString("en-US");
     $("rate").textContent = k >= 60 ? `+${Math.round(rateOf(k))} a second` : "Faster for points";
@@ -1220,7 +1237,7 @@ function resumeCount(dt: number) {
   resuming = Math.max(0, resuming - dt);
   for (const at of [1.0, 0.5]) if (before > at && resuming <= at) { banner(String(Math.round(at * 2))); sound.play("countdown_beep", { gain: 0.5 }); }
   if (resuming <= 0) { banner("Go"); sound.play("countdown_go", { gain: 0.6 }); last = performance.now(); }
-  r.render(world.scene, { speed: 0, hit: 0, dim: 0 });
+  r.render(world.scene, { hit: 0, dim: 0 });
 }
 
 /** Go: the distance counts from here, so the finish line, your ghost and the rival's line are laid from here too (they
@@ -1321,16 +1338,19 @@ function frame() {
     r.camera.fov = 38;
     r.camera.updateProjectionMatrix();
   } else {
+    // the rush: how far a combo has carried you past your top speed, eased so it builds and fades rather than jumps
+    const rush = rushOn && state === "run" ? Math.min(1, run.drive.surge / Math.max(1, run.drive.surgeMax)) : 0;
+    chase.rush += (rush - chase.rush) * Math.min(1, dt * (rush > chase.rush ? 2.5 : 1.2));
     chase.update(dt, pose, (world.lo + world.hi) / 2);
     if (state === "run" && (run.drive.intro > 0 || wasRolling > 0)) rollingCamera(pose);
   }
-  sound.drive(v.rpm, v.shifting > 0 ? 0 : v.throttle, v.u, Math.max(v.slipFront, v.slipRear), v.spec.redline);
+  sound.drive(v.rpm, v.shifting > 0 ? 0 : v.throttle, v.u, Math.max(v.slipFront, v.slipRear), v.spec.redline, chase.rush);
   sound.loop("scrape_metal", run.scraping > 0 ? 0.55 : 0);
   if (v.gear !== lastGear) { if (v.gear > lastGear && state === "run") sound.play("gear_change", { gain: 0.3 }); lastGear = v.gear; }
   if (state === "run") hud();
   flash = Math.max(0, flash - dt * 1.6);
   if (state !== drawn) { r.finish.cut = true; drawn = state; } // a new view: the blur must not smear the old one into it
-  r.render(world.scene, { speed: state === "free" ? 0 : Math.max(0, (v.u - 30) / 45), hit: flash, dim: state === "results" ? 0.3 : 0 });
+  r.render(world.scene, { hit: flash, dim: state === "results" ? 0.3 : 0, rush: chase.rush });
   // ?perf: a frame over 20 ms says where its time went
   if (q.has("perf")) { const t4 = performance.now(); if (t4 - t0 > 20) console.warn(`slow frame, ${r.gl.info.programs?.length} shaders, ${(t4 - t0).toFixed(1)}ms: step ${(t1 - t0).toFixed(1)} draw ${(t2 - t1).toFixed(1)} world ${(t3 - t2).toFixed(1)} render ${(t4 - t3).toFixed(1)}`); }
 }
@@ -1396,6 +1416,7 @@ pal.onSettings((s: Record<string, unknown>) => {
   if (typeof s.volume === "number") { save.settings.sound = s.volume / 100; sound.setVolume(muted ? 0 : save.settings.sound); }
   if (typeof s.ghost === "boolean") ghostOn = s.ghost;
   if (typeof s.texts === "boolean") textsOn = s.texts;
+  if (typeof s.rush === "boolean") rushOn = s.rush;
   resolution(s.resolution);
 });
 /** The Resolution setting: a pixel ratio, as its option's id. */
@@ -1447,6 +1468,7 @@ async function stage(sc: Scene) {
   if (typeof settings.volume === "number") save.settings.sound = settings.volume / 100;
   if (typeof settings.ghost === "boolean") ghostOn = settings.ghost;
   if (typeof settings.texts === "boolean") textsOn = settings.texts;
+  if (typeof settings.rush === "boolean") rushOn = settings.rush;
   resolution(settings.resolution);
   sound.volume = save.settings.sound;
   names = new Map((await fetch("./cars/cars.json").then((x) => x.json())).map((c: { id: string; name: string }) => [c.id, c.name]));

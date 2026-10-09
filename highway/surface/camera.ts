@@ -33,6 +33,10 @@ export class Chase {
   shake = 0;
   lingering = 0; // after a crash: drift back and up
   private fov = 42;
+  /** 0..1, how far a combo has carried you past your top speed (main.ts, the Speed rush setting): the lens opens wider,
+   *  the camera drops in closer and the road trembles more. */
+  rush = 0;
+  private punchFov = 0; // a near miss's kick to the lens, decaying
   private t = 0;
   constructor(public camera: THREE.PerspectiveCamera) {}
 
@@ -44,6 +48,9 @@ export class Chase {
     this.update(0, v, 0);
   }
 
+  /** A near miss in a rush: the lens kicks open a little, more for a closer pass. */
+  punch(strength: number) { this.punchFov = Math.min(5, this.punchFov + strength); }
+
   hit(side: number, strength: number) {
     this.kick.x += side * strength * 0.25;
     this.kick.y += strength * 0.12;
@@ -54,12 +61,13 @@ export class Chase {
     const V = VIEWS[this.view], cam = this.camera;
     this.t += dt;
     const sp = Math.min(1, v.u / 75);
-    let dist = V.dist, h = V.h;
+    let dist = V.dist - (V.attached ? 0 : this.rush * 0.9), h = V.h - (V.attached ? 0 : this.rush * 0.35);
+    this.punchFov *= Math.exp(-dt * 4);
     if (this.lingering > 0) { this.lingering += dt; dist += Math.min(6, this.lingering * 3); h += Math.min(2, this.lingering); }
     this.shake = Math.max(0, this.shake - dt * 1.2);
     this.kick.multiplyScalar(Math.exp(-dt * 7));
     // only hits shake it; the road itself adds the faintest tremor near the top speed
-    const tremor = sp > 0.8 ? (sp - 0.8) * 0.02 : 0;
+    const tremor = (sp > 0.8 ? (sp - 0.8) * 0.02 : 0) + this.rush * 0.035;
     const n = (f: number, p: number) => Math.sin(this.t * f + p) * 0.6 + Math.sin(this.t * f * 2.3 + p * 2) * 0.4;
     const jx = n(31, 0) * (tremor + this.shake * this.shake * 0.4) + this.kick.x, jy = n(37, 1) * (tremor + this.shake * this.shake * 0.4) + this.kick.y;
     if (V.attached) {
@@ -72,10 +80,10 @@ export class Chase {
       cam.lookAt(x, V.lookH, v.z + V.look);
     }
     // the lens opens with speed, slowly, so it never jumps
-    const want = V.fov + sp * sp * V.speedFov;
+    const want = V.fov + sp * sp * V.speedFov + this.rush * (3 + V.speedFov * 1.2);
     this.fov += (want - this.fov) * Math.min(1, dt * 1.5);
     if (dt === 0) this.fov = want;
-    cam.fov = this.fov;
+    cam.fov = this.fov + this.punchFov;
     cam.updateProjectionMatrix();
   }
 }

@@ -24,7 +24,9 @@ as a view level whose body is the extension's own page (`surface/`, a
   the bays, up and down pick car or paint, Enter makes a car the one its
   region's Sprints are driven in. A car new to you gets a showcase.
 - **Free Drive**: Endless, Two-Way, Time Attack and Speed Trap with any car
-  you own, under any open region's sky; one leaderboard per mode.
+  you own, under any open region's sky; one leaderboard per mode. Zen is the
+  fifth: no score, and nothing ends it (a knock is only a shove); pause to
+  pull over.
 - **Driving**: up is the gas, down the brake, left and right steer (WASD
   too). Pass a car close above 80 km/h for a near miss, graded by the gap
   you left (Close, Very close, Paint trader); near misses within four
@@ -33,6 +35,9 @@ as a view level whose body is the extension's own page (`surface/`, a
   or anything coming the other way, ends the run. A car collides as its
   shape from above, a little inside what is drawn: a gap you see is a miss.
 - C changes the view, P pauses, M mutes.
+- **Speed rush** (a setting, on): past your top speed on a combo the view
+  widens and drops closer, the road blurs and the wind roars; a near miss
+  kicks the lens.
 - **Resolution** (a setting, Balanced): how many pixels the road is drawn
   with. Every pass is paid per pixel, so Sharp (2×) takes about twice the GPU
   power of Balanced (1.5×) for a picture hard to tell apart; Battery is 1.25×.

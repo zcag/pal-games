@@ -148,11 +148,13 @@ export const LOCATIONS: Location[] = [
   { id: "night", name: "Night Run", sky: "night", land: "city", density: 0.8, asphalt: "asphalt_new" },
 ];
 
-export type ModeId = "endless" | "twoway" | "time" | "trap";
-export type Mode = { id: ModeId; name: string; about: string; twoWay?: boolean; cash: number };
+export type ModeId = "endless" | "twoway" | "time" | "trap" | "zen";
+/** `calm`: no score and nothing ends the run (a knock is a shove); no best is kept and nothing goes to a board. */
+export type Mode = { id: ModeId; name: string; about: string; twoWay?: boolean; calm?: boolean; cash: number };
 export const MODES: Mode[] = [
   { id: "endless", name: "Endless", about: "Four lanes, all going your way. One crash and the run is over.", cash: 1 },
   { id: "twoway", name: "Two-Way", about: "Two lanes each way. The oncoming side pays three times, and touching it ends the run.", twoWay: true, cash: 1.2 },
   { id: "time", name: "Time Attack", about: "A clock from 60 seconds. Every 2.5 km adds time, a little less each time.", cash: 1.15 },
   { id: "trap", name: "Speed Trap", about: "Stay above a speed that rises every 10 seconds. Three seconds under it ends the run.", cash: 1.3 },
+  { id: "zen", name: "Zen", about: "Four lanes, no score, and nothing ends the run: a knock is only a shove. Pause to pull over when you are done.", calm: true, cash: 0 },
 ];

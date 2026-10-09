@@ -1,7 +1,7 @@
 {
   "name": "highway",
   "title": "Highway",
-  "description": "Weave through highway traffic on a road trip across five regions: short Sprints on fixed roads with three stars each, a rival to beat at the end of every region for their car, and seventeen cars that open as you earn stars, each sharper than the last. Near misses chain into combos that carry you past your top speed. Free Drive has four endless modes with leaderboards.",
+  "description": "Weave through highway traffic on a road trip across five regions: short Sprints on fixed roads with three stars each, a rival to beat at the end of every region for their car, and seventeen cars that open as you earn stars, each sharper than the last. Near misses chain into combos that carry you past your top speed. Free Drive has four endless modes with leaderboards, and Zen, where nothing ends the run.",
   "version": "1.0.0",
   "icon": {
     "tile": {
@@ -49,6 +49,13 @@
         }
       ],
       "default": "1.5"
+    },
+    {
+      "id": "rush",
+      "label": "Speed rush",
+      "kind": "boolean",
+      "text": "Past your top speed on a combo, the view widens, the road blurs and the wind roars",
+      "default": true
     },
     {
       "id": "texts",

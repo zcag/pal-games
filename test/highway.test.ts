@@ -185,18 +185,18 @@ describe("accounts", () => {
     expect(problems(m)).toEqual([]);
     expect(Object.keys(m.sync).sort()).toEqual(storedKeys("highway"));
     expect([m.sync.run, m.sync.scene]).toEqual(["local", "local"]);
-    expect(Object.keys(rule.fields.best.fields)).toEqual(MODES.map((x) => x.id));
+    expect(Object.keys(rule.fields.best.fields)).toEqual(MODES.filter((x) => !x.calm).map((x) => x.id)); // Zen keeps no best
     expect(Object.keys(rule.fields).sort()).toEqual(Object.keys(stored(fresh())).sort());
   });
 
-  test("each mode has its board, the one a finished run posts to", () => {
-    for (const x of MODES) expect(declared(m, x.id), x.id).toMatchObject({ title: x.name, order: "desc", format: "points" });
+  test("each scored mode has its board, the one a finished run posts to (Zen has none)", () => {
+    for (const x of MODES.filter((x) => !x.calm)) expect(declared(m, x.id), x.id).toMatchObject({ title: x.name, order: "desc", format: "points" });
   });
 
   test("each Sprint and duel has a board for its time, lower is better, and the trip one for its stars", () => {
     for (const sp of SPRINTS) expect(declared(m, `sprint/${sp.id}`), sp.id).toMatchObject({ title: expect.stringContaining(sp.name), order: "asc", format: "time" });
     expect(declared(m, "stars")).toMatchObject({ order: "desc", max: SPRINTS.length * 3 });
-    expect(m.leaderboards!.length).toBe(MODES.length + SPRINTS.length + 1);
+    expect(m.leaderboards!.length).toBe(MODES.filter((x) => !x.calm).length + SPRINTS.length + 1);
   });
 
   test("two machines that both played since they synced keep the best times, paints and records of both", () => {
@@ -230,6 +230,23 @@ test("Speed Trap ends a run held under its floor; Time Attack's clock runs down"
   time.score.distance = 2500;
   time.step(1 / 120, { throttle: 0.3, brake: 0, steer: 0 });
   expect([time.checkpoints, time.bonus, Math.round(time.toCheckpoint / 100)]).toEqual([1, 27, 25]);
+});
+
+test("Zen: flat out through the traffic, nothing ends the run and nothing is scored", () => {
+  const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
+  const run = (mode: "endless" | "zen") => {
+    let bumps = 0;
+    const d = new Drive(ONE_WAY, CARS[6], size, 2.6, sizeOf, { bump: () => bumps++ }, { seed: 3, mode });
+    for (let i = 0; i < 120 * 60 && !d.ended; i++) d.step(1 / 120, { throttle: 1, brake: 0, steer: 0 });
+    return { ended: d.ended, misses: d.score.misses, bumps, km: d.score.distance / 1000 };
+  };
+  expect(run("endless").ended).toBe("crash"); // the same road ends an Endless run
+  const zen = run("zen");
+  expect(zen.ended).toBeFalsy();
+  expect(zen.misses).toBe(0);
+  expect(zen.bumps).toBeGreaterThan(0);
+  expect(zen.km).toBeGreaterThan(1);
+  expect(MODES.find((m) => m.id === "zen")?.calm).toBe(true);
 });
 
 test("a run packed and unpacked carries on exactly as it would have", () => {

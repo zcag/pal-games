@@ -9,8 +9,9 @@ import { Reflections, setGloss } from "./car.ts";
 import type { SkyLook } from "./skylooks.ts";
 import { shadowOnly } from "./shadow.ts";
 
-/** hit 0..1 for the flash, dim 0..1 to darken behind a card; speed is not needed (the motion blur sees it). */
-export type Fx = { speed?: number; hit?: number; dim?: number };
+/** hit 0..1 for the flash, dim 0..1 to darken behind a card, rush 0..1 past your top speed on a combo (a longer shutter,
+ *  a closer vignette). */
+export type Fx = { hit?: number; dim?: number; rush?: number };
 
 // shadows: 12 taps over a disc at least 2.5 texels wide (a soft edge of ~15 cm, not three's 5 taps
 // over one texel), and no hard line where the shadow map ends: its last 12% on each side fades out.

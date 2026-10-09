@@ -29,7 +29,7 @@ export type Npc = {
   cooldown: number; // seconds before it may change lanes again
   itch: number; // seconds it has wanted another lane; it acts once this passes its patience (`patienceOf`)
   think: number; // seconds until it next looks at the lanes beside it (`DECIDE`)
-  hit?: { vx: number; yaw: number; r: number }; // knocked by a crash: sliding, no longer driving
+  hit?: { vx: number; yaw: number; r: number; rest?: number }; // knocked by a crash: sliding, no longer driving (`rest`: s since its first knock, Zen's)
   passed?: boolean; // the player has gone by it
   prev?: { x: number; z: number; yaw: number }; // where it was a step ago, for drawing between steps
 };
@@ -67,6 +67,9 @@ export class Traffic {
     this.index = null;
     return car;
   }
+
+  /** A car's lane was set from outside (a knocked car back on the road, drive.ts): look the lanes up again. */
+  relane() { this.index = null; }
 
   /** The cars by direction and the lanes they take up (both, while crossing): who is ahead or behind is looked for
    *  among them, not the whole road. Made again when a car arrives, leaves or changes lanes. */
