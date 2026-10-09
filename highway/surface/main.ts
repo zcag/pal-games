@@ -114,7 +114,7 @@ const events = {
     const label = m.double ? "Threaded the gap" : m.grade.name;
     pop(`${label}<small>+${m.points.toLocaleString("en-US")}</small>`, m.oncoming ? "oncoming" : m.double || m.grade.mult > 2 ? "big" : "");
     sound.play("combo_ding", { gain: 0.45, rate: Math.pow(2, Math.min(12, m.combo - 1) / 12) });
-    if (rushOn) chase.punch(m.double ? 3 : m.grade.mult * 0.9);
+    if (rushOn) chase.punch(m.double ? 2 : m.grade.mult * 0.7);
     const c = $("combo");
     c.classList.remove("bump");
     void c.offsetWidth;
@@ -1338,9 +1338,11 @@ function frame() {
     r.camera.fov = 38;
     r.camera.updateProjectionMatrix();
   } else {
-    // the rush: how far a combo has carried you past your top speed, eased so it builds and fades rather than jumps
-    const rush = rushOn && state === "run" ? Math.min(1, run.drive.surge / Math.max(1, run.drive.surgeMax)) : 0;
-    chase.rush += (rush - chase.rush) * Math.min(1, dt * (rush > chase.rush ? 2.5 : 1.2));
+    // the rush: from 3 km/h under your top speed to most of the way a combo can carry you past it, on the dial; eased
+    // slowly both ways, so it gathers over a couple of seconds and lets go as gently
+    const top = run.drive.car.top, kNow = v.kmh / FEEL.pace;
+    const rush = rushOn && state === "run" ? THREE.MathUtils.smoothstep(kNow, top - 3, top + run.drive.surgeMax * 0.7) : 0;
+    chase.rush += (rush - chase.rush) * Math.min(1, dt * (rush > chase.rush ? 0.9 : 0.6));
     chase.update(dt, pose, (world.lo + world.hi) / 2);
     if (state === "run" && (run.drive.intro > 0 || wasRolling > 0)) rollingCamera(pose);
   }

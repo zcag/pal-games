@@ -119,7 +119,7 @@ const COMBINE = DEPTH + ACES + `
 /** To the screen: exposure and ACES, then the place's grade on the encoded image (white balance,
  *  a soft contrast curve that never clips, saturation, lift and gain), vignette, hit, dim, dither. */
 const FINISH = ACES + `
-  uniform sampler2D tHDR; uniform vec2 texel; uniform float sharpen, exposure, contrast, saturation, warmth, vignette, hit, dim, grade, time; uniform vec3 lift, gain; varying vec2 vUv;
+  uniform sampler2D tHDR; uniform vec2 texel; uniform float sharpen, exposure, contrast, saturation, warmth, vignette, hit, dim, grade, time, rush; uniform vec3 lift, gain; varying vec2 vUv;
   float ign(vec2 p){ return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }
   vec3 srgb(vec3 c){ return mix(c * 12.92, 1.055 * pow(max(c, 1e-6), vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
   vec3 curve(vec3 c, float k){ return mix(0.45 * pow(max(c, 1e-6) / 0.45, vec3(k)), 1.0 - 0.55 * pow(max(1.0 - c, 1e-6) / 0.55, vec3(k)), step(0.45, c)); }
@@ -127,6 +127,19 @@ const FINISH = ACES + `
     // a little sharpening (the panel is small): the pixel pushed away from its four neighbours' mean, limited
     // to a fraction of its own brightness so edges never ring
     vec3 h = texture2D(tHDR, vUv).rgb;
+    // the rush (past your top speed on a combo): the edges pulled toward the vanishing point in a zoom blur, red
+    // and blue parting a little there, and streaks of wind racing out from the middle
+    vec2 fromMid = vUv - vec2(0.5, 0.56);
+    float edge = smoothstep(0.12, 0.62, length(fromMid * vec2(1.0, 0.7)));
+    if (rush > 0.002) {
+      vec3 acc = vec3(0.0);
+      float jit = ign(gl_FragCoord.xy);
+      for (int i = 0; i < 10; i++) {
+        vec2 uv = vUv - fromMid * (float(i) + jit) * 0.0075 * rush * edge;
+        acc += vec3(texture2D(tHDR, uv + fromMid * 0.006 * rush * edge).r, texture2D(tHDR, uv).g, texture2D(tHDR, uv - fromMid * 0.006 * rush * edge).b);
+      }
+      h = mix(h, acc / 10.0, smoothstep(0.0, 0.25, rush * edge));
+    }
     vec3 nb = (texture2D(tHDR, vUv + vec2(texel.x, 0.0)).rgb + texture2D(tHDR, vUv - vec2(texel.x, 0.0)).rgb + texture2D(tHDR, vUv + vec2(0.0, texel.y)).rgb + texture2D(tHDR, vUv - vec2(0.0, texel.y)).rgb) * 0.25;
     h = max(h + clamp((h - nb) * sharpen, -0.25 * h, 0.25 * h), 0.0) * exposure;
     h *= grade > 0.5 ? vec3(1.0 + warmth, 1.0 + warmth * 0.1, 1.0 - warmth) : vec3(1.0);
@@ -141,6 +154,17 @@ const FINISH = ACES + `
     c *= 1.0 - vignette * smoothstep(0.18, 0.62, length(q));
     float r = length(vUv - vec2(0.5, 0.52));
     c = mix(c, c * vec3(1.6, 0.55, 0.45) + vec3(0.12, 0.0, 0.0), hit * smoothstep(0.15, 0.85, r));
+    if (rush > 0.002) {
+      // streaks: thin rays, each its own speed and length, racing outward; only off the middle of the frame
+      float ang = atan(fromMid.y, fromMid.x * 1.6), rad = length(fromMid * vec2(1.0, 0.7));
+      float band = floor(ang * 70.0), hb = fract(sin(band * 91.17) * 43758.5);
+      float lane = fract(ang * 70.0) - 0.5;
+      float t = fract(rad * (1.2 + hb) - time * (1.6 + hb * 1.4) + hb * 7.0);
+      float streak = step(0.8, hb) * smoothstep(0.0, 0.08, t) * (1.0 - smoothstep(0.1, 0.35, t)) * (1.0 - smoothstep(0.05, 0.4, abs(lane)));
+      c += vec3(0.85, 0.9, 1.0) * streak * smoothstep(0.22, 0.55, rad) * rush * 0.15;
+      // and the world a touch harder and cooler at the edges
+      c = mix(c, c * vec3(0.93, 0.97, 1.04), rush * edge * 0.6);
+    }
     c *= 1.0 - dim;
     c += (ign(gl_FragCoord.xy + fract(time) * 97.0) - 0.5) / 255.0;
     gl_FragColor = vec4(c, 1.0);
@@ -174,7 +198,7 @@ export class Finish {
     sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunCol: { value: new THREE.Color() },
   });
   private finQ = new Quad(FINISH, {
-    tHDR: { value: null }, texel: v2(), sharpen: { value: 0.35 }, exposure: { value: 1 }, contrast: { value: 1 }, saturation: { value: 1 }, warmth: { value: 0 }, vignette: { value: 0.2 }, hit: { value: 0 }, dim: { value: 0 }, grade: { value: 1 }, time: { value: 0 },
+    tHDR: { value: null }, texel: v2(), sharpen: { value: 0.35 }, exposure: { value: 1 }, contrast: { value: 1 }, saturation: { value: 1 }, warmth: { value: 0 }, vignette: { value: 0.2 }, hit: { value: 0 }, dim: { value: 0 }, grade: { value: 1 }, time: { value: 0 }, rush: { value: 0 },
     lift: { value: new THREE.Vector3() }, gain: { value: new THREE.Vector3(1, 1, 1) },
   });
   bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.12, 0.55, 1.6);
@@ -254,7 +278,7 @@ export class Finish {
     c.tAO.value = this.ao[1].texture; c.aoAmt.value = ao ? 1 : 0;
     c.viewInv.value.copy(cam.matrixWorld); c.prevVP.value.copy(this.prevVP); c.camPos.value.copy(pos);
     c.texel.value.set(1 / W, 1 / H);
-    c.shutter.value = this.off.has("blur") ? 0 : ((1 / 60) * 0.55 / dt) * (1 + (fx.rush ?? 0) * 1.1); // a 1/110 s shutter, longer in a rush
+    c.shutter.value = this.off.has("blur") ? 0 : ((1 / 60) * 0.55 / dt) * (1 + (fx.rush ?? 0) * 0.8); // a 1/110 s shutter, longer in a rush
     c.maxBlur.value = 0.045 * W;
     const bg = scene.background as THREE.Texture | null;
     // the night photo's sky is stars and a bright moon: sampled per direction it streaks the haze, so
@@ -275,7 +299,7 @@ export class Finish {
 
     // bloom, added into the HDR image
     if (!this.off.has("bloom")) {
-      this.bloom.strength = g.bloom;
+      this.bloom.strength = g.bloom + (fx.rush ?? 0) * 0.12; // lights flare more in a rush
       this.bloom.render(gl, null as unknown as THREE.WebGLRenderTarget, this.hdr, 0, false);
     }
 
@@ -286,7 +310,8 @@ export class Finish {
     f.grade.value = this.off.has("grade") ? 0 : 1;
     f.contrast.value = g.contrast; f.saturation.value = g.saturation; f.warmth.value = g.warmth;
     f.lift.value.set(...g.lift); f.gain.value.set(...g.gain);
-    f.vignette.value = g.vignette + (fx.rush ?? 0) * 0.14;
+    f.vignette.value = g.vignette + (fx.rush ?? 0) * 0.1;
+    f.rush.value = fx.rush ?? 0;
     f.hit.value = fx.hit ?? 0; f.dim.value = fx.dim ?? 0;
     f.time.value = now / 1000;
     this.finQ.draw(gl, null);
