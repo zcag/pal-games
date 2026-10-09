@@ -88,13 +88,17 @@ function ribs() {
   return c;
 }
 
+/** The metres ahead of the car over which a lamp's real light (world.ts) gives way to its pool. */
+export const POOL = [62, 92] as const;
+
 /** The pool of light a street lamp throws on the road: a flat glow, added to whatever is under it. */
 export function lampPool(glow: THREE.Texture, color: THREE.ColorRepresentation): Part {
   const geo = new THREE.PlaneGeometry(13, 24).rotateX(-Math.PI / 2);
   const mat = new THREE.MeshBasicMaterial({ map: glow, color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, polygonOffset: true, polygonOffsetFactor: -2 });
-  // near the car the lamps' real lights (world.ts) take over: the pools fade in from 70 m out
+  // near the car the lamps' real lights (world.ts) take over: the pools ease in over POOL, from the car (the camera stands
+  // ~6 m behind it)
   mat.onBeforeCompile = (sh) => {
-    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying float vNear;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvNear = smoothstep(70.0, 115.0, distance(cameraPosition, (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz));");
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying float vNear;").replace("#include <begin_vertex>", `#include <begin_vertex>\nvNear = smoothstep(${POOL[0] + 6}.0, ${POOL[1] + 6}.0, distance(cameraPosition, (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz));`);
     sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying float vNear;").replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb *= vNear;");
   };
   mat.customProgramCacheKey = () => "lamp-pool";

@@ -7,13 +7,14 @@ import { Road } from "./road.ts";
 import { edges, RAIL, type Layout } from "../game/layout.ts";
 import { Land, CHUNK, SEG, zoneAt, bridgeNear, fbm, type Put, type Terrain } from "./terrain.ts";
 import { bake, fuller, grassClump, sprig, type Tone } from "./foliage.ts";
-import { overpass, barrierPanel, lampPool, halo, signFace } from "./structures.ts";
+import { overpass, barrierPanel, lampPool, halo, signFace, POOL } from "./structures.ts";
 import { LANDS, groundMaterial, water, tinted, windows, type Assets, type Style } from "./lands.ts";
 import { LOCATIONS, type LandId } from "../game/content.ts";
 import { SKY_LOOKS, type SkyLook } from "./skylooks.ts";
 import { carLight } from "./car.ts";
 
 const LAMP = 260; // a street lamp's candela, in the night look's units
+const LIGHTS = 6; // real lights for the lamps near the car
 
 export class World {
   scene = new THREE.Scene();
@@ -99,7 +100,7 @@ export class World {
     this.water = level === undefined ? null : water(level, this.night ? 0x05070a : 0x12303a);
     if (this.water) this.scene.add(this.water);
     for (const l of this.lamps) l.removeFromParent();
-    this.lamps = this.night ? [0, 1, 2, 3].map(() => new THREE.PointLight(0xffc690, 0, 45, 2)) : [];
+    this.lamps = this.night ? Array.from({ length: LIGHTS }, () => new THREE.PointLight(0xffc690, 0, 45, 2)) : [];
     if (this.lamps.length) this.scene.add(...this.lamps);
   }
 
@@ -113,15 +114,19 @@ export class World {
     const texel = 260 / 4096, tz = Math.round((z + 95) / texel) * texel;
     this.sun.target.position.set(0, 0, tz);
     this.sun.position.copy(this.sun.target.position).addScaledVector(this.sky.sun, 300);
-    // the lamps just behind and ahead of the car light it for real; the pools stand in further off
+    // the lamps from just behind the car to POOL ahead light it for real, each easing in as it nears and out behind;
+    // further off the pools stand in, easing out over the same metres (structures.ts lampPool), so one hands over to the
+    // other. A lamp every 22 m: LIGHTS covers them all (with four, one 60 m off had neither and lit up at once)
     if (this.lamps.length) {
       const half = Math.max(this.hi, -this.lo), near: [number, number][] = [];
-      for (let c = Math.floor((z - 20) / CHUNK); c <= Math.floor((z + 110) / CHUNK); c++) for (const side of [-1, 1]) for (const lz of lampsAt(c * CHUNK, side, true, this.land.t, this.lit)) if (lz > z - 20 && lz < z + 110) near.push([side, lz]);
-      near.sort((a, b) => Math.abs(a[1] - z - 25) - Math.abs(b[1] - z - 25));
+      for (let c = Math.floor((z - 25) / CHUNK); c <= Math.floor((z + POOL[1]) / CHUNK); c++) for (const side of [-1, 1]) for (const lz of lampsAt(c * CHUNK, side, true, this.land.t, this.lit)) if (lz > z - 25 && lz < z + POOL[1]) near.push([side, lz]);
+      near.sort((a, b) => a[1] - b[1]);
       this.lamps.forEach((l, i) => {
-        const n = near[i];
-        l.intensity = n ? LAMP : 0;
-        if (n) l.position.set(n[0] * (half + 0.1), 9.4, n[1]);
+        const n = near[i], dz = n ? n[1] - z : 0;
+        l.intensity = n ? LAMP * THREE.MathUtils.smoothstep(dz, -25, -8) * (1 - THREE.MathUtils.smoothstep(dz, POOL[0], POOL[1])) : 0;
+        // a little under the head: at it (9.4 m), the housing a hand's width away was lit far past white, and the bloom
+        // flared the whole frame as it came and went
+        if (n) l.position.set(n[0] * (half + 0.1), 8.2, n[1]);
       });
     }
   }
