@@ -90,7 +90,8 @@ export class Run {
     if (this.world.night) for (const p of player.anchors.head.length ? player.anchors.head : [new THREE.Vector3(0.6, 0.7, 2), new THREE.Vector3(-0.6, 0.7, 2)]) {
       // dipped beams: aimed well down the road and soft-edged, so the road lights from a few metres out to
       // about 40 m instead of a hot patch at the bumper
-      const spot = new THREE.SpotLight(0xfff1dc, 380, 110, 0.38, 0.85, 1.4);
+      // at 380 a car ahead lit up white as a lamp and bloomed into glare; at 140 it reads as a car in your lights
+      const spot = new THREE.SpotLight(0xfff1dc, 140, 110, 0.38, 0.85, 1.4);
       spot.position.copy(p);
       spot.target.position.set(p.x * 0.6 - 0.4, 0, p.z + 45);
       player.body.add(spot, spot.target);

@@ -14,8 +14,6 @@ export class Road {
     uEdges: { value: new THREE.Vector2() },
     uLanes: { value: new THREE.Vector4() }, // ours, oncoming, median, lane width
     uWet: { value: 0 },
-    uReflect: { value: null as THREE.Texture | null },
-    uRes: { value: new THREE.Vector2(1, 1) },
   };
 
   tile = 2;
@@ -49,7 +47,7 @@ export class Road {
         .replace("#include <uv_vertex>", `#include <uv_vertex>\n#if defined(USE_MAP) || defined(USE_NORMALMAP) || defined(USE_ROUGHNESSMAP)\nvec2 wuv = (modelMatrix * vec4(position, 1.0)).xz / ${this.tile.toFixed(3)};\n#endif\n#ifdef USE_MAP\nvMapUv = wuv;\n#endif\n#ifdef USE_NORMALMAP\nvNormalMapUv = wuv;\n#endif\n#ifdef USE_ROUGHNESSMAP\nvRoughnessMapUv = wuv;\n#endif`);
       sh.fragmentShader = sh.fragmentShader
         .replace("#include <common>", `#include <common>
-          varying vec3 vWorld; uniform vec2 uEdges; uniform vec4 uLanes; uniform float uWet; uniform sampler2D uReflect; uniform vec2 uRes;
+          varying vec3 vWorld; uniform vec2 uEdges; uniform vec4 uLanes; uniform float uWet;
           // a painted stripe of width w centred at c, antialiased
           float stripe(float x, float c, float w) { float d = abs(x - c) - w * 0.5; float fw = fwidth(x); return 1.0 - smoothstep(-fw, fw, d); }
           float dashes(float z, float on, float period) { float p = mod(z, period); float fw = fwidth(z); return smoothstep(0.0, fw, p) * (1.0 - smoothstep(on - fw, on, p)); }
@@ -111,16 +109,7 @@ export class Road {
           roughnessFactor = mix(roughnessFactor, roughnessFactor * 0.8, oil * onRoad);
           roughnessFactor = mix(roughnessFactor, 0.4, tar);
           roughnessFactor = mix(roughnessFactor, 0.55, paint);
-          roughnessFactor = mix(roughnessFactor, 0.06, uWet * (0.55 + 0.45 * track));`)
-        .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
-          if (uWet > 0.0) {
-            vec2 suv = gl_FragCoord.xy / uRes; suv.x = 1.0 - suv.x;
-            vec3 acc = vec3(0.); float ws = 0.;
-            float j = hash12(gl_FragCoord.xy);
-            for (int k = 0; k < 10; k++) { float o = (float(k) + j) / 10.0 * 2.0 - 1.0; float wk = 1.0 - abs(o) * 0.7;
-              acc += texture2D(uReflect, suv + vec2(o * 0.002, o * 0.03)).rgb * wk; ws += wk; }
-            totalEmissiveRadiance += acc / ws * uWet * 0.55 * (1.0 - paint * 0.5);
-          }`);
+          roughnessFactor = mix(roughnessFactor, 0.06, uWet * (0.55 + 0.45 * track));`);
     };
   }
 
