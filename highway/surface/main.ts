@@ -25,7 +25,7 @@ import type { Miss } from "../game/score.ts";
 import { ROLLING_START, type Drive, type End, type Packed } from "../game/drive.ts";
 import { acrossAt, type Input } from "../game/vehicle.ts";
 import { bestDrive, chooser, decode, HUMAN, type Hulls } from "../game/bestrun.ts";
-import { REGIONS, SPRINTS, BOSS_STARS, ROADS, sprintOf, sprintsOf, starTimes, rivalTime, clock, GHOST_DT, ghostAt, ghostTimeAt, packGhost, unpackGhost, type Ghost, type Sprint } from "../game/sprint.ts";
+import { REGIONS, SPRINTS, BOSS_STARS, roadsOf, sprintOf, sprintsOf, starTimes, rivalTime, clock, GHOST_DT, ghostAt, ghostTimeAt, packGhost, unpackGhost, type Ghost, type Sprint } from "../game/sprint.ts";
 import { bossOf, won, carNeeds, carsHad, legendPaints, closed, nextStop, regionOfCar, regionOpen, stopsForCar, starsIn, starsOf, totalStars, type SprintResult } from "../game/trip.ts";
 
 declare const pal: SurfaceKit;
@@ -339,9 +339,9 @@ function drawTabs() {
 
 /** A Sprint run's inputs, as changes: each the steps since the last (base 36) and a digit for the keys held
  *  (gas 1, brake 2, steer: 0 right, 4 none, 8 left), joined by commas: a minute's driving is a kilobyte or two. */
-/** `roads`: the roads' version it was driven on (ROADS), 1 when missing. */
+/** `roads`: the version of its road it was driven on (roadsOf), 1 when missing. */
 type Tape = { sprint: string; car: string; paint: string; seed: number; time: number; tape: string; roads?: number };
-const current = (t: Tape) => (t.roads ?? 1) === ROADS;
+const current = (t: Tape) => (t.roads ?? 1) === roadsOf(t.sprint);
 const packTape = (t: [number, number, number, number][]) => t.map(([n, th, br, st], i) => `${(n - (i ? t[i - 1][0] : 0)).toString(36)}${(th + 2 * br + 4 * (st + 1)).toString(36)}`).join(",");
 function unpackTape(s: string) {
   let n = 0;
@@ -1052,7 +1052,7 @@ function sprintResults() {
   const keys = (except?: string) => `<div class="keys"><button data-key="r"><kbd>r</kbd> try again</button><button data-key="enter"><kbd>enter</kbd> map</button>${watchKeys(except)}</div>`;
   const wonKeys = `<div class="keys"><button data-key="enter"><kbd>enter</kbd> see your new car</button><button data-key="backspace"><kbd>⌫</kbd> map</button><button data-key="r"><kbd>r</kbd> race again</button>${watchKeys()}</div>`;
   const targets = (time?: number) => targetsRow(sp, time);
-  lastTape = d.tape && { sprint: sp.id, car: trip!.car.id, paint: paintOf(save, trip!.car), seed: d.seed, time: d.score.time, tape: packTape(d.tape), roads: ROADS };
+  lastTape = d.tape && { sprint: sp.id, car: trip!.car.id, paint: paintOf(save, trip!.car), seed: d.seed, time: d.score.time, tape: packTape(d.tape), roads: roadsOf(sp.id) };
   if (d.ended !== "line") {
     if (!scene && !trial) { countRun(save, run!.score); persist(); }
     card(`<div class="sprint-end"><h2>${crashInfo ? "Crashed" : "Stopped"}</h2>

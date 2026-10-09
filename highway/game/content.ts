@@ -40,6 +40,7 @@ export type PlayerCar = {
   grip: number; // tyre friction
   agility: number; // how hard full lock turns, in g
   brake: number; // g
+  pull?: number; // the engine's pull on top of its class's, times (the Saba's, fully upgraded: 1.5)
   engine: "sedan" | "sport" | "muscle" | "gt" | "super";
   paint: string; // the colour it comes in
 };
@@ -63,7 +64,9 @@ export const CARS: PlayerCar[] = [
   { id: "libeccio-v6-91", name: "Libeccio V6 '91", top: 200, mass: 1250, grip: 1.44, agility: 1.58, brake: 1.14, engine: "gt", paint: "#1d6b43" },
   { id: "roadster-00", name: "Roadster '00", top: 205, mass: 980, grip: 1.46, agility: 1.62, brake: 1.16, engine: "super", paint: "#f0c419" },
   { id: "cheetah-84", name: "Cheetah '84", top: 215, mass: 1500, grip: 1.45, agility: 1.66, brake: 1.18, engine: "super", paint: "#c0111d" },
-  { id: "saba-v12-95", name: "Saba V12 '95", top: 225, mass: 1450, grip: 1.50, agility: 1.70, brake: 1.22, engine: "super", paint: "#e85d04" },
+  // the trip's last car, as the garage's upgrades would have left it at their top (every one at level 5: +7.5% top speed,
+  // half again the pull, +0.15 grip, +0.25 agility, +0.3 g of brakes); the others are as they came
+  { id: "saba-v12-95", name: "Saba V12 '95", top: 242, mass: 1450, grip: 1.65, agility: 1.95, brake: 1.52, pull: 1.5, engine: "super", paint: "#e85d04" },
 ];
 
 /** Every colour a car can wear, free on any car you own. */
@@ -80,7 +83,7 @@ export function spec(car: PlayerCar, wheelbase: number): Spec & { agility: numbe
   const power = (0.5 * RHO * CDA * F.pow(top, 3) + CRR * car.mass * G * top) / EFF / 1000; // kW at the top speed
   // power for the pickup, the gearing keeps the top close: each class pulls harder than the one before, so a
   // better car gets back up to speed quicker after a squeeze
-  const punch = 1 + 0.12 * CLASSES.findIndex((c) => c === classOf(car));
+  const punch = (1 + 0.12 * CLASSES.findIndex((c) => c === classOf(car))) * (car.pull ?? 1);
   const redline = REDLINE[car.engine];
   const wheelRadius = 0.32;
   // top gear just reaches the redline a little past top speed; the rest step down geometrically
@@ -108,7 +111,7 @@ export function stats(car: PlayerCar): Stats {
   const top = car.top;
   return {
     speed: k(top, 115, 240),
-    accel: k(((F.pow(top, 3) / car.mass) * (1 + 0.12 * CLASSES.findIndex((c) => c === classOf(car)))) / 1e3, 4, 20),
+    accel: k(((F.pow(top, 3) / car.mass) * (1 + 0.12 * CLASSES.findIndex((c) => c === classOf(car))) * (car.pull ?? 1)) / 1e3, 4, 20),
     handling: k(car.agility, 0.95, 1.72),
     brakes: k(car.brake, 0.88, 1.25),
   };

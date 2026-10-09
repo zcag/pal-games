@@ -20,6 +20,7 @@
 //     && rsync -a marko:tmp/hw-search/highway/surface/rivals/ surface/rivals/
 //   bun highway/scripts/sprint.ts --write
 //   bun highway/scripts/sprint.ts [ids..|--region N] [--all] [--beam 30] [--workers 11] [--write]
+//   bun highway/scripts/sprint.ts --rekey [ids..]   (a change known not to touch them: keep their results)
 // A beam of 30 found the same best as 150 on the eight roads compared (2026-10-07: squeeze, noon-rush, convoy,
 // red-lights, afterburn, tunnel-vision and two duels), at a fifth of the cost; 15 and 20 were 0.1 to 0.4% off.
 import { Worker, isMainThread, parentPort } from "node:worker_threads";
@@ -128,7 +129,7 @@ function best(s: Sprint, beam: number, pace: Pace) {
 }
 
 /** What decides how a run drives: a change to any of these can change a best time. */
-const FILES = ["game/drive.ts", "game/director.ts", "game/traffic.ts", "game/vehicle.ts", "game/score.ts", "game/crash.ts", "game/layout.ts", "game/bot.ts", "game/bestrun.ts", "surface/cars/hulls.json", "scripts/sprint.ts"];
+const FILES = ["game/content.ts", "game/drive.ts", "game/director.ts", "game/traffic.ts", "game/vehicle.ts", "game/score.ts", "game/crash.ts", "game/layout.ts", "game/bot.ts", "game/bestrun.ts", "surface/cars/hulls.json", "scripts/sprint.ts"];
 const root = new URL("..", import.meta.url).pathname;
 const CACHE = `${root}scripts/sprint-cache.json`;
 type Cached = Record<string, { key: string; best: number; choices?: string }>;
@@ -166,6 +167,14 @@ if (!isMainThread) {
   const pace: Pace = { every: +opt("--every", String(base.every)), delay: +opt("--delay", String(base.delay)), taps: opt("--taps", base.taps.join(",")).split(",").map(Number), err: +opt("--err", String(base.err)), risk: opt("--risk", base.risk.join(",")).split(",").map(Number) as [number, number], presses: opt("--presses", base.presses.join(",")).split(",").map(Number) as [number, number] };
   const trying = flag("--try") || JSON.stringify(pace) !== JSON.stringify(HUMAN);
   if (flag("--write")) { await write(); process.exit(0); }
+  // --rekey [ids..]: a change known not to touch these roads (every cached one, none named): their kept results are
+  // taken as current, so only the roads it does touch need searching (`ids..`, after)
+  if (flag("--rekey")) {
+    const c = readCache();
+    for (const s of SPRINTS) if (c[s.id] && (!args.length || args.includes(s.id))) c[s.id].key = keyOf(s);
+    await Bun.write(CACHE, JSON.stringify(c, null, 1) + "\n");
+    process.exit(0);
+  }
   const cache = readCache();
   const ids = (args.length ? args : SPRINTS.filter((s) => region === "" || s.region === +region).map((s) => s.id))
     .filter((id) => all || args.length || cache[id]?.key !== keyOf(SPRINTS.find((s) => s.id === id)!));

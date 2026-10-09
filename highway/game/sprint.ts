@@ -125,6 +125,9 @@ const ROWS: Row[] = [
 /** The roads' version: a run kept as its keys (a replay) plays out as it did only on the roads it was driven on, so
  *  this goes up with any change to where a road's traffic is placed or how it drives (2: no walls). */
 export const ROADS = 2;
+/** A road's own version where it changed since (3: the Saba V12 '95 fully upgraded, the car these are driven in). */
+const ROAD: Record<string, number> = { graveyard: 3, afterburn: 3, "legend-long-night": 3, "duel-kaz": 3 };
+export const roadsOf = (id: string) => ROAD[id] ?? ROADS;
 
 /** The best times scripts/sprint.ts found, each in its stop's car (carAt). */
 const BEST: Record<string, number> = {
@@ -166,8 +169,8 @@ const BEST: Record<string, number> = {
   "red-lights": 50.02,
   "all-night": 61.18,
   "tunnel-vision": 52.79,
-  "graveyard": 44.55,
-  "afterburn": 48.31,
+  "graveyard": 39.68,
+  "afterburn": 42.93,
   "duel-ines": 52.22,
   "duel-mika": 51.32,
   "duel-rook": 53.8,
@@ -176,8 +179,8 @@ const BEST: Record<string, number> = {
   "legend-mirage": 51.5,
   "legend-red-sky": 53.41,
   "legend-storm": 51.47,
-  "legend-long-night": 51.92,
-  "duel-kaz": 51.59,
+  "legend-long-night": 46.22,
+  "duel-kaz": 46.32,
 };
 const RIVALS: Record<string, { rival: string; car: string }> = {
   "duel-ines": { rival: "Ines", car: "tozzo-98" }, "duel-mika": { rival: "Mika", car: "thunderbolt-96" },
