@@ -1352,7 +1352,7 @@ function frame() {
     chase.rush += (rush - chase.rush) * Math.min(1, dt * (rush > chase.rush ? 0.9 : 0.6));
     chase.update(dt, pose, (world.lo + world.hi) / 2);
     if (state === "run" && (run.drive.intro > 0 || wasRolling > 0)) rollingCamera(pose);
-    streaks.update(r.camera.position, v.u, chase.rush, dt);
+    streaks.update(r.camera.position, v.u, chase.rush);
   }
   sound.drive(v.rpm, v.shifting > 0 ? 0 : v.throttle, v.u, Math.max(v.slipFront, v.slipRear), v.spec.redline, chase.rush);
   sound.loop("scrape_metal", run.scraping > 0 ? 0.55 : 0);

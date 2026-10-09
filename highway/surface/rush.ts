@@ -29,7 +29,7 @@ export class Streaks {
   }
 
   /** Every frame: `speed` m/s along +z, `rush` 0..1 how much of it shows. */
-  update(cam: THREE.Vector3, speed: number, rush: number, dt: number) {
+  update(cam: THREE.Vector3, speed: number, rush: number) {
     this.mesh.visible = rush > 0.01;
     if (!this.mesh.visible) { for (const p of this.at) p.set(0, -999, 0); return; }
     this.mat.opacity = 0.32 * rush;
