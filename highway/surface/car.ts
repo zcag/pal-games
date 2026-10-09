@@ -314,6 +314,15 @@ function groundless(m: THREE.Material) {
 }
 
 const BAY = new THREE.MeshBasicMaterial({ color: 0x050607, side: THREE.DoubleSide });
+/** Inside the windows: the panes again, drawn in a fifth of the way to the cabin's middle, dark. The models leave a slit
+ *  between a window and the roof (the Compact '07's rear), and through it, over the seats and out of the windscreen,
+ *  the road ahead showed; a sight line through the cabin now ends on the lining of the window it would leave by. */
+function lining(panes: THREE.BufferGeometry[]) {
+  const g = BufferGeometryUtils.mergeGeometries(panes.map((p) => { const o = new THREE.BufferGeometry(); o.setAttribute("position", p.attributes.position); if (p.index) o.setIndex(p.index); return o; }), false)!;
+  g.computeBoundingBox();
+  const c = g.boundingBox!.getCenter(new THREE.Vector3());
+  return g.translate(-c.x, -c.y, -c.z).scale(0.8, 0.8, 0.8).translate(c.x, c.y, c.z);
+}
 /** Behind the grilles: a dark block inside the lower body, the car's outline from above drawn in, from just off the
  *  ground to below the windows. The models leave a grille or a vent open onto nothing (the Kiri '10's, the Tozzo's,
  *  the Roadster's), so the road showed through the front of a car. */
@@ -435,7 +444,7 @@ export class Car {
     const meshes = [...model.children] as THREE.Mesh[];
     const paintFor = new Map<THREE.Material, THREE.MeshPhysicalMaterial>();
     const heads = new THREE.Box3();
-    const lit: [THREE.Mesh, Lamp][] = [], turning: [THREE.Mesh, number][] = [], casts: THREE.BufferGeometry[] = [];
+    const lit: [THREE.Mesh, Lamp][] = [], turning: [THREE.Mesh, number][] = [], casts: THREE.BufferGeometry[] = [], panes: THREE.BufferGeometry[] = [];
 
     for (const mesh of meshes) {
       const part = info.parts[mesh.userData.part as number] as Part | undefined; // none for a merged part
@@ -465,7 +474,7 @@ export class Car {
         g.color.set(lens ? 0xf4f4f4 : 0x06090c); g.opacity = lens ? 0.3 : 0.9;
         g.envMapIntensity = lens ? 1.5 : 2.2;
         g.depthWrite = !lens; // a window is the surface the depth-based finishing sees, not the cabin behind it
-        if (!lens) { this.shiny.push(g); groundless(g); }
+        if (!lens) { this.shiny.push(g); groundless(g); panes.push(mesh.geometry); }
         mesh.material = g;
         mesh.renderOrder = 2;
       } else if (TYRE.test(mat.name)) mesh.material = rubber(mat);
@@ -503,6 +512,7 @@ export class Car {
       for (const [m] of list) m.removeFromParent();
     });
     model.add(new THREE.Mesh(cached(info, "bay", () => bay(info)), BAY));
+    if (panes.length) model.add(new THREE.Mesh(cached(info, "lining", () => lining(panes)), BAY));
     // every part of the car writes alpha 0: the motion blur (looks.ts) leaves cars sharp
     this.body.traverse((o) => { const m = (o as THREE.Mesh).material; if (m) for (const x of Array.isArray(m) ? m : [m]) carAlpha(x); });
 
