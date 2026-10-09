@@ -4,7 +4,7 @@
 //   -> bloom -> finish: exposure, ACES, the place's grade, vignette, hit flash, dim, dither -> screen
 // The sky is drawn un-tone-mapped (render.ts), so the photo's sun is bright enough to bloom.
 // Cars write alpha 0 (car.ts): the motion blur leaves them sharp and never smears them onto the road.
-// `?fx=-ao,-blur,-haze,-bloom,-grade,-sharpen` turns parts off, for comparing and measuring (and
+// `?fx=-ao,-blur,-haze,-bloom,-grade,-sharpen,-clouds` turns parts off, for comparing and measuring (and
 // `-shadows`, three's own shadow filter, render.ts).
 import * as THREE from "./vendor/three.js";
 import { UnrealBloomPass } from "./vendor/three.js";
@@ -74,7 +74,8 @@ const AO_BLUR = DEPTH + `uniform sampler2D tAO; uniform vec2 aoTexel; varying ve
  *  The haze thins with height, and its colour is the sky photo straight above the horizon that way. */
 const COMBINE = DEPTH + ACES + `
   uniform sampler2D tColor, tAO, tSky; uniform mat4 viewInv, prevVP; uniform mat3 skyRot; uniform vec3 camPos; uniform vec2 texel;
-  uniform float aoAmt, shutter, maxBlur, haze, hazeFall, skyIntensity, useSky; uniform vec3 fogColor, sunDir, sunCol; varying vec2 vUv;
+  uniform float aoAmt, shutter, maxBlur, haze, hazeFall, skyIntensity, useSky, clouds, time; uniform vec3 fogColor, sunDir, sunCol; varying vec2 vUv;
+  float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); float a = fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.5), b = fract(sin(dot(i + vec2(1, 0), vec2(127.1, 311.7))) * 43758.5), c = fract(sin(dot(i + vec2(0, 1), vec2(127.1, 311.7))) * 43758.5), d = fract(sin(dot(i + vec2(1, 1), vec2(127.1, 311.7))) * 43758.5); return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }
   vec3 skyAt(vec3 d){
     d = skyRot * normalize(vec3(d.x, max(d.y, 0.035), d.z));
     vec2 uv = vec2(atan(d.z, d.x) * 0.1591549 + 0.5, asin(clamp(d.y, -1.0, 1.0)) * 0.3183099 + 0.5);
@@ -103,6 +104,12 @@ const COMBINE = DEPTH + ACES + `
         c += lit(uv, s) * ws; w += ws;
       }
       c /= w;
+    }
+    // clouds' shadows: big soft patches on the land, drifting across the road
+    if (d < 1.0 && clouds > 0.0) {
+      vec2 cp = wp.xz / 140.0 + vec2(time * 0.02, time * 0.035);
+      float n = vn(cp) * 0.6 + vn(cp * 2.3 + 4.0) * 0.28 + vn(cp * 5.1 + 9.0) * 0.12;
+      c *= 1.0 - clouds * smoothstep(0.38, 0.6, n);
     }
     if (d < 1.0 && haze > 0.0) {
       vec3 ray = wp - camPos;
@@ -195,7 +202,7 @@ export class Finish {
     tDepth: { value: null }, projInv: { value: new THREE.Matrix4() }, tColor: { value: null }, tAO: { value: null }, tSky: { value: null },
     viewInv: { value: new THREE.Matrix4() }, prevVP: { value: new THREE.Matrix4() }, skyRot: { value: new THREE.Matrix3() }, camPos: { value: new THREE.Vector3() }, texel: v2(),
     aoAmt: { value: 1 }, shutter: { value: 0 }, maxBlur: { value: 60 }, haze: { value: 0 }, hazeFall: { value: 0.02 }, skyIntensity: { value: 1 }, useSky: { value: 1 }, fogColor: { value: new THREE.Color() },
-    sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunCol: { value: new THREE.Color() },
+    sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunCol: { value: new THREE.Color() }, clouds: { value: 0 }, time: { value: 0 },
   });
   private finQ = new Quad(FINISH, {
     tHDR: { value: null }, texel: v2(), sharpen: { value: 0.35 }, exposure: { value: 1 }, contrast: { value: 1 }, saturation: { value: 1 }, warmth: { value: 0 }, vignette: { value: 0.2 }, hit: { value: 0 }, dim: { value: 0 }, grade: { value: 1 }, time: { value: 0 }, rush: { value: 0 },
@@ -290,6 +297,7 @@ export class Finish {
     c.skyIntensity.value = scene.backgroundIntensity;
     c.haze.value = this.off.has("haze") ? 0 : g.haze;
     c.hazeFall.value = 1 / g.hazeHeight;
+    c.clouds.value = this.off.has("clouds") ? 0 : look.clouds ?? 0; c.time.value = now / 1000;
     if (this.fog) c.fogColor.value.copy(this.fog.color);
     const sun = scene.children.find((o) => (o as THREE.DirectionalLight).isDirectionalLight) as THREE.DirectionalLight | undefined;
     if (sun) { c.sunDir.value.subVectors(sun.position, sun.target.position).normalize(); c.sunCol.value.copy(sun.color).multiplyScalar(sun.intensity * 0.04 * g.glow); }

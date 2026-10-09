@@ -33,8 +33,8 @@ export class Chase {
   shake = 0;
   lingering = 0; // after a crash: drift back and up
   private fov = 42;
-  /** 0..1, from just under your top speed to well past it on a combo (main.ts, the Speed rush setting): the lens opens
-   *  wider and the camera eases in a little closer. */
+  /** 0..1, from 80% of your top speed to well past it on a combo (main.ts, the Speed rush setting): the lens opens
+   *  wider, the camera eases in a little closer and the wind buffets it. */
   rush = 0;
   private pulse = 0; // a near miss's breath of the lens: its aim, and the lens easing to it
   private pulseFov = 0;
@@ -71,7 +71,9 @@ export class Chase {
     // only hits shake it; the road itself adds the faintest tremor near the top speed
     const tremor = sp > 0.8 ? (sp - 0.8) * 0.02 : 0;
     const n = (f: number, p: number) => Math.sin(this.t * f + p) * 0.6 + Math.sin(this.t * f * 2.3 + p * 2) * 0.4;
-    const jx = n(31, 0) * (tremor + this.shake * this.shake * 0.4) + this.kick.x, jy = n(37, 1) * (tremor + this.shake * this.shake * 0.4) + this.kick.y;
+    // and in a rush, the wind buffets it: slow (a few times a second), small, a sway rather than a rattle
+    const buffet = (f: number, p: number) => (Math.sin(this.t * f + p) + 0.6 * Math.sin(this.t * f * 1.73 + p * 3)) * 0.011 * this.rush;
+    const jx = n(31, 0) * (tremor + this.shake * this.shake * 0.4) + this.kick.x + buffet(3.7, 0), jy = n(37, 1) * (tremor + this.shake * this.shake * 0.4) + this.kick.y + buffet(4.9, 2) * 0.7;
     if (V.attached) {
       const fwd = new THREE.Vector3(Math.sin(v.yaw), 0, Math.cos(v.yaw));
       cam.position.set(v.x, h, v.z).addScaledVector(fwd, -dist).add(new THREE.Vector3(jx, jy, 0));
@@ -86,6 +88,7 @@ export class Chase {
     this.fov += (want - this.fov) * Math.min(1, dt * 1.5);
     if (dt === 0) this.fov = want;
     cam.fov = this.fov + this.pulseFov * this.rush;
+    if (this.rush > 0.01) cam.rotateZ((Math.sin(this.t * 1.9) + 0.5 * Math.sin(this.t * 3.3 + 1)) * 0.0035 * this.rush); // the horizon sways a hair
     cam.updateProjectionMatrix();
   }
 }

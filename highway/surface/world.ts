@@ -59,6 +59,10 @@ export class World {
     this.renderer.toneMappingExposure = look.exposure;
     this.scene.environmentIntensity = look.env ?? 1;
     this.scene.backgroundIntensity = this.night ? 0.6 : 1;
+    // no sun in the photo (overcast): without a light of its own every surface took the same flat light, hills unshaded
+    // and cars on nothing; the bright top of the sky lights from high up, a little to one side, its shadows soft
+    if (!this.sky.intensity && look.overhead) { this.sky.sun.set(0.35, 1, 0.3).normalize(); this.sky.color.set(0xe9ecef); this.sky.intensity = look.overhead; }
+    this.sun.shadow.radius = look.overhead ? 7 : 1;
     this.sun.color.copy(this.sky.color);
     this.sun.intensity = this.night ? this.sky.intensity * 0.06 : this.sky.intensity;
     this.sun.castShadow = this.sun.intensity > 0.3;
@@ -71,6 +75,7 @@ export class World {
     if (this.road) this.scene.remove(this.road.mesh);
     const asphalt = await surface(asphaltName);
     this.road = new Road(layout, { color: asphalt.map, normal: asphalt.normal, rough: asphalt.orm, tile: asphalt.tile * 1.5 });
+    this.road.uniforms.uWet.value = look.wet ?? 0;
     this.scene.add(this.road.mesh);
     [this.lo, this.hi] = edges(layout);
 
