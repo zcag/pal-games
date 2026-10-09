@@ -12,6 +12,7 @@ import { Chase, VIEWS } from "./camera.ts";
 import { Car } from "./car.ts";
 import { Sound } from "./audio.ts";
 import { Garage, type Bay } from "./garage.ts";
+import { Streaks } from "./rush.ts";
 import { showMap, hideMap, onPick, onRegion, onReplay, pinsAt, hold, reveal, framing, PLAY, type MapView, type Replay } from "./trip.ts";
 import { MapWorld } from "./mapworld.ts";
 import { playOpening, openingKey, playing, textsHtml, face } from "./story.ts";
@@ -23,7 +24,7 @@ import type { Miss } from "../game/score.ts";
 import { ROLLING_START, type Drive, type End, type Packed } from "../game/drive.ts";
 import { acrossAt, type Input } from "../game/vehicle.ts";
 import { bestDrive, chooser, decode, HUMAN, type Hulls } from "../game/bestrun.ts";
-import { REGIONS, SPRINTS, BOSS_STARS, ROADS, sprintOf, sprintsOf, starTimes, rivalTime, clock, GHOST_DT, ghostAt, ghostTimeAt, type Ghost, type Sprint } from "../game/sprint.ts";
+import { REGIONS, SPRINTS, BOSS_STARS, ROADS, sprintOf, sprintsOf, starTimes, rivalTime, clock, GHOST_DT, ghostAt, ghostTimeAt, packGhost, unpackGhost, type Ghost, type Sprint } from "../game/sprint.ts";
 import { bossOf, won, carNeeds, carsHad, legendPaints, closed, nextStop, regionOfCar, regionOpen, stopsForCar, starsIn, starsOf, totalStars, type SprintResult } from "../game/trip.ts";
 
 declare const pal: SurfaceKit;
@@ -35,6 +36,8 @@ const world = new World(r.gl);
 const chase = new Chase(r.camera);
 const sound = new Sound();
 const mapWorld = new MapWorld(r, world);
+const streaks = new Streaks(); // the rush's air (rush.ts), in the road's scene
+world.scene.add(streaks.mesh);
 let garageScene: Garage | null = null, garageBuilt: Promise<void> | null = null;
 /** The garage, built once: its cars take a frame or more each to load, so this runs early, behind the map, where
  *  nothing is drawn and a slow frame is never seen. */
@@ -158,6 +161,9 @@ let ended: End | null = null;
 // ---------------------------------------------------------------- a Sprint's finish line, your ghost, a duel's rival
 
 let ghosts: Record<string, Ghost> = {}; // each Sprint's best run, this machine's
+/** The ghosts as stored (packed: sprint.ts packGhost), and back. */
+const storeGhosts = () => pal.storage.set("ghosts", Object.fromEntries(Object.entries(ghosts).map(([id, g]) => [id, packGhost(g)]))).catch((e: unknown) => console.error("highway: ghost", e));
+const readGhosts = (v: unknown) => Object.fromEntries(Object.entries(v && typeof v === "object" ? (v as Record<string, unknown>) : {}).flatMap(([id, g]) => { const u = unpackGhost(g); return u ? [[id, u]] : []; }));
 let recording: Ghost | null = null; // the Sprint being driven, as it goes
 let z0 = 0; // where it started
 let ghostCar: Car | null = null, ghostFor = "";
@@ -1053,7 +1059,7 @@ function sprintResults() {
   }
   const time = d.score.time, before = save.sprints[sp.id], was = { ...save.sprints };
   const pay: SprintResult = scene || trial ? { stars: 0, before: 0, record: false, cars: [] } : finishSprintRun(save, sp, d.score);
-  if (pay.record && recording) { recording.time = time; ghosts[sp.id] = recording; pal.storage.set("ghosts", ghosts).catch((e: unknown) => console.error("highway: ghost", e)); }
+  if (pay.record && recording) { recording.time = time; ghosts[sp.id] = recording; storeGhosts(); }
   if (pay.record && lastTape && !scene && !trial) { tapes[sp.id] = lastTape; pal.storage.set("tapes", tapes).catch((e: unknown) => console.error("highway: tape", e)); }
   // the map opens on this stop, its new stars landing on its pin, then moves on to the next to play (advance)
   const ahead = (closed(sp, save.sprints) === null && pay.stars < 3 && !sp.boss ? sp : nextStop(save.sprints, sp.region)).id;
@@ -1289,6 +1295,7 @@ function frame() {
   let dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   drawTabs();
+  streaks.mesh.visible = false; // the map and the garage draw the same scene: only a run's frame shows them
   if (state === "loading") return;
   // the map: the world from above, its pins over it (none while the next region's world is built)
   if (state === "map") { if (staging) return; mapWorld.frame = framing(); mapWorld.render(dt); pinsAt(mapWorld.pins()); return; }
@@ -1338,13 +1345,14 @@ function frame() {
     r.camera.fov = 38;
     r.camera.updateProjectionMatrix();
   } else {
-    // the rush: from 3 km/h under your top speed to most of the way a combo can carry you past it, on the dial; eased
+    // the rush: from 80% of your top speed to most of the way a combo can carry you past it, on the dial; eased
     // slowly both ways, so it gathers over a couple of seconds and lets go as gently
     const top = run.drive.car.top, kNow = v.kmh / FEEL.pace;
-    const rush = rushOn && state === "run" ? THREE.MathUtils.smoothstep(kNow, top - 3, top + run.drive.surgeMax * 0.7) : 0;
+    const rush = rushOn && state === "run" ? THREE.MathUtils.smoothstep(kNow, top * 0.8, top + run.drive.surgeMax * 0.7) : 0;
     chase.rush += (rush - chase.rush) * Math.min(1, dt * (rush > chase.rush ? 0.9 : 0.6));
     chase.update(dt, pose, (world.lo + world.hi) / 2);
     if (state === "run" && (run.drive.intro > 0 || wasRolling > 0)) rollingCamera(pose);
+    streaks.update(r.camera.position, v.u, chase.rush, dt);
   }
   sound.drive(v.rpm, v.shifting > 0 ? 0 : v.throttle, v.u, Math.max(v.slipFront, v.slipRear), v.spec.redline, chase.rush);
   sound.loop("scrape_metal", run.scraping > 0 ? 0.55 : 0);
@@ -1405,7 +1413,7 @@ async function carryOn(k: Kept) {
 pal.onShown(() => { if (state !== "paused") sound.start(); last = performance.now(); account(); });
 // A save sync merged with another machine's: take it, so the next change writes onto it rather than over it.
 pal.storage.onChange((k, v) => {
-  if (k === "ghosts" && v && typeof v === "object") { ghosts = v as Record<string, Ghost>; return; }
+  if (k === "ghosts" && v && typeof v === "object") { ghosts = readGhosts(v); return; }
   if (k !== "save" || scene || trial) return;
   const vol = save.settings.sound;
   save = load(v);
@@ -1454,7 +1462,10 @@ async function stage(sc: Scene) {
   pal.ready(); // the loading sign is ours to show: reveal the page at once
   scene = ((await pal.storage.get("scene").catch(() => null)) as Scene | null) ?? null;
   save = load(await pal.storage.get("save").catch(() => null));
-  ghosts = ((await pal.storage.get("ghosts").catch(() => null)) as Record<string, Ghost> | null) ?? {};
+  const storedGhosts = await pal.storage.get("ghosts").catch(() => null);
+  ghosts = readGhosts(storedGhosts);
+  // kept as arrays before: written again packed, which frees the room the save needs
+  if (storedGhosts && Object.values(storedGhosts as object).some((g) => Array.isArray((g as Ghost)?.x))) await storeGhosts();
   tapes = ((await pal.storage.get("tapes").catch(() => null)) as Record<string, Tape> | null) ?? {};
   account();
   let kept = scene ? null : ((await pal.storage.get("run").catch(() => null)) as Kept | null);

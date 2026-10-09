@@ -5,7 +5,7 @@ import { Score } from "../highway/game/score.ts";
 import { CARS, FEEL, MODES, spec } from "../highway/game/content.ts";
 import { Drive, ROLLING_START } from "../highway/game/drive.ts";
 import { ONE_WAY, edges, laneX, RAIL } from "../highway/game/layout.ts";
-import { SPRINTS, starTimes, starsFor, ghostTimeAt, ghostAt, GHOST_DT } from "../highway/game/sprint.ts";
+import { SPRINTS, starTimes, starsFor, ghostTimeAt, ghostAt, GHOST_DT, packGhost, unpackGhost } from "../highway/game/sprint.ts";
 import { fresh, load, stored, has, pickFor, finishSprintRun, type Save } from "../highway/game/meta.ts";
 import { REGIONS, BOSS_STARS, sprintsOf, rivalTime } from "../highway/game/sprint.ts";
 import { closed, regionOpen, starsIn, bossOf, nextStop, carNeeds } from "../highway/game/trip.ts";
@@ -230,6 +230,16 @@ test("Speed Trap ends a run held under its floor; Time Attack's clock runs down"
   time.score.distance = 2500;
   time.step(1 / 120, { throttle: 0.3, brake: 0, steer: 0 });
   expect([time.checkpoints, time.bonus, Math.round(time.toCheckpoint / 100)]).toEqual([1, 27, 25]);
+});
+
+test("a ghost packs to a few kB and comes back exactly; one kept as arrays still reads", () => {
+  const n = 600, g = { time: 60, x: [] as number[], z: [] as number[], yaw: [] as number[] };
+  for (let i = 0; i < n; i++) { g.x.push(+(Math.sin(i / 40) * 3.6).toFixed(2) + 0); g.z.push(+(i * 4.4 + (i > 300 ? (i - 300) * 0.2 : 0)).toFixed(2)); g.yaw.push(+(Math.cos(i / 40) * 0.05).toFixed(3) + 0); } // + 0: no -0, which comes back as 0
+  const p = packGhost(g);
+  expect(unpackGhost(JSON.parse(JSON.stringify(p)))).toEqual(g);
+  expect(JSON.stringify(p).length).toBeLessThan(JSON.stringify(g).length / 3);
+  expect(unpackGhost(g)).toEqual(g);
+  expect(unpackGhost({ time: 1 })).toBeNull();
 });
 
 test("Zen: flat out through the traffic, nothing ends the run and nothing is scored", () => {

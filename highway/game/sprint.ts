@@ -223,6 +223,39 @@ export const clock = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1)
 /** A run as a line through time, for a ghost: its place every `GHOST_DT` s, z from the start. */
 export const GHOST_DT = 0.1;
 export type Ghost = { x: number[]; z: number[]; yaw: number[]; time: number };
+/** A ghost as it is stored: each line in fixed point (cm, cm, milliradians), as its changes (enc), in base 36. As arrays of numbers, pal's storage (written one value a line) took ~20 kB a road and filled its 256 kB
+ *  cap with a dozen roads' ghosts; every write after that, the save's too, was refused. */
+export type PackedGhost = { time: number; line: string };
+const SCALE = [100, 100, 1000], ORDER = [1, 2, 1]; // z, along the road at a steady pace, as its change of pace
+/** Fixed-point values as differences of order `n`, in base 36, a run of zeros written ~count. */
+function enc(a: number[], n: number) {
+  let d = a;
+  for (let k = 0; k < n; k++) { const p = d; d = p.map((v, i) => (i ? v - p[i - 1] : v)); }
+  const out: string[] = [];
+  for (let i = 0; i < d.length; ) {
+    let j = i; while (j < d.length && d[j] === 0) j++;
+    if (j - i > 1) { out.push(`~${(j - i).toString(36)}`); i = j; } else out.push(d[i++].toString(36));
+  }
+  return out.join(",");
+}
+function dec(s: string, n: number) {
+  let d: number[] = [];
+  for (const t of s ? s.split(",") : []) if (t[0] === "~") d.push(...new Array(parseInt(t.slice(1), 36)).fill(0)); else d.push(parseInt(t, 36));
+  for (let k = 0; k < n; k++) { let acc = 0; d = d.map((v) => (acc += v)); }
+  return d;
+}
+export function packGhost(g: Ghost): PackedGhost {
+  return { time: g.time, line: [g.x, g.z, g.yaw].map((a, k) => enc(a.map((v) => Math.round(v * SCALE[k])), ORDER[k])).join(";") };
+}
+/** A stored ghost back, packed or (as kept before) as arrays; null when it is neither. */
+export function unpackGhost(raw: unknown): Ghost | null {
+  const r = raw as Partial<PackedGhost & Ghost> | null;
+  if (!r || typeof r !== "object" || typeof r.time !== "number") return null;
+  if (Array.isArray(r.x) && Array.isArray(r.z) && Array.isArray(r.yaw)) return { x: r.x, z: r.z, yaw: r.yaw, time: r.time };
+  if (typeof r.line !== "string") return null;
+  const [x, z, yaw] = r.line.split(";").map((part, k) => dec(part, ORDER[k]).map((v) => v / SCALE[k]));
+  return x && z && yaw ? { x, z, yaw, time: r.time } : null;
+}
 
 /** Where a ghost is `t` s in: between its two nearest samples. */
 export function ghostAt(g: Ghost, t: number) {
