@@ -62,7 +62,7 @@ export class Chase {
     const V = VIEWS[this.view], cam = this.camera;
     this.t += dt;
     const sp = Math.min(1, v.u / 75);
-    let dist = V.dist - (V.attached ? 0 : this.rush * 0.5), h = V.h - (V.attached ? 0 : this.rush * 0.2);
+    let dist = V.dist - (V.attached ? 0 : this.rush * 0.9), h = V.h - (V.attached ? 0 : this.rush * 0.35);
     this.pulse *= Math.exp(-dt * 2.5);
     this.pulseFov += (this.pulse - this.pulseFov) * Math.min(1, dt * 4);
     if (this.lingering > 0) { this.lingering += dt; dist += Math.min(6, this.lingering * 3); h += Math.min(2, this.lingering); }
@@ -72,7 +72,7 @@ export class Chase {
     const tremor = sp > 0.8 ? (sp - 0.8) * 0.02 : 0;
     const n = (f: number, p: number) => Math.sin(this.t * f + p) * 0.6 + Math.sin(this.t * f * 2.3 + p * 2) * 0.4;
     // and in a rush, the wind buffets it: slow (a few times a second), small, a sway rather than a rattle
-    const buffet = (f: number, p: number) => (Math.sin(this.t * f + p) + 0.6 * Math.sin(this.t * f * 1.73 + p * 3)) * 0.011 * this.rush;
+    const buffet = (f: number, p: number) => (Math.sin(this.t * f + p) + 0.6 * Math.sin(this.t * f * 1.73 + p * 3)) * 0.024 * this.rush;
     const jx = n(31, 0) * (tremor + this.shake * this.shake * 0.4) + this.kick.x + buffet(3.7, 0), jy = n(37, 1) * (tremor + this.shake * this.shake * 0.4) + this.kick.y + buffet(4.9, 2) * 0.7;
     if (V.attached) {
       const fwd = new THREE.Vector3(Math.sin(v.yaw), 0, Math.cos(v.yaw));
@@ -88,7 +88,7 @@ export class Chase {
     this.fov += (want - this.fov) * Math.min(1, dt * 1.5);
     if (dt === 0) this.fov = want;
     cam.fov = this.fov + this.pulseFov * this.rush;
-    if (this.rush > 0.01) cam.rotateZ((Math.sin(this.t * 1.9) + 0.5 * Math.sin(this.t * 3.3 + 1)) * 0.0035 * this.rush); // the horizon sways a hair
+    if (this.rush > 0.01) cam.rotateZ((Math.sin(this.t * 1.9) + 0.5 * Math.sin(this.t * 3.3 + 1)) * 0.006 * this.rush); // the horizon sways a little
     cam.updateProjectionMatrix();
   }
 }
