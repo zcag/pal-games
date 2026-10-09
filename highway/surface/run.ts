@@ -69,6 +69,7 @@ export class Run {
   constructor(public world: World, public layout: Layout, public player: Car, car: PlayerCar, events: DriveEvents, density = 1, mode: ModeId = "endless", sprint?: SprintRoad, intro = 0, seed?: number) {
     this.drive = new Drive(layout, car, player.footprint, player.wheelbase, (id) => sizes.get(id), events, { density, mode, sprint, intro, seed });
     world.scene.add(player.root);
+    player.hero = true;
     this.headlights();
     this.settle();
   }
@@ -100,7 +101,9 @@ export class Run {
   /** Swap the car you drive, keeping where and how fast it goes (the garage's browsing). */
   setPlayer(player: Car, car: PlayerCar) {
     this.player.root.removeFromParent();
+    this.player.hero = false;
     this.player = player;
+    player.hero = true;
     this.drive.setCar(car, player.footprint, player.wheelbase);
     this.world.scene.add(player.root);
     this.headlights();

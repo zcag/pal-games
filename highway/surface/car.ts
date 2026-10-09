@@ -169,11 +169,15 @@ export class Reflections {
   }
 
   update(gl: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera) {
-    // the nearest car within 20 m; the one already reflecting keeps it unless another is clearly nearer
+    // the car you drive (Run marks it), however close another passes: a passing car took the cube, and your
+    // windows flicked from the world to the sky photo and back. Otherwise (the garage, the map) the nearest within
+    // 20 m, the one already reflecting keeping it unless another is clearly nearer
+    const shown = (c: Car) => !!c.root.parent && c.root.visible;
     const at = (c: Car) => c.root.getWorldPosition(this.v).distanceTo(camera.position);
     let best: Car | null = null, bd = 20;
-    for (const c of cars) {
-      if (!c.root.parent || !c.root.visible) continue;
+    for (const c of cars) if (c.hero && shown(c)) best = c;
+    if (!best) for (const c of cars) {
+      if (!shown(c)) continue;
       const d = at(c) * (c === this.car ? 0.75 : 1);
       if (d < bd) { best = c; bd = d; }
     }
@@ -388,6 +392,8 @@ export class Car {
   private turn: THREE.Matrix4[] = [];
   /** Whether the place's gloss sets its paint's reflection (setGloss); the garage lights its cars itself. */
   glossed = true;
+  /** The car you drive: it keeps the real reflections (Reflections) while it is on the road. */
+  hero = false;
 
   /** Its footprint for the game: the box and the outline it collides as. */
   get footprint(): Size { return { x: this.size.x, z: this.size.z, hull: this.hull }; }
