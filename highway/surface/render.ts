@@ -5,7 +5,8 @@
 // rest of the frame and its sun blooms.
 import * as THREE from "./vendor/three.js";
 import { Finish, ACES } from "./looks.ts";
-import { Reflections } from "./car.ts";
+import { Reflections, setGloss } from "./car.ts";
+import type { SkyLook } from "./skylooks.ts";
 import { shadowOnly } from "./shadow.ts";
 
 /** hit 0..1 for the flash, dim 0..1 to darken behind a card; speed is not needed (the motion blur sees it). */
@@ -92,6 +93,7 @@ export class Renderer {
   }
 
   render(scene: THREE.Scene, fx: Fx = {}) {
+    setGloss((scene.userData.look as SkyLook | undefined)?.gloss ?? 1); // the place's, 1 in the garage
     // the scene's matrices once a frame: the shadow map, the reflections and the frame all draw this one
     scene.updateMatrixWorld();
     scene.matrixWorldAutoUpdate = false;

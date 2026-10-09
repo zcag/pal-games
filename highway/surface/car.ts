@@ -138,6 +138,16 @@ function prepare(src: THREE.Group): THREE.Group {
 
 const cars = new Set<Car>();
 
+/** How much paint mirrors the sky, per place (a SkyLook's `gloss`): an overcast sky is one bright grey, and mirrored
+ *  over a whole body at full strength it washes a red out to salmon. Set before each render of a scene (render.ts). */
+const PAINT_ENV = 1.6;
+let gloss = 1;
+export function setGloss(k: number) {
+  if (k === gloss) return;
+  gloss = k;
+  for (const c of cars) if (c.glossed) for (const p of c.paint) p.envMapIntensity = PAINT_ENV * k;
+}
+
 /** Real reflections for the car nearest the camera (the hero: in the garage and on the road it is
  *  yours): a 256 px cube of the scene around it, one face every other frame, so its paint and
  *  windows mirror the road, the trees, the other cars and the lamps rather than only the sky photo.
@@ -376,6 +386,8 @@ export class Car {
   /** Each lamp's light (lampMaterial), and each wheel's and caliper's turn (wheelMaterial). */
   private glow = LAMPS.map(() => new THREE.Color(0));
   private turn: THREE.Matrix4[] = [];
+  /** Whether the place's gloss sets its paint's reflection (setGloss); the garage lights its cars itself. */
+  glossed = true;
 
   /** Its footprint for the game: the box and the outline it collides as. */
   get footprint(): Size { return { x: this.size.x, z: this.size.z, hull: this.hull }; }
@@ -415,7 +427,7 @@ export class Car {
           p.color.set(color);
           p.metalness = 0.6; p.roughness = 0.42;
           p.clearcoat = 1; p.clearcoatRoughness = 0.035;
-          p.envMapIntensity = 1.6;
+          p.envMapIntensity = PAINT_ENV * gloss;
           paintFor.set(mat, p);
           this.paint.push(p);
           this.shiny.push(p);
@@ -539,6 +551,9 @@ export class Car {
     this.shadow = on;
     for (const s of this.shapes) s.castShadow = on;
   }
+
+  /** Out of the places' gloss: the paint at its own strength, for the garage to light (it dims a bay through it). */
+  ownGloss() { this.glossed = false; for (const p of this.paint) p.envMapIntensity = PAINT_ENV; }
 
   setColor(color: THREE.ColorRepresentation) { for (const p of this.paint) p.color.set(color); }
 

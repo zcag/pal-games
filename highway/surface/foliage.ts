@@ -222,7 +222,7 @@ function flowers() {
 }
 
 /** A sprig for a leaf card, drawn: an olive's narrow leaves, dark grey-green above and silver beneath, or
- *  gorse, dark and spiny and thick with yellow flowers. It replaces the model's own leaf picture. */
+ *  gorse, dark and spiny and flecked with yellow flowers. It replaces the model's own leaf picture. */
 export function sprig(kind: "olive" | "gorse") {
   const c = document.createElement("canvas");
   c.width = c.height = 256;
@@ -238,7 +238,7 @@ export function sprig(kind: "olive" | "gorse") {
       g.fillStyle = silver ? `rgb(${196 * l | 0},${204 * l | 0},${182 * l | 0})` : `rgb(${118 * l | 0},${130 * l | 0},${96 * l | 0})`;
       g.beginPath(); g.ellipse(x, y, 13 + r() * 6, 3 + r() * 1.5, r() * 3.14, 0, 6.3); g.fill();
     } else {
-      const flower = r() < 0.32, l = 0.7 + r() * 0.4;
+      const flower = r() < 0.13, l = 0.7 + r() * 0.4; // dark and spiny, its flowers scattered: thicker, they blur to ochre at a distance
       g.fillStyle = flower ? `rgb(${240 * l | 0},${196 * l | 0},${40 * l | 0})` : `rgb(${52 * l | 0},${72 * l | 0},${30 * l | 0})`;
       g.beginPath(); flower ? g.arc(x, y, 4 + r() * 3, 0, 6.3) : g.ellipse(x, y, 9, 1.8, r() * 3.14, 0, 6.3); g.fill();
     }

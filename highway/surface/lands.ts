@@ -51,7 +51,7 @@ const CROPS = {
   lavender: "mix(soil, vec3(0.16, 0.085, 0.26) * (0.8 + 0.4 * mid), smoothstep(0.3, 0.7, rows(vW.z + mid, 1.7)))",
   pasture: "vec3(0.085, 0.13, 0.045) * d * (0.9 + 0.2 * big)",
   rough: "g",
-  bracken: "vec3(0.19, 0.09, 0.035) * d * (0.85 + 0.3 * mid)",
+  bracken: "vec3(0.16, 0.1, 0.05) * d * (0.85 + 0.3 * mid)",
   yard: "vec3(0.2, 0.2, 0.19) * (0.75 + 0.45 * gn(vW.xz / 3.0))",
   lot: "mix(vec3(0.05, 0.05, 0.055), vec3(0.5), step(0.92, fract(vW.z / 2.6)) * step(2.0, mod(e, 12.0)))",
   gravel: "vec3(0.21, 0.19, 0.16) * (0.7 + 0.6 * gh(floor(vW.xz * 8.0)))",
@@ -401,11 +401,12 @@ const moor: Style = {
   fields: { w: 75, len: 90, far: 97, crops: [["pasture", 0.4], ["rough", 0.75], ["bracken", 1]] },
   grass: "heath", verge: 1.1,
   ground: {
-    // heath: grey-green grass, heather's purple-brown and bracken's rust in drifts
-    base: `g = mix(vec3(0.09, 0.105, 0.065), vec3(0.19, 0.17, 0.11), smoothstep(0.4, 0.75, big)) * d;
-      g = mix(g, vec3(0.12, 0.055, 0.09) * d, smoothstep(0.4, 0.58, gf(vW.xz / 22.0 + 5.0)) * 0.9);
-      g = mix(g, vec3(0.24, 0.1, 0.03) * d, smoothstep(0.52, 0.68, gf(vW.xz / 45.0 + 9.0)) * 0.85);
-      g = mix(g, vec3(0.17, 0.17, 0.16) * (0.6 + 0.6 * gn(vW.xz * 1.3)), smoothstep(0.7, 0.8, gf(vW.xz / 12.0 + 2.0)) * 0.7);`,
+    // moor grass, olive to tawny in big sweeps; heather darker and browner in drifts, bracken a dull rust, bare
+    // stone showing through: the colours of a real moor are close together, so no patch shouts
+    base: `g = mix(vec3(0.1, 0.122, 0.058), vec3(0.17, 0.158, 0.088), smoothstep(0.35, 0.75, big)) * d;
+      g = mix(g, vec3(0.085, 0.07, 0.062) * d, smoothstep(0.45, 0.62, gf(vW.xz / 22.0 + 5.0)) * 0.6);
+      g = mix(g, vec3(0.19, 0.12, 0.06) * d, smoothstep(0.55, 0.7, gf(vW.xz / 45.0 + 9.0)) * 0.55);
+      g = mix(g, vec3(0.17, 0.17, 0.16) * (0.6 + 0.6 * gn(vW.xz * 1.3)), smoothstep(0.72, 0.82, gf(vW.xz / 12.0 + 2.0)) * 0.6);`,
     soil: "vec3(0.14, 0.12, 0.1)",
     forest: "g = mix(g, vec3(0.1, 0.075, 0.05) * (0.8 + 0.4 * mid), vZone.y * 0.9);", // a plantation's needles
     steep: "vec3(0.27, 0.27, 0.26)",
@@ -415,7 +416,7 @@ const moor: Style = {
     trees(land, a, [["pine", 30, 700], ["pine_tall", 20, 400], ["aspen", 4, 30]]);
     land.addKind("c_pine", I(a, "c_pine"), 60, { receive: false });
     land.addKind("gorse", I(a, "gorse"), 320, { receive: false });
-    land.addKind("wall", [stoneWall()], 160);
+    land.addKind("wall", [stoneWall(1.5)], 160);
     land.addKind("sheep", sheep(), 60);
     land.addKind("crag", [crag(stone(a, 0x75746c), 2.2)], 50);
     land.addKind("crag_b", [crag(stone(a, 0x8a877c), 5.7)], 50);
@@ -425,11 +426,16 @@ const moor: Style = {
     const { r, z0, z1, side, zone, X, clear, put, night } = s;
     const f = moor.fields, far = f.far!;
     if (zone === "field") {
-      // walled fields by the road: dry-stone walls along and across, a gap for a gate now and then
-      for (let e = 22; e < far; e += f.w) for (let z = Math.ceil(z0 / 6) * 6 + 3; z < z1; z += 6) if (clear(z) && hash(z, e) > 0.04) put("wall", X(e), z, 0, 1);
+      // walled fields by the road: dry-stone walls along and across, a gap for a gate now and then. A length is 3 m
+      // with its top level, sunk to its lower end and as tall as the slope needs: it follows the hill in small steps
+      const wall = (x0: number, za: number, x1: number, zb: number) => {
+        const ya = heightAt(s.t, x0, za, s.roadHalf), yb = heightAt(s.t, x1, zb, s.roadHalf), lo = Math.min(ya, yb) - 0.25;
+        put("wall", (x0 + x1) / 2, (za + zb) / 2, za === zb ? Math.PI / 2 : 0, 1, lo, Math.max(ya, yb) + 0.85 - lo);
+      };
+      for (let e = 22; e < far; e += f.w) for (let z = Math.ceil(z0 / 3) * 3 + 1.5; z < z1; z += 3) if (clear(z) && hash(Math.floor(z / 6), e) > 0.04) wall(X(e), z - 1.5, X(e), z + 1.5);
       for (const c of cells(s, moor, far)) {
         const zb = c.row * f.len - fieldOff(side);
-        if (zb >= z0 && zb < z1 && clear(zb)) for (let e = c.e0 + 3; e < c.e0 + f.w; e += 6) if (hash(e, zb) > 0.05) put("wall", X(e), zb, Math.PI / 2, 1);
+        if (zb >= z0 && zb < z1 && clear(zb)) for (let e = c.e0 + 1.5; e < c.e0 + f.w; e += 3) if (hash(Math.floor(e / 6), zb) > 0.05) wall(X(e - 1.5), zb, X(e + 1.5), zb);
         // sheep grazing the pasture, in a loose flock
         if (c.crop === "pasture" && c.z1 - c.z0 > 30) {
           const ec = c.e0 + 15 + r() * (f.w - 30), zc = c.z0 + 10 + r() * (c.z1 - c.z0 - 20);

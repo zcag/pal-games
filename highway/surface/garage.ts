@@ -196,6 +196,7 @@ export class Garage {
   private load(bay: BayObj): Promise<Car> {
     return (bay.loading ??= (async () => {
       const car = await Car.load(bay.id, bay.paint);
+      car.ownGloss();
       car.root.updateMatrixWorld(true);
       if (bay.cover) this.coverFor(bay, car); // the cover fitted to the real car
       // its own copies of the materials it shares with other cars of its model, so dimming this one dims only it

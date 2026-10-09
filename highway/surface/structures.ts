@@ -201,9 +201,9 @@ export function vineRow(): Part {
   return { geo, mat };
 }
 
-/** A dry-stone wall 6 m along z, a metre high, battered in toward its cope of upright stones. */
-export function stoneWall(): Part {
-  const L = 3, b = 0.34, tp = 0.2, H = 1.0, t = 1.2;
+/** A dry-stone wall `2L` m along z (6 m by default), a metre high, battered in toward its cope of upright stones. */
+export function stoneWall(L = 3): Part {
+  const b = 0.34, tp = 0.2, H = 1.0, t = 1.2;
   const geo = quads([
     { p: [[b, 0, -L], [b, 0, L], [tp, H, L], [tp, H, -L]], uv: [[-L / t, 0], [L / t, 0], [L / t, H / t], [-L / t, H / t]], n: [0.98, 0.14, 0] },
     { p: [[-b, 0, L], [-b, 0, -L], [-tp, H, -L], [-tp, H, L]], uv: [[L / t, 0], [-L / t, 0], [-L / t, H / t], [L / t, H / t]], n: [-0.98, 0.14, 0] },
