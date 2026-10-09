@@ -26,6 +26,9 @@ and DESIGN.md say how it plays and why.
 - `registry-only.txt`: every game, since none comes with the app (pal's
   `app/bundled.txt` decides that). A new game is added here in the same
   change; a test fails otherwise.
+- `parked.txt`: games kept for development only (a debug app loads them,
+  the tests run them) and never published; pal's registry takes them off
+  its indexes. A game is in exactly one of the two lists.
 
 ## Principles
 
