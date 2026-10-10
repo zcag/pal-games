@@ -239,10 +239,10 @@ describe("keys", () => {
 
 describe("accounts", () => {
   const m = manifestOf("uphill");
-  test("only the best distance is kept (a store picture's scene stays on its machine), and two machines' bests merge to the larger", () => {
+  test("the best distance and the look are kept (a store picture's scene stays on its machine), and two machines' bests merge to the larger", () => {
     expect(problems(m)).toEqual([]);
-    expect(storedKeys("uphill")).toEqual(["best", "scene"]);
-    expect(m.sync).toEqual({ best: "max", scene: "local" });
+    expect(storedKeys("uphill")).toEqual(["best", "look", "scene"]);
+    expect(m.sync).toEqual({ best: "max", look: "latest", scene: "local" });
     expect(merge(m.sync.best, 812, 1440, 600)).toBe(1440);
   });
 });

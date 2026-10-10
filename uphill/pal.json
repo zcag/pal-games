@@ -35,6 +35,7 @@
   ],
   "sync": {
     "best": "max",
+    "look": "latest",
     "scene": "local"
   },
   "store": {
@@ -68,6 +69,11 @@
       {
         "title": "Sound on or off",
         "keys": "m"
+      },
+      {
+        "title": "Next look",
+        "description": "Forest, Desert, Dusk and Classic; the choice is kept and follows you to your other machines.",
+        "keys": "l"
       }
     ],
     "features": [
@@ -127,6 +133,10 @@
         {
           "keys": "m",
           "title": "Sound on or off"
+        },
+        {
+          "keys": "l",
+          "title": "Next look"
         }
       ]
     }

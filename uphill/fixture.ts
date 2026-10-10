@@ -20,7 +20,7 @@ pinClock();
 const host = await Host.bundled({ only: ["uphill"] });
 try {
   const view = await host.request("view", { extension: "uphill", palette: "uphill" });
-  const palette = (scene: Scene | null) => ({ title: manifest.title, icon: manifest.icon, view: "view", tree: view, surface: { storage: { best: 1240, ...(scene ? { scene } : {}) }, settings: {} } });
+  const palette = (scene: Scene | null) => ({ title: manifest.title, icon: manifest.icon, view: "view", tree: view, surface: { storage: { best: 1240, look: "forest", ...(scene ? { scene } : {}) }, settings: {} } });
   const shots: Record<string, { palette: string; keys: string[]; caption: string; cover?: number[] }> = {
     "1-climb": { palette: "climb", keys: ["wait:1200"], caption: "A climb with the suspension squatting under it, the hills growing behind" },
     "2-gap": { cover: [300, 240, 960, 470], palette: "gap", keys: ["wait:1200"], caption: "Over the gap: the same keys that drive lean the car in the air, so you land on both wheels" },

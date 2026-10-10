@@ -9,6 +9,7 @@ import { ground } from "../game/terrain.ts";
 import { KEYS } from "../game/keys.ts";
 import { decide, type Style } from "../game/bot.ts";
 import { Renderer, type Camera, type Float, type Particle, type Scheme } from "./render.ts";
+import { LOOKS, SCENES, type LookId } from "./looks.ts";
 import { Sound } from "./audio.ts";
 
 declare const pal: SurfaceKit;
@@ -220,6 +221,28 @@ function showEnd(why: End) {
   $("#end").classList.toggle("record", record);
 }
 
+// ---- the look ----------------------------------------------------------------------------------------------------
+
+let lookId: LookId = "forest";
+/** A look's colours on the canvas, and the HUD's over its sky (Classic's follows pal's theme). */
+function applyLook(id: LookId) {
+  lookId = id;
+  void gfx.setLook(id);
+  if (id === "classic") delete document.documentElement.dataset.hud;
+  else document.documentElement.dataset.hud = SCENES[id].hud;
+}
+let lookTimer = 0;
+function nextLook() {
+  const id = LOOKS[(LOOKS.indexOf(lookId) + 1) % LOOKS.length];
+  applyLook(id);
+  void pal.storage.set("look", id);
+  const el = $("#look");
+  el.innerHTML = `${id === "classic" ? "Classic" : SCENES[id].name} <span><kbd>L</kbd> next look</span>`;
+  el.classList.add("show");
+  clearTimeout(lookTimer);
+  lookTimer = window.setTimeout(() => el.classList.remove("show"), 1600);
+}
+
 // ---- keys -------------------------------------------------------------------------------------------------------
 
 const GAS = new Set<string>(KEYS.gas), BRAKE = new Set<string>(KEYS.brake);
@@ -241,6 +264,7 @@ addEventListener("keydown", (e: KeyboardEvent) => {
   if (c === "Space") { e.preventDefault(); return; }
   if (c === "KeyP") { if (!over(s)) paused = !paused; showPause(); return; }
   if (c === "KeyM") { sound.toggle(); return; }
+  if (c === "KeyL") { nextLook(); return; }
 });
 addEventListener("keyup", (e: KeyboardEvent) => {
   if (GAS.has(e.code)) keys.gas = false;
@@ -256,6 +280,7 @@ pal.onAction((id) => {
   if (id === "again") restart();
   else if (id === "pause") { paused = !paused; showPause(); }
   else if (id === "mute") sound.toggle();
+  else if (id === "look") nextLook();
 });
 pal.onHidden(() => { hidden = true; keys.gas = keys.brake = false; if (!over(s) && s.started) paused = true; sound.suspend(); });
 pal.onShown(() => { hidden = false; last = performance.now(); showPause(); if (!paused) sound.start(); });
@@ -267,7 +292,10 @@ const applySettings = (v: Record<string, unknown>) => {
 pal.onSettings(applySettings);
 const scheme = (): Scheme => (document.documentElement.dataset.theme === "light" ? "light" : document.documentElement.dataset.theme === "dark" ? "dark" : matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
 pal.onTheme((sc) => gfx.scheme(sc));
-pal.storage.onChange((key, value) => { if (key === "best" && typeof value === "number" && value > best) best = value; });
+pal.storage.onChange((key, value) => {
+  if (key === "best" && typeof value === "number" && value > best) best = value;
+  if (key === "look" && LOOKS.includes(value as LookId)) applyLook(value as LookId);
+});
 
 // ---- start ------------------------------------------------------------------------------------------------------
 
@@ -293,8 +321,11 @@ function stage(sc: Scene) {
 }
 
 (async () => {
-  const [b, set, scene] = await Promise.all([pal.storage.get("best"), pal.settings(), pal.storage.get("scene").catch(() => null)]);
+  const [b, set, scene, lk] = await Promise.all([pal.storage.get("best"), pal.settings(), pal.storage.get("scene").catch(() => null), pal.storage.get("look").catch(() => null)]);
   if (typeof b === "number") best = b;
+  // The layers are recoloured before the first frame, so the page never opens on an empty sky.
+  applyLook(LOOKS.includes(lk as LookId) ? (lk as LookId) : "forest");
+  await gfx.setLook(lookId);
   applySettings(set);
   restart();
   if (scene) stage(scene as Scene);

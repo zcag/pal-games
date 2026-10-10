@@ -1,0 +1,113 @@
+{
+ "h": 900,
+ "sets": {
+  "forest": [
+   {
+    "file": "forest-0.png",
+    "y0": 364,
+    "y1": 492,
+    "floor": false,
+    "tones": [
+     "#ffffff"
+    ],
+    "w": 1600
+   },
+   {
+    "file": "forest-1.png",
+    "y0": 328,
+    "y1": 557,
+    "floor": true,
+    "tones": [
+     "#c2cfda",
+     "#dbe3e9"
+    ],
+    "w": 1600
+   },
+   {
+    "file": "forest-2.png",
+    "y0": 502,
+    "y1": 632,
+    "floor": true,
+    "tones": [
+     "#92a9bd"
+    ],
+    "w": 1600
+   },
+   {
+    "file": "forest-3.png",
+    "y0": 509,
+    "y1": 678,
+    "floor": true,
+    "tones": [
+     "#587791"
+    ],
+    "w": 1600
+   },
+   {
+    "file": "forest-4.png",
+    "y0": 568,
+    "y1": 730,
+    "floor": true,
+    "tones": [
+     "#3b4f61"
+    ],
+    "w": 1600
+   }
+  ],
+  "desert": [
+   {
+    "file": "desert-0.png",
+    "y0": 288,
+    "y1": 333,
+    "floor": true,
+    "tones": [
+     "#e0dcd6"
+    ],
+    "w": 1600
+   },
+   {
+    "file": "desert-1.png",
+    "y0": 320,
+    "y1": 366,
+    "floor": true,
+    "tones": [
+     "#d9cdc0"
+    ],
+    "w": 1600
+   },
+   {
+    "file": "desert-2.png",
+    "y0": 310,
+    "y1": 524,
+    "floor": true,
+    "tones": [
+     "#967c68",
+     "#9e8674"
+    ],
+    "w": 1600
+   },
+   {
+    "file": "desert-3.png",
+    "y0": 347,
+    "y1": 713,
+    "floor": true,
+    "tones": [
+     "#594236",
+     "#614b3f"
+    ],
+    "w": 1600
+   },
+   {
+    "file": "desert-4.png",
+    "y0": 324,
+    "y1": 755,
+    "floor": true,
+    "tones": [
+     "#41362d",
+     "#463c33"
+    ],
+    "w": 1600
+   }
+  ]
+ }
+}

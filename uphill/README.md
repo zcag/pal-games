@@ -14,6 +14,8 @@ published.
   "stuck" ending: a stalled car can back up and try again, and one on its side
   is righted by the right lean or tips onto the helmet (tried at 90 and 126
   degrees either way), so nothing waits on a car that cannot move. R or Space drives again; P pauses; M mutes.
+- L cycles the looks: Forest, Desert, Dusk and Classic (`look`, synced as the
+  latest; Forest when none is set).
 - Fuel burns with time (a full tank is 30 s on the gas, a third longer coasting);
   cans along the road fill it, each a little further on than the last (190 m,
   then 232, 276 ... apart). Coins come in rows of five, 5 each, 25 past 500 m,
@@ -43,6 +45,14 @@ published.
 - `surface/`: a 2D canvas (render.ts) drawn between physics steps, the camera
   looking ahead and pulling out with speed and in the air; synthesized sound
   (audio.ts); the HUD and end card in HTML.
+- The looks (`surface/looks.ts`): PWL's flat landscape layers (CC0, credited in
+  `surface/art/README.md`), stored as tone masks by `scripts/art.ts` (232 KB for
+  ten layers) and recoloured per look once, then tiled as parallax at 1.5-20% of
+  the road's speed. The ground, the props behind the road, the car and the
+  pickups are drawn flat in the same no-outline style, the car in the scene's
+  one strong colour. A scene's colours are its own, not pal's theme; the HUD
+  takes its text colour from the scene's sky (`data-hud`). Classic is the first
+  look, drawn as before and following pal's theme.
 
 ## Tuning (stage 7, 2026-10-10)
 

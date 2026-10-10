@@ -8,6 +8,7 @@ export const ACTIONS: Action[] = [
   { id: "again", title: "Drive again", shortcut: "r" },
   { id: "pause", title: "Pause or carry on", shortcut: "p" },
   { id: "mute", title: "Sound on or off", shortcut: "m" },
+  { id: "look", title: "Next look", shortcut: "l" },
 ];
 
 export default {
