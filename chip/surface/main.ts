@@ -9,6 +9,7 @@ import type { SurfaceKit } from "@zcag/pal";
 import { HOLE, groundAt, type Pt, type Surface } from "../game/hole.ts";
 import { DT, ballOf, create, hit, scoreName, step, type Ev, type State } from "../game/sim.ts";
 import { DARK, LIGHT, Renderer, type Cam, type Particle } from "./render.ts";
+import { FLAT, LOOK_IDS, LOOK_NAMES, type LookId } from "./looks.ts";
 import { setVolume, sound } from "./audio.ts";
 
 declare const pal: SurfaceKit;
@@ -30,6 +31,8 @@ let angle = 45, facing: 1 | -1 = 1;
 let charging = false, phase = 0, power = 0;
 let lastPower: number | null = null, lastAngle: number | null = null, lastFacing: 1 | -1 = 1;
 let best: number | null = null;
+let look: LookId = "canyon";
+let scheme: "light" | "dark" = "light";
 let paused = false;
 let intro = 0; // seconds left of the opening glide
 const INTRO = 2.6;
@@ -54,7 +57,7 @@ function renderHud() {
   hud.keys.innerHTML =
     s.phase === "holed" ? `${k("space")} play again`
     : s.phase === "fly" && !s.landed ? `${k("←")}${k("→")} spin: back bites, forward runs`
-    : s.phase === "aim" && intro <= 0 ? `${k("↑")}${k("↓")} aim <s>·</s> ${k("←")}${k("→")} turn <s>·</s> hold ${k("space")} power <s>·</s> ${k("r")} again`
+    : s.phase === "aim" && intro <= 0 ? `${k("↑")}${k("↓")} aim <s>·</s> ${k("←")}${k("→")} turn <s>·</s> hold ${k("space")} power <s>·</s> ${k("r")} again <s>·</s> ${k("l")} look`
     : "";
 }
 
@@ -64,6 +67,22 @@ function banner(text: string, sub = "", cls = "") {
   el.innerHTML = `<b>${text}</b>${sub ? `<span>${sub}</span>` : ""}`;
   hud.banners.append(el);
   setTimeout(() => el.remove(), 2400);
+}
+
+/** The look and the theme drawn: a flat look over its landscape, or the hand-drawn one; the words in the ink that reads on its sky. */
+function applyLook() {
+  gfx.look = scheme === "dark" ? DARK : LIGHT;
+  const flat = look === "classic" ? null : FLAT[look][scheme];
+  gfx.setFlat(flat);
+  document.body.dataset.ink = flat ? flat.ink : scheme === "dark" ? "light" : "dark";
+}
+
+/** L: the next look, said briefly, and kept (synced) for next time. */
+function nextLook() {
+  look = LOOK_IDS[(LOOK_IDS.indexOf(look) + 1) % LOOK_IDS.length];
+  applyLook();
+  banner(LOOK_NAMES[look], "L for the next look");
+  pal.storage.set("look", look).catch((e) => console.error("chip: save", e));
 }
 
 function showCard() {
@@ -205,10 +224,20 @@ function moveCamera(dt: number) {
     scale = base * 1.15;
     tau = 0.8;
   } else {
-    // Aiming: room ahead the way the shot goes, up as well as along.
+    // Aiming: room ahead the way the shot goes, up as well as along. With high ground ahead (the cliff from its
+    // foot) the view backs off until its top and some sky are in, the ball low in the frame, not a wall of rock.
     const a = (angle * Math.PI) / 180;
     tx = b.x + facing * (0.06 + 0.16 * Math.cos(a)) * viewW;
     ty = b.y + 1.5 + 0.28 * Math.sin(a) * viewH;
+    let top = -Infinity;
+    for (let d = 0; d <= 0.5 * gfx.w / base; d += 0.5) top = Math.max(top, groundAt(HOLE, b.x + facing * d));
+    const rise = top - b.y;
+    if (rise > 3) {
+      scale = Math.max(base * 0.62, Math.min(base, (gfx.h * 0.86) / (rise + 9)));
+      const vh = gfx.h / scale, vw = gfx.w / scale;
+      tx = b.x + facing * 0.24 * vw;
+      ty = b.y - 2.2 + vh / 2;
+    }
   }
   const k = 1 - Math.exp(-dt / tau);
   cam.x += (tx - cam.x) * k;
@@ -304,7 +333,7 @@ function draw() {
 
 // ---- input --------------------------------------------------------------------------------------------------------------
 
-const GAME_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " ", "Shift", "r", "R"]);
+const GAME_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " ", "Shift", "r", "R", "l", "L"]);
 
 window.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -312,6 +341,7 @@ window.addEventListener("keydown", (e) => {
   e.preventDefault();
   held.add(e.key === "R" ? "r" : e.key);
   if (e.repeat) return;
+  if (e.key === "l" || e.key === "L") return nextLook();
   if (intro > 0) { intro = 0; renderHud(); if (e.key !== " ") return; }
   if (e.key === "r" || e.key === "R") return restart();
   if (s.phase === "holed") { if (e.key === " ") restart(); return; }
@@ -333,18 +363,24 @@ window.addEventListener("keyup", (e) => {
 
 window.addEventListener("blur", () => { held.clear(); if (charging) { charging = false; power = 0; } });
 
-pal.onAction((id) => { if (id === "again") restart(); });
+pal.onAction((id) => { if (id === "again") restart(); if (id === "look") nextLook(); });
 pal.onHidden(() => { held.clear(); charging = false; power = 0; paused = true; sound.suspend(); });
 pal.onShown(() => { paused = false; last = performance.now(); });
-pal.onTheme((scheme) => { gfx.look = scheme === "dark" ? DARK : LIGHT; });
+pal.onTheme((sc) => { scheme = sc === "dark" ? "dark" : "light"; applyLook(); });
 pal.onSettings((v) => setVolume(Number((v as { volume?: number }).volume ?? 70) / 100));
-pal.storage.onChange((key, value) => { if (key === "best" && typeof value === "number") { best = value; renderHud(); } });
+pal.storage.onChange((key, value) => {
+  if (key === "best" && typeof value === "number") { best = value; renderHud(); }
+  if (key === "look" && LOOK_IDS.includes(value as LookId)) { look = value as LookId; applyLook(); }
+});
 
 // ---- start --------------------------------------------------------------------------------------------------------------
 
 async function start() {
   const theme = document.documentElement.dataset.theme;
-  gfx.look = theme === "dark" || (!theme && matchMedia("(prefers-color-scheme: dark)").matches) ? DARK : LIGHT;
+  scheme = theme === "dark" || (!theme && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+  const saved = await pal.storage.get("look").catch(() => null);
+  if (LOOK_IDS.includes(saved as LookId)) look = saved as LookId;
+  applyLook();
   const settings = (await pal.settings().catch(() => ({}))) as { volume?: number };
   setVolume(Number(settings.volume ?? 70) / 100);
   const b = await pal.storage.get("best").catch(() => null);
@@ -362,6 +398,6 @@ async function start() {
 }
 
 // For the headless checks: the shot's state, read from outside.
-(window as unknown as { __chip: () => unknown }).__chip = () => { const b = ballOf(s); return { phase: s.phase, strokes: s.strokes, x: b.x, y: b.y, angle, facing, lastPower, power }; };
+(window as unknown as { __chip: () => unknown }).__chip = () => { const b = ballOf(s); return { phase: s.phase, strokes: s.strokes, x: b.x, y: b.y, angle, facing, lastPower, power, look }; };
 
 void start();

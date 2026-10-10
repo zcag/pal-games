@@ -12,6 +12,9 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; overflow: hidden; background: #a9d3e3; }
 body { font: 12px/1.3 var(--round); color: var(--ink); user-select: none; -webkit-user-select: none; cursor: default; }
+/* On a pale sky (the day looks) the words are dark with a light halo. */
+body[data-ink="dark"] { --ink: #2a2521; --dim: rgba(42, 37, 33, 0.72); --gold: #b5761a; --shadow: 0 0 2px rgba(255, 255, 255, 0.7), 0 0 10px rgba(255, 255, 255, 0.45); }
+body[data-ink="dark"] kbd { color: #2a2521; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(42, 37, 33, 0.18); }
 #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 [hidden] { display: none !important; }
 kbd {
@@ -20,7 +23,9 @@ kbd {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
 }
 
-#hud { position: fixed; inset: 0 0 auto 0; display: flex; justify-content: space-between; align-items: flex-start; padding: 9px 13px; pointer-events: none; text-shadow: var(--shadow); }
+#hud { position: fixed; inset: 0 0 auto 0; display: flex; justify-content: space-between; align-items: flex-start; padding: 7px 9px; pointer-events: none; text-shadow: var(--shadow); }
+.tl, .tr { padding: 5px 9px 6px; border-radius: 10px; background: rgba(0, 0, 0, 0.16); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+body[data-ink="dark"] .tl, body[data-ink="dark"] .tr { background: rgba(255, 255, 255, 0.42); }
 .tl { display: grid; gap: 2px; }
 .tl b { font: 800 15px/1 var(--round); letter-spacing: 0.01em; }
 .tl span { font: 600 11px/1.2 var(--round); color: var(--dim); }
@@ -30,7 +35,9 @@ kbd {
 .tr .sub { font: 700 9.5px/1.4 var(--round); letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
 #best { font: 700 10px/1.2 var(--round); color: var(--gold); }
 
-.keys { position: fixed; left: 13px; bottom: 9px; font: 600 10.5px/1 var(--round); color: var(--dim); text-shadow: var(--shadow); pointer-events: none; }
+/* The hints sit over the ground, which is dark in every look: always white. */
+.keys { position: fixed; left: 13px; bottom: 9px; font: 600 10.5px/1 var(--round); color: rgba(255, 255, 255, 0.82); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); pointer-events: none; }
+body[data-ink="dark"] #keys kbd { color: #fff; background: rgba(0, 0, 0, 0.28); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25); }
 .keys s { text-decoration: none; opacity: 0.5; margin: 0 3px; }
 
 #banners { position: fixed; left: 0; right: 0; top: 24%; display: grid; justify-items: center; gap: 6px; pointer-events: none; }
@@ -50,7 +57,9 @@ kbd {
   border-radius: 16px; text-align: center; background: rgba(18, 28, 36, 0.62); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.14);
   animation: card 0.5s cubic-bezier(.16, 1, .3, 1);
+  --ink: #ffffff; --dim: rgba(255, 255, 255, 0.78); --gold: #ffd25e; color: var(--ink);
 }
+#card kbd { color: #fff; background: rgba(0, 0, 0, 0.28); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25); }
 #card .name { font: 800 30px/1.05 var(--round); }
 #card .name.good { color: var(--gold); }
 #card .line { margin-top: 6px; font: 600 12px/1.3 var(--round); color: var(--dim); }

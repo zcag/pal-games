@@ -32,7 +32,8 @@
     }
   ],
   "sync": {
-    "best": "min"
+    "best": "min",
+    "look": "latest"
   },
   "store": {
     "tagline": "Side-on golf: aim, time the power, spin it in the air",
@@ -65,18 +66,24 @@
       {
         "title": "Start the hole again",
         "keys": "r"
+      },
+      {
+        "title": "Change the look",
+        "description": "Canyon, Alpine, Dusk or the drawn one; the choice is kept.",
+        "keys": "l"
       }
     ],
     "features": [
       "Aim, hold Space and let go at the power you want: the meter lingers at the top and the bottom, so a full drive and a soft putt can both be repeated",
       "Spin it in the air: backspin lifts the flight and bites on landing, topspin dips it and runs on",
       "Every surface plays its own way: the fairway rolls, the rough grabs, sand stops the ball dead, the green rolls true, rock kicks it off",
-      "The Needle, a par 4: over the pond, up the cliff and onto the green behind a spire of rock, or through the arch at its foot from the tee"
+      "The Needle, a par 4: over the pond, up the cliff and onto the green behind a spire of rock, or through the arch at its foot from the tee",
+      "Four looks on L: a canyon at noon, the same canyon at dusk, an alpine morning (layered landscapes by PWL, CC0), and the drawn original; night in the dark theme"
     ],
     "screenshots": [
       {
         "file": "1-tee.png",
-        "caption": "The tee: the aim, the power meter, and the flag 84 m off over a pond and a cliff",
+        "caption": "The tee in the canyon: the aim, the power meter, and the flag 84 m off over a pond and a cliff",
         "cover": [
           300,
           240,
@@ -87,6 +94,10 @@
       {
         "file": "2-aim.png",
         "caption": "Up and down aim the shot; hold space for power, and the arrows spin the ball in flight"
+      },
+      {
+        "file": "3-dusk.png",
+        "caption": "L changes the look: the same canyon at dusk, or the alpine morning"
       }
     ]
   },

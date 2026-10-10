@@ -9,6 +9,7 @@
 // what the page hands over in a Frame.
 import { HOLE, NEEDLE, groundAt, type Hole, type Pt, type Surface } from "../game/hole.ts";
 import { R } from "../game/sim.ts";
+import { layersFor, type Flat } from "./looks.ts";
 
 export type Look = {
   sky: [string, string]; sun: string; sunGlow: string; cloud: string;
@@ -75,6 +76,10 @@ export class Renderer {
   private ctx: CanvasRenderingContext2D;
   w = 0; h = 0; dpr = 1;
   look: Look = LIGHT;
+  /** A look drawn flat over a recoloured landscape (looks.ts); null is the hand-drawn look above. */
+  flat: Flat | null = null;
+  private layers: HTMLCanvasElement[] | null = null;
+  private layersKey = "";
   private hole: Hole = HOLE;
 
   constructor(private canvas: HTMLCanvasElement) {
@@ -88,6 +93,17 @@ export class Renderer {
     this.w = window.innerWidth; this.h = window.innerHeight;
     this.canvas.width = Math.round(this.w * this.dpr);
     this.canvas.height = Math.round(this.h * this.dpr);
+    if (this.flat) this.setFlat(this.flat);
+  }
+
+  /** Puts a flat look on (null: the hand-drawn one); its layers are recoloured for this height, the old ones kept until then. */
+  setFlat(f: Flat | null) {
+    this.flat = f;
+    if (!f) { this.layers = null; this.layersKey = ""; return; }
+    const key = `${f.set}:${f.layers.join()}:${Math.round(this.h * this.dpr)}`;
+    if (key === this.layersKey) return;
+    this.layersKey = key;
+    layersFor(f, Math.round(this.h * this.dpr)).then((ls) => { if (this.layersKey === key) this.layers = ls; }).catch((e) => console.error(e));
   }
 
   /** Pixels per metre for this viewport: about 17 m of height in view. */
@@ -101,14 +117,22 @@ export class Renderer {
     const shakeX = f.shake ? (hash(f.t * 60) - 0.5) * 4 * f.shake : 0, shakeY = f.shake ? (hash(f.t * 60 + 9) - 0.5) * 4 * f.shake : 0;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
 
-    this.sky(f);
-    this.backdrop(f, cam);
-
-    // The arch's far side, behind the ball as it goes through.
-    this.archBack(sx, sy);
-    this.ground(f, sx, sy);
-    this.water(f, sx, sy);
-    this.needle(sx, sy);
+    if (this.flat) {
+      this.flatSky(f, this.flat);
+      this.flatBackdrop(cam, this.flat);
+      this.archBack(sx, sy, this.flat.earth);
+      this.flatGround(f, this.flat, sx, sy);
+      this.flatWater(f, this.flat, sx, sy);
+      this.flatNeedle(this.flat, sx, sy);
+    } else {
+      this.sky(f);
+      this.backdrop(f, cam);
+      // The arch's far side, behind the ball as it goes through.
+      this.archBack(sx, sy, this.look.archBack);
+      this.ground(f, sx, sy);
+      this.water(f, sx, sy);
+      this.needle(sx, sy);
+    }
     this.flag(f, sx, sy);
 
     // The last shot, faint, while aiming the next; the shot in the air, brighter.
@@ -195,9 +219,132 @@ export class Renderer {
     layer(0.45, L.mid, (x) => 3 + 2.6 * Math.sin(x * 0.06) + 1.4 * Math.sin(x * 0.15 + 1), L.midTree);
   }
 
-  private archBack(sx: (x: number) => number, sy: (y: number) => number) {
-    const { ctx, look: L } = this;
-    ctx.fillStyle = L.archBack;
+  // ---- the flat looks: a sky, the recoloured layers, and the hole in flat fills of the same palette ----
+
+  private flatSky(f: Frame, F: Flat) {
+    const { ctx, w, h } = this;
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, F.sky[0]); g.addColorStop(1, F.sky[1]);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    if (F.stars) {
+      ctx.fillStyle = "#ffffff";
+      for (let i = 0; i < 46; i++) {
+        const span = w * 1.4, x = ((hash(i) * span - f.cam.x * 0.5) % span + span) % span, y = hash(i + 50) * h * 0.5;
+        ctx.globalAlpha = 0.25 + 0.45 * (0.5 + 0.5 * Math.sin(f.t * 1.3 + i));
+        ctx.fillRect(x, y, 1.2, 1.2);
+      }
+      ctx.globalAlpha = 1;
+    }
+    if (F.sun) {
+      const sx = w * F.sun.x - f.cam.x * 0.25, sy = h * F.sun.y - (f.cam.y - 6) * 0.25;
+      const glow = ctx.createRadialGradient(sx, sy, 2, sx, sy, h * 0.5);
+      glow.addColorStop(0, F.sun.glow); glow.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = glow; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = F.sun.color;
+      ctx.beginPath(); ctx.arc(sx, sy, h * F.sun.r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  /** The layers, farthest first, each tiled across and moving `rate` as fast as the hole; a camera going up lowers them a little. */
+  private flatBackdrop(cam: Cam, F: Flat) {
+    const ls = this.layers;
+    if (!ls) return;
+    const { ctx, w, h } = this;
+    for (let i = ls.length - 1; i >= 0; i--) {
+      const img = ls[i], rate = F.rates[i];
+      const lw = img.width / this.dpr, lh = img.height / this.dpr;
+      const bottom = h * 1.12 + (cam.y - 8) * cam.scale * rate * 0.7;
+      const top = bottom - lh;
+      const off = (((cam.x * cam.scale * rate) % lw) + lw) % lw;
+      // Whole device pixels and a pixel of overlap, so no hairline shows where a tile meets the next.
+      const snap = (v: number) => Math.round(v * this.dpr) / this.dpr;
+      for (let x = -off; x < w; x += lw) ctx.drawImage(img, snap(x), snap(top), snap(lw) + 1 / this.dpr, snap(lh));
+      if (bottom < h) { ctx.fillStyle = F.layers[i]; ctx.fillRect(0, bottom - 1, w, h - bottom + 1); }
+    }
+  }
+
+  private flatGround(f: Frame, F: Flat, sx: (x: number) => number, sy: (y: number) => number) {
+    const { ctx, w } = this;
+    const g = this.hole.ground;
+    const left = f.cam.x - w / 2 / f.cam.scale - 2, right = f.cam.x + w / 2 / f.cam.scale + 2;
+    const floor = Math.min(-30, f.cam.y - 40);
+    ctx.beginPath();
+    ctx.moveTo(sx(g[0][0]), sy(floor));
+    for (const [x, y] of g) ctx.lineTo(sx(x), sy(y));
+    ctx.lineTo(sx(g[g.length - 1][0]), sy(floor));
+    ctx.closePath();
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = F.earth;
+    ctx.fillRect(0, 0, this.w, this.h);
+    // Stone where the land stands up: the wall behind the tee, and the mesa with its lit face.
+    ctx.fillStyle = F.rock;
+    for (const [x0, x1] of [[-60, -7.6], [69.4, 150]]) if (x1 > left && x0 < right) ctx.fillRect(sx(Math.max(x0, left)), 0, sx(Math.min(x1, right)) - sx(Math.max(x0, left)), this.h);
+    ctx.fillStyle = F.rockLit;
+    ctx.fillRect(sx(69.4), 0, sx(70.9) - sx(69.4), this.h);
+    ctx.fillRect(sx(-8.6), 0, sx(-7.6) - sx(-8.6), this.h);
+    // Each surface a flat band along the top: thin on the short grass, deeper in the rough and the sand.
+    for (let i = 0; i + 1 < g.length; i++) {
+      const s = this.hole.surfaces[i];
+      if (s === "rock") continue;
+      const [x0, y0] = g[i], [x1, y1] = g[i + 1];
+      if (x1 < left || x0 > right || x1 <= x0) continue;
+      if (y0 < this.hole.cup.y - 0.01 && Math.abs(x0 - this.hole.cup.x) < this.hole.cup.w) continue;
+      const depth = s === "sand" ? 0.7 : s === "rough" ? 0.5 : 0.34;
+      ctx.fillStyle = F.surface[s];
+      ctx.beginPath();
+      ctx.moveTo(sx(x0), sy(y0 + 0.05)); ctx.lineTo(sx(x1), sy(y1 + 0.05));
+      ctx.lineTo(sx(x1), sy(y1 - depth)); ctx.lineTo(sx(x0), sy(y0 - depth)); ctx.closePath(); ctx.fill();
+      if (s === "rough") {
+        // A few blades standing up, so the long grass reads apart from the fairway.
+        for (let u = Math.ceil(x0 / 0.55) * 0.55; u < x1; u += 0.55) {
+          const yy = y0 + ((y1 - y0) * (u - x0)) / (x1 - x0), hh = 0.16 + 0.16 * hash(u * 7.7);
+          ctx.beginPath(); ctx.moveTo(sx(u - 0.09), sy(yy)); ctx.lineTo(sx(u + 0.02), sy(yy + hh)); ctx.lineTo(sx(u + 0.09), sy(yy)); ctx.closePath(); ctx.fill();
+        }
+      }
+    }
+    for (const mx of [1.6, 4.4]) {
+      ctx.fillStyle = "#f4efe6"; ctx.beginPath(); ctx.arc(sx(mx), sy(5 + 0.1), Math.max(2.2, 0.11 * f.cam.scale), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+    const c = this.hole.cup;
+    ctx.fillStyle = "#0d0b0a";
+    ctx.fillRect(sx(c.x - c.w / 2), sy(c.y), c.w * f.cam.scale, c.d * f.cam.scale);
+  }
+
+  private flatWater(f: Frame, F: Flat, sx: (x: number) => number, sy: (y: number) => number) {
+    const { ctx } = this;
+    for (const w of this.hole.water) {
+      const xl = 40.25, xr = 53.75, top = w.y1;
+      ctx.fillStyle = F.water[1];
+      ctx.beginPath();
+      ctx.moveTo(sx(xl), sy(top));
+      for (let x = xl; x <= xr; x += 0.5) ctx.lineTo(sx(x), sy(top + 0.04 * Math.sin(x * 1.3 + f.t * 2)));
+      ctx.lineTo(sx(xr), sy(w.y0)); ctx.lineTo(sx(xl), sy(w.y0)); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = F.water[0];
+      ctx.fillRect(sx(xl), sy(top) - 1, sx(xr) - sx(xl), Math.max(3, 0.28 * f.cam.scale));
+      ctx.fillStyle = "rgba(255,255,255,0.4)";
+      for (let i = 0; i < 6; i++) {
+        const x = xl + 1 + ((hash(i) * 11 + f.t * (0.3 + hash(i + 3) * 0.4)) % 11.5), y = top - 0.5 - hash(i + 5) * 1.4, len = 0.4 + 0.8 * hash(i + 8);
+        ctx.fillRect(sx(x), sy(y), (Math.min(xr - 0.3, x + len) - x) * f.cam.scale, 1.5);
+      }
+    }
+  }
+
+  /** The Needle in two flat tones, its lit side on the right as the landscape's spires have. */
+  private flatNeedle(F: Flat, sx: (x: number) => number, sy: (y: number) => number) {
+    const { ctx } = this;
+    const path = () => { ctx.beginPath(); NEEDLE.forEach(([x, y], i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, sx(x), sy(y))); ctx.closePath(); };
+    path(); ctx.fillStyle = F.rock; ctx.fill();
+    ctx.save(); path(); ctx.clip();
+    ctx.fillStyle = F.rockLit;
+    ctx.beginPath(); ctx.moveTo(sx(72.6), sy(15)); ctx.lineTo(sx(74), sy(15)); ctx.lineTo(sx(74), sy(27)); ctx.lineTo(sx(72.3), sy(27)); ctx.lineTo(sx(72.9), sy(21)); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  private archBack(sx: (x: number) => number, sy: (y: number) => number, color: string) {
+    const { ctx } = this;
+    ctx.fillStyle = color;
     // The arch's far legs and the shade under its span.
     ctx.beginPath();
     ctx.moveTo(sx(70.2), sy(14)); ctx.lineTo(sx(70.2), sy(17.4)); ctx.lineTo(sx(73.8), sy(17.4)); ctx.lineTo(sx(73.8), sy(14));
@@ -354,7 +501,7 @@ export class Renderer {
   private flag(f: Frame, sx: (x: number) => number, sy: (y: number) => number) {
     const { ctx, look: L } = this;
     const c = this.hole.cup, x = sx(c.x), base = sy(c.y), top = sy(c.y + 2.6), s = f.cam.scale;
-    ctx.strokeStyle = L.pole; ctx.lineWidth = Math.max(2, 0.07 * s);
+    ctx.strokeStyle = this.flat ? (this.flat.ink === "dark" ? "#2b2622" : "#f1ece4") : L.pole; ctx.lineWidth = Math.max(2, 0.07 * s);
     ctx.beginPath(); ctx.moveTo(x, base); ctx.lineTo(x, top); ctx.stroke();
     // The pennant waves; after a hole it rises and flutters harder.
     const len = 1.1 * s, hgt = 0.62 * s, up = f.flagUp;
@@ -451,7 +598,7 @@ export class Renderer {
     const [tx, ty] = dot(a.angle, a.facing, 1, 7);
     ctx.font = "700 11px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.lineWidth = 3.5; ctx.strokeStyle = "rgba(0,0,0,0.55)";
     const label = `${Math.round(a.angle)}°`;
     ctx.strokeText(label, tx, ty); ctx.fillText(label, tx, ty);
 
@@ -511,7 +658,7 @@ export class Renderer {
     const px = Math.max(34, Math.min(w - 34, cx + dx * k)), py = Math.max(96, Math.min(h - 56, cy + dy * k)), ang = Math.atan2(fy - py, fx - px);
     ctx.save();
     ctx.translate(px, py);
-    ctx.fillStyle = "rgba(0,0,0,0.38)";
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
     ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
     ctx.rotate(ang);
     ctx.fillStyle = "#fff";
@@ -527,7 +674,7 @@ export class Renderer {
     ctx.font = "700 10px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     const ty = py + (py > h / 2 ? -24 : 24), tx = Math.min(w - 22, Math.max(22, px + (px > w / 2 ? -2 : 2)));
-    ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,0.45)"; ctx.strokeText(`${dist} m`, tx, ty);
+    ctx.lineWidth = 3.5; ctx.strokeStyle = "rgba(0,0,0,0.65)"; ctx.strokeText(`${dist} m`, tx, ty);
     ctx.fillStyle = "#fff"; ctx.fillText(`${dist} m`, tx, ty);
   }
 
@@ -544,7 +691,7 @@ export class Renderer {
     for (const [x, y] of g) ctx2.lineTo(mx(Math.min(x1, x)), my(Math.max(y0, y)));
     ctx2.lineTo(mx(x1), h); ctx2.closePath(); ctx2.fill();
     ctx2.beginPath(); NEEDLE.forEach(([x, y], i) => (i ? ctx2.lineTo : ctx2.moveTo).call(ctx2, mx(x), my(y))); ctx2.closePath(); ctx2.fill();
-    for (const wr of this.hole.water) { ctx2.fillStyle = L.water[0]; ctx2.fillRect(mx(wr.x0), my(wr.y1), mx(wr.x1) - mx(wr.x0), my(wr.y0) - my(wr.y1)); }
+    for (const wr of this.hole.water) { ctx2.fillStyle = this.flat ? this.flat.water[0] : L.water[0]; ctx2.fillRect(mx(wr.x0), my(wr.y1), mx(wr.x1) - mx(wr.x0), my(wr.y0) - my(wr.y1)); }
     const c = this.hole.cup;
     ctx2.fillStyle = L.flag; ctx2.fillRect(mx(c.x), my(c.y + 4), 2, my(c.y) - my(c.y + 4));
     ctx2.beginPath(); ctx2.moveTo(mx(c.x) + 2, my(c.y + 4)); ctx2.lineTo(mx(c.x) + 7, my(c.y + 3.2)); ctx2.lineTo(mx(c.x) + 2, my(c.y + 2.4)); ctx2.fill();

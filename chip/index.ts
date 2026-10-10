@@ -7,6 +7,7 @@ import type { Action, Extension, View } from "@zcag/pal";
 
 export const ACTIONS: Action[] = [
   { id: "again", title: "Start the hole again", shortcut: "r" },
+  { id: "look", title: "Change the look", shortcut: "l" },
 ];
 
 export default {
