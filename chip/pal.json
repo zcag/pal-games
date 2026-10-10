@@ -33,7 +33,8 @@
   ],
   "sync": {
     "best": "min",
-    "look": "latest"
+    "look": "latest",
+    "style": "latest"
   },
   "store": {
     "tagline": "Side-on golf: aim, time the power, spin it in the air",
@@ -71,6 +72,11 @@
         "title": "Change the look",
         "description": "Canyon, Alpine, Dusk or the drawn one; the choice is kept.",
         "keys": "l"
+      },
+      {
+        "title": "Change the style",
+        "description": "Cartoon, Soft or Silhouette for the ground, the golfer, the ball and the flag, over any look but the drawn one; kept like the look.",
+        "keys": "k"
       }
     ],
     "features": [
@@ -122,6 +128,14 @@
         {
           "keys": "r",
           "title": "Start the hole again"
+        },
+        {
+          "keys": "l",
+          "title": "Change the look"
+        },
+        {
+          "keys": "k",
+          "title": "Change the style"
         }
       ]
     }

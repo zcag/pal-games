@@ -30,6 +30,8 @@ export type Flat = {
   earth: string; rock: string; rockLit: string;
   surface: Record<Surface, string>;
   water: [string, string];
+  /** What shade and light lean toward in the foreground, and the golfer's shirt and trousers (fore.ts). */
+  shade: string; light: string; shirt: string; trousers: string;
   /** The words over the sky: dark ink on a pale sky, white on a deep one. */
   ink: "dark" | "light";
 };
@@ -40,6 +42,7 @@ const DUSK: Flat = {
   sun: { color: "#ffe2b0", glow: "rgba(255, 196, 140, 0.55)", x: 0.66, y: 0.5, r: 0.11 }, stars: false,
   earth: "#1f1522", rock: "#3a2434", rockLit: "#4c2f40",
   surface: { tee: "#6c7446", fairway: "#6c7446", rough: "#4c5634", sand: "#d39a72", green: "#8a9550", rock: "" }, water: ["#c88a86", "#8f5e72"], ink: "light",
+  shade: "#2a1638", light: "#ffd9b0", shirt: "#3fb5a3", trousers: "#2e2440",
 };
 
 const TURF_DAY = { tee: "#8a9a4e", fairway: "#8a9a4e", rough: "#5f6f3a", sand: "#e3c592", green: "#a8bb5c", rock: "" };
@@ -51,12 +54,14 @@ export const FLAT: Record<"canyon" | "alpine" | "dusk", { light: Flat; dark: Fla
       sun: { color: "#fbf3e4", glow: "rgba(255, 244, 222, 0.6)", x: 0.74, y: 0.2, r: 0.065 }, stars: false,
       earth: "#3a2b21", rock: "#5a4131", rockLit: "#6e513d",
       surface: TURF_DAY, water: ["#7fa7ad", "#5d8790"], ink: "dark",
+      shade: "#3b2418", light: "#fff6e6", shirt: "#2f7fd0", trousers: "#f2ede4",
     },
     dark: {
       set: "canyon", sky: ["#141a2c", "#2d3047"], layers: ["#2e2a3a", "#3b3549", "#4f485e", "#655e76", "#77718c"], rates: [0.34, 0.2, 0.12, 0.06, 0.03],
       sun: { color: "#efe9da", glow: "rgba(200, 205, 255, 0.16)", x: 0.74, y: 0.2, r: 0.05 }, stars: true,
       earth: "#110e15", rock: "#211b27", rockLit: "#2c2433",
       surface: { tee: "#4d6040", fairway: "#4d6040", rough: "#36452f", sand: "#9a8a72", green: "#62784c", rock: "" }, water: ["#3d5a73", "#2a4157"], ink: "light",
+      shade: "#07060c", light: "#c9d2ff", shirt: "#4a86c9", trousers: "#d7d3cc",
     },
   },
   alpine: {
@@ -65,12 +70,14 @@ export const FLAT: Record<"canyon" | "alpine" | "dusk", { light: Flat; dark: Fla
       sun: null, stars: false,
       earth: "#23303d", rock: "#3e5164", rockLit: "#4d6378",
       surface: { tee: "#7c9c74", fairway: "#7c9c74", rough: "#58775a", sand: "#e0d6bf", green: "#97b98a", rock: "" }, water: ["#9fc0d4", "#7ea3bb"], ink: "dark",
+      shade: "#1a2638", light: "#ffffff", shirt: "#e0573a", trousers: "#2f3a4a",
     },
     dark: {
       set: "alpine", sky: ["#0f1626", "#22304a"], layers: ["#222e3f", "#2c3c52", "#3e5169", "#566a86", "#3c4b66"], rates: [0.34, 0.2, 0.12, 0.06, 0.03],
       sun: { color: "#eef1f7", glow: "rgba(190, 210, 255, 0.18)", x: 0.22, y: 0.18, r: 0.05 }, stars: true,
       earth: "#0a0f16", rock: "#18212d", rockLit: "#212c3a",
       surface: { tee: "#3f5a46", fairway: "#3f5a46", rough: "#2d4234", sand: "#8d8a7c", green: "#52725a", rock: "" }, water: ["#3a5873", "#283f57"], ink: "light",
+      shade: "#05080f", light: "#cbd8ff", shirt: "#d0563c", trousers: "#c9ccd4",
     },
   },
   // Dusk is dusk in either theme.

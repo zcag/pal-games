@@ -7,10 +7,11 @@
 // (synced); hiding pal's panel pauses a shot in the air.
 import type { SurfaceKit } from "@zcag/pal";
 import { HOLE, groundAt, type Pt, type Surface } from "../game/hole.ts";
-import { DT, ballOf, create, hit, scoreName, step, type Ev, type State } from "../game/sim.ts";
+import { DT, R, ballOf, create, hit, place, scoreName, step, type Ev, type State } from "../game/sim.ts";
 import { DARK, LIGHT, Renderer, type Cam, type Particle } from "./render.ts";
 import { FLAT, LOOK_IDS, LOOK_NAMES, type LookId } from "./looks.ts";
 import { setVolume, sound } from "./audio.ts";
+import { STYLES, STYLE_NAMES, type StyleId } from "./paint.ts";
 
 declare const pal: SurfaceKit;
 
@@ -44,6 +45,8 @@ let particles: Particle[] = [];
 let shake = 0, flagUp = 0;
 let throughShown = false;
 let t = 0, acc = 0, last = performance.now();
+/** The golfer: where he stands (the ball he last addressed), when he hit and how hard, and how far he has faded in. */
+const golfer = { x: HOLE.tee[0], facing: 1 as 1 | -1, hitAt: -1, hitPower: 0, alpha: 1 };
 const cam: Cam = { x: HOLE.cup.x - 6, y: HOLE.cup.y + 3, scale: gfx.baseScale() };
 
 // ---- HUD ----------------------------------------------------------------------------------------------------------------
@@ -57,7 +60,7 @@ function renderHud() {
   hud.keys.innerHTML =
     s.phase === "holed" ? `${k("space")} play again`
     : s.phase === "fly" && !s.landed ? `${k("←")}${k("→")} spin: back bites, forward runs`
-    : s.phase === "aim" && intro <= 0 ? `${k("↑")}${k("↓")} aim <s>·</s> ${k("←")}${k("→")} turn <s>·</s> hold ${k("space")} power <s>·</s> ${k("r")} again <s>·</s> ${k("l")} look`
+    : s.phase === "aim" && intro <= 0 ? `${k("↑")}${k("↓")} aim <s>·</s> ${k("←")}${k("→")} turn <s>·</s> hold ${k("space")} power <s>·</s> ${k("r")} again <s>·</s> ${k("l")} look <s>·</s> ${k("k")} style`
     : "";
 }
 
@@ -83,6 +86,13 @@ function nextLook() {
   applyLook();
   banner(LOOK_NAMES[look], "L for the next look");
   pal.storage.set("look", look).catch((e) => console.error("chip: save", e));
+}
+
+/** K: the next style for everything in front of the landscape, on any look but Classic, which keeps its own drawing; kept (synced). */
+function nextStyle() {
+  gfx.style = STYLES[(STYLES.indexOf(gfx.style) + 1) % STYLES.length];
+  banner(STYLE_NAMES[gfx.style], look === "classic" ? "on the other looks; Classic keeps its own" : "K for the next style");
+  pal.storage.set("style", gfx.style).catch((e) => console.error("chip: save", e));
 }
 
 function showCard() {
@@ -118,6 +128,7 @@ function shoot() {
   lastPower = power; lastAngle = angle; lastFacing = facing;
   lastTrail = trail; trail = [];
   hit(s, { angle, facing, power });
+  golfer.hitAt = t; golfer.hitPower = power;
   throughShown = false;
   if (power > 0.9) shake = 0.6 * power;
   power = 0;
@@ -296,6 +307,15 @@ function update(dt: number) {
     if (was === "fly" && s.phase !== "fly") renderHud();
   }
   if (s.phase === "fly" && s.landed && hud.keys.innerHTML.includes("spin")) renderHud();
+  // The golfer walks up to the ball once it rests: he fades out where he hit from and in beside it.
+  if (s.phase === "aim") {
+    const b = ballOf(s);
+    if (Math.abs(golfer.x - b.x) <= 0.01) golfer.facing = facing;
+    if (Math.abs(golfer.x - b.x) > 0.01) {
+      golfer.alpha = Math.max(0, golfer.alpha - dt * 6);
+      if (golfer.alpha === 0) { golfer.x = b.x; golfer.facing = facing; golfer.hitAt = -1; }
+    } else golfer.alpha = Math.min(1, golfer.alpha + dt * 4);
+  }
 
   for (const p of particles) {
     p.age += dt;
@@ -327,13 +347,14 @@ function draw() {
     particles,
     flagUp,
     shake,
+    golfer: { x: golfer.x, facing: golfer.facing, power: s.phase === "aim" ? power : 0, charging: s.phase === "aim" && charging, since: golfer.hitAt < 0 ? -1 : t - golfer.hitAt, hitPower: golfer.hitPower, alpha: golfer.alpha, t },
   });
   gfx.map(mapCtx, [b.x, b.y], 150, 30);
 }
 
 // ---- input --------------------------------------------------------------------------------------------------------------
 
-const GAME_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " ", "Shift", "r", "R", "l", "L"]);
+const GAME_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " ", "Shift", "r", "R", "l", "L", "k", "K"]);
 
 window.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -342,6 +363,7 @@ window.addEventListener("keydown", (e) => {
   held.add(e.key === "R" ? "r" : e.key);
   if (e.repeat) return;
   if (e.key === "l" || e.key === "L") return nextLook();
+  if (e.key === "k" || e.key === "K") return nextStyle();
   if (intro > 0) { intro = 0; renderHud(); if (e.key !== " ") return; }
   if (e.key === "r" || e.key === "R") return restart();
   if (s.phase === "holed") { if (e.key === " ") restart(); return; }
@@ -363,7 +385,7 @@ window.addEventListener("keyup", (e) => {
 
 window.addEventListener("blur", () => { held.clear(); if (charging) { charging = false; power = 0; } });
 
-pal.onAction((id) => { if (id === "again") restart(); if (id === "look") nextLook(); });
+pal.onAction((id) => { if (id === "again") restart(); if (id === "look") nextLook(); if (id === "style") nextStyle(); });
 pal.onHidden(() => { held.clear(); charging = false; power = 0; paused = true; sound.suspend(); });
 pal.onShown(() => { paused = false; last = performance.now(); });
 pal.onTheme((sc) => { scheme = sc === "dark" ? "dark" : "light"; applyLook(); });
@@ -371,6 +393,7 @@ pal.onSettings((v) => setVolume(Number((v as { volume?: number }).volume ?? 70) 
 pal.storage.onChange((key, value) => {
   if (key === "best" && typeof value === "number") { best = value; renderHud(); }
   if (key === "look" && LOOK_IDS.includes(value as LookId)) { look = value as LookId; applyLook(); }
+  if (key === "style" && STYLES.includes(value as StyleId)) gfx.style = value as StyleId;
 });
 
 // ---- start --------------------------------------------------------------------------------------------------------------
@@ -380,6 +403,8 @@ async function start() {
   scheme = theme === "dark" || (!theme && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
   const saved = await pal.storage.get("look").catch(() => null);
   if (LOOK_IDS.includes(saved as LookId)) look = saved as LookId;
+  const st = await pal.storage.get("style").catch(() => null);
+  if (STYLES.includes(st as StyleId)) gfx.style = st as StyleId;
   applyLook();
   const settings = (await pal.settings().catch(() => ({}))) as { volume?: number };
   setVolume(Number(settings.volume ?? 70) / 100);
@@ -388,6 +413,10 @@ async function start() {
   const params = new URLSearchParams(location.search);
   // ?intro=0 starts at the tee (the headless checks); otherwise the glide plays.
   intro = params.get("intro") === "0" ? 0 : INTRO;
+  // ?at=x puts the ball on the ground there to start (the headless checks of the far end of the hole).
+  const at = Number(params.get("at"));
+  if (at) place(s, [at, groundAt(HOLE, at) + R]);
+  golfer.x = ballOf(s).x;
   if (intro <= 0) { const p = ballOf(s); cam.x = p.x + 0.2 * gfx.w / cam.scale; cam.y = p.y + 2.5; }
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   mapCanvas.width = 150 * dpr; mapCanvas.height = 30 * dpr;

@@ -10,6 +10,8 @@
 import { HOLE, NEEDLE, groundAt, type Hole, type Pt, type Surface } from "../game/hole.ts";
 import { R } from "../game/sim.ts";
 import { layersFor, type Flat } from "./looks.ts";
+import { Fore, type Golfer } from "./fore.ts";
+import type { StyleId } from "./paint.ts";
 
 export type Look = {
   sky: [string, string]; sun: string; sunGlow: string; cloud: string;
@@ -66,6 +68,8 @@ export type Frame = {
   particles: Particle[];
   /** How far the flag is lowered into the cup's celebration, 0..1. */
   flagUp: number;
+  /** The golfer, drawn in the flat looks. */
+  golfer: Golfer | null;
   shake: number;
 };
 
@@ -79,6 +83,9 @@ export class Renderer {
   /** A look drawn flat over a recoloured landscape (looks.ts); null is the hand-drawn look above. */
   flat: Flat | null = null;
   private layers: HTMLCanvasElement[] | null = null;
+  /** The foreground's style (K), and its sprites for the look, the style and the scale. */
+  style: StyleId = "cartoon";
+  private fore: Fore | null = null;
   private layersKey = "";
   private hole: Hole = HOLE;
 
@@ -118,12 +125,25 @@ export class Renderer {
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
 
     if (this.flat) {
-      this.flatSky(f, this.flat);
-      this.flatBackdrop(cam, this.flat);
-      this.archBack(sx, sy, this.flat.earth);
-      this.flatGround(f, this.flat, sx, sy);
-      this.flatWater(f, this.flat, sx, sy);
-      this.flatNeedle(this.flat, sx, sy);
+      const F = this.flat;
+      const px = this.baseScale() * this.dpr * 1.25;
+      if (!this.fore || this.fore.flat !== F || this.fore.style !== this.style || this.fore.px !== px) this.fore = new Fore(this.style, F, px);
+      const fore = this.fore;
+      const v = { sx, sy, s: cam.scale, w: this.w, h: this.h, left: cam.x - this.w / 2 / cam.scale - 2, right: cam.x + this.w / 2 / cam.scale + 2 };
+      this.flatSky(f, F);
+      this.flatBackdrop(cam, F);
+      fore.archBack(ctx, v);
+      fore.ground(ctx, v);
+      fore.water(ctx, v, f.t);
+      fore.needle(ctx, v);
+      fore.flag(ctx, v, f.t, f.flagUp, this.look.flag);
+      this.trail(f.lastTrail, sx, sy, 0.22);
+      this.trail(f.trail, sx, sy, 0.55);
+      this.particles(f, sx, sy, false);
+      if (f.golfer) fore.golfer(ctx, v, f.golfer);
+      if (f.aim) this.aiming(f, sx, sy, !!f.golfer);
+      this.ballDraw(f, sx, sy, fore);
+      this.particles(f, sx, sy, true);
     } else {
       this.sky(f);
       this.backdrop(f, cam);
@@ -132,16 +152,15 @@ export class Renderer {
       this.ground(f, sx, sy);
       this.water(f, sx, sy);
       this.needle(sx, sy);
+      this.flag(f, sx, sy);
+      // The last shot, faint, while aiming the next; the shot in the air, brighter.
+      this.trail(f.lastTrail, sx, sy, 0.22);
+      this.trail(f.trail, sx, sy, 0.55);
+      this.particles(f, sx, sy, false);
+      if (f.aim) this.aiming(f, sx, sy, false);
+      this.ballDraw(f, sx, sy);
+      this.particles(f, sx, sy, true);
     }
-    this.flag(f, sx, sy);
-
-    // The last shot, faint, while aiming the next; the shot in the air, brighter.
-    this.trail(f.lastTrail, sx, sy, 0.22);
-    this.trail(f.trail, sx, sy, 0.55);
-    this.particles(f, sx, sy, false);
-    if (f.aim) this.aiming(f, sx, sy);
-    this.ballDraw(f, sx, sy);
-    this.particles(f, sx, sy, true);
     this.flagPointer(f, sx, sy);
   }
 
@@ -264,85 +283,6 @@ export class Renderer {
       for (let x = -off; x < w; x += lw) ctx.drawImage(img, snap(x), snap(top), snap(lw) + 1 / this.dpr, snap(lh));
       if (bottom < h) { ctx.fillStyle = F.layers[i]; ctx.fillRect(0, bottom - 1, w, h - bottom + 1); }
     }
-  }
-
-  private flatGround(f: Frame, F: Flat, sx: (x: number) => number, sy: (y: number) => number) {
-    const { ctx, w } = this;
-    const g = this.hole.ground;
-    const left = f.cam.x - w / 2 / f.cam.scale - 2, right = f.cam.x + w / 2 / f.cam.scale + 2;
-    const floor = Math.min(-30, f.cam.y - 40);
-    ctx.beginPath();
-    ctx.moveTo(sx(g[0][0]), sy(floor));
-    for (const [x, y] of g) ctx.lineTo(sx(x), sy(y));
-    ctx.lineTo(sx(g[g.length - 1][0]), sy(floor));
-    ctx.closePath();
-    ctx.save();
-    ctx.clip();
-    ctx.fillStyle = F.earth;
-    ctx.fillRect(0, 0, this.w, this.h);
-    // Stone where the land stands up: the wall behind the tee, and the mesa with its lit face.
-    ctx.fillStyle = F.rock;
-    for (const [x0, x1] of [[-60, -7.6], [69.4, 150]]) if (x1 > left && x0 < right) ctx.fillRect(sx(Math.max(x0, left)), 0, sx(Math.min(x1, right)) - sx(Math.max(x0, left)), this.h);
-    ctx.fillStyle = F.rockLit;
-    ctx.fillRect(sx(69.4), 0, sx(70.9) - sx(69.4), this.h);
-    ctx.fillRect(sx(-8.6), 0, sx(-7.6) - sx(-8.6), this.h);
-    // Each surface a flat band along the top: thin on the short grass, deeper in the rough and the sand.
-    for (let i = 0; i + 1 < g.length; i++) {
-      const s = this.hole.surfaces[i];
-      if (s === "rock") continue;
-      const [x0, y0] = g[i], [x1, y1] = g[i + 1];
-      if (x1 < left || x0 > right || x1 <= x0) continue;
-      if (y0 < this.hole.cup.y - 0.01 && Math.abs(x0 - this.hole.cup.x) < this.hole.cup.w) continue;
-      const depth = s === "sand" ? 0.7 : s === "rough" ? 0.5 : 0.34;
-      ctx.fillStyle = F.surface[s];
-      ctx.beginPath();
-      ctx.moveTo(sx(x0), sy(y0 + 0.05)); ctx.lineTo(sx(x1), sy(y1 + 0.05));
-      ctx.lineTo(sx(x1), sy(y1 - depth)); ctx.lineTo(sx(x0), sy(y0 - depth)); ctx.closePath(); ctx.fill();
-      if (s === "rough") {
-        // A few blades standing up, so the long grass reads apart from the fairway.
-        for (let u = Math.ceil(x0 / 0.55) * 0.55; u < x1; u += 0.55) {
-          const yy = y0 + ((y1 - y0) * (u - x0)) / (x1 - x0), hh = 0.16 + 0.16 * hash(u * 7.7);
-          ctx.beginPath(); ctx.moveTo(sx(u - 0.09), sy(yy)); ctx.lineTo(sx(u + 0.02), sy(yy + hh)); ctx.lineTo(sx(u + 0.09), sy(yy)); ctx.closePath(); ctx.fill();
-        }
-      }
-    }
-    for (const mx of [1.6, 4.4]) {
-      ctx.fillStyle = "#f4efe6"; ctx.beginPath(); ctx.arc(sx(mx), sy(5 + 0.1), Math.max(2.2, 0.11 * f.cam.scale), 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.restore();
-    const c = this.hole.cup;
-    ctx.fillStyle = "#0d0b0a";
-    ctx.fillRect(sx(c.x - c.w / 2), sy(c.y), c.w * f.cam.scale, c.d * f.cam.scale);
-  }
-
-  private flatWater(f: Frame, F: Flat, sx: (x: number) => number, sy: (y: number) => number) {
-    const { ctx } = this;
-    for (const w of this.hole.water) {
-      const xl = 40.25, xr = 53.75, top = w.y1;
-      ctx.fillStyle = F.water[1];
-      ctx.beginPath();
-      ctx.moveTo(sx(xl), sy(top));
-      for (let x = xl; x <= xr; x += 0.5) ctx.lineTo(sx(x), sy(top + 0.04 * Math.sin(x * 1.3 + f.t * 2)));
-      ctx.lineTo(sx(xr), sy(w.y0)); ctx.lineTo(sx(xl), sy(w.y0)); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = F.water[0];
-      ctx.fillRect(sx(xl), sy(top) - 1, sx(xr) - sx(xl), Math.max(3, 0.28 * f.cam.scale));
-      ctx.fillStyle = "rgba(255,255,255,0.4)";
-      for (let i = 0; i < 6; i++) {
-        const x = xl + 1 + ((hash(i) * 11 + f.t * (0.3 + hash(i + 3) * 0.4)) % 11.5), y = top - 0.5 - hash(i + 5) * 1.4, len = 0.4 + 0.8 * hash(i + 8);
-        ctx.fillRect(sx(x), sy(y), (Math.min(xr - 0.3, x + len) - x) * f.cam.scale, 1.5);
-      }
-    }
-  }
-
-  /** The Needle in two flat tones, its lit side on the right as the landscape's spires have. */
-  private flatNeedle(F: Flat, sx: (x: number) => number, sy: (y: number) => number) {
-    const { ctx } = this;
-    const path = () => { ctx.beginPath(); NEEDLE.forEach(([x, y], i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, sx(x), sy(y))); ctx.closePath(); };
-    path(); ctx.fillStyle = F.rock; ctx.fill();
-    ctx.save(); path(); ctx.clip();
-    ctx.fillStyle = F.rockLit;
-    ctx.beginPath(); ctx.moveTo(sx(72.6), sy(15)); ctx.lineTo(sx(74), sy(15)); ctx.lineTo(sx(74), sy(27)); ctx.lineTo(sx(72.3), sy(27)); ctx.lineTo(sx(72.9), sy(21)); ctx.closePath(); ctx.fill();
-    ctx.restore();
   }
 
   private archBack(sx: (x: number) => number, sy: (y: number) => number, color: string) {
@@ -536,7 +476,7 @@ export class Renderer {
 
   private ballRadius(f: Frame) { return Math.max(5.5, R * f.cam.scale * 1.15); }
 
-  private ballDraw(f: Frame, sx: (x: number) => number, sy: (y: number) => number) {
+  private ballDraw(f: Frame, sx: (x: number) => number, sy: (y: number) => number, fore?: Fore) {
     const b = f.ball;
     if (b.hidden) return;
     const { ctx, look: L } = this;
@@ -549,16 +489,19 @@ export class Renderer {
       ctx.beginPath(); ctx.ellipse(x, sy(gy), r * (1.1 + hgt * 0.05), r * 0.35, 0, 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = b.alpha;
-    ctx.fillStyle = L.ball;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-    ctx.lineWidth = 2; ctx.strokeStyle = L.ballEdge; ctx.stroke();
-    // A seam that turns with the ball, so its spin shows.
-    ctx.save();
-    ctx.beginPath(); ctx.arc(x, y, r - 1, 0, Math.PI * 2); ctx.clip();
-    ctx.strokeStyle = "rgba(27, 38, 48, 0.35)"; ctx.lineWidth = 1.4;
-    const a = -b.angle;
-    ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r); ctx.lineTo(x - Math.cos(a) * r, y - Math.sin(a) * r); ctx.stroke();
-    ctx.restore();
+    if (fore) fore.ballAt(ctx, x, y, r, b.angle);
+    else {
+      ctx.fillStyle = L.ball;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = L.ballEdge; ctx.stroke();
+      // A seam that turns with the ball, so its spin shows.
+      ctx.save();
+      ctx.beginPath(); ctx.arc(x, y, r - 1, 0, Math.PI * 2); ctx.clip();
+      ctx.strokeStyle = "rgba(27, 38, 48, 0.35)"; ctx.lineWidth = 1.4;
+      const a = -b.angle;
+      ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r); ctx.lineTo(x - Math.cos(a) * r, y - Math.sin(a) * r); ctx.stroke();
+      ctx.restore();
+    }
     // Spin put on in the air: a curved arrow round the ball, blue for back, orange for top, as long as the spin.
     if (f.spin && Math.abs(f.spin.w) > 2) {
       const amt = Math.min(1, Math.abs(f.spin.w) / 40), ccw = f.spin.w > 0;
@@ -581,7 +524,8 @@ export class Renderer {
     ctx.globalAlpha = 1;
   }
 
-  private aiming(f: Frame, sx: (x: number) => number, sy: (y: number) => number) {
+  /** The aim and the meter; with a golfer drawn the meter stands behind him, clear of the swing. */
+  private aiming(f: Frame, sx: (x: number) => number, sy: (y: number) => number, golfer: boolean) {
     const { ctx, look: L } = this;
     const a = f.aim!, b = f.ball, x = sx(b.x), y = sy(b.y), r = this.ballRadius(f);
     const dot = (ang: number, facing: number, alpha: number, n: number) => {
@@ -606,7 +550,7 @@ export class Renderer {
     ctx.strokeText(label, tx, ty); ctx.fillText(label, tx, ty);
 
     // The meter, upright behind the ball: it fills with the power, ticks at the quarters, marks the last shot's.
-    const mh = 54, mw = 9, mx = x - a.facing * (r + 16) - mw / 2, my = y - mh / 2 - 6;
+    const mh = 54, mw = 9, mx = x - a.facing * (golfer ? r + 16 + f.cam.scale * 0.95 : r + 16) - mw / 2, my = y - mh / 2 - 6;
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     roundRect(ctx, mx - 2, my - 2, mw + 4, mh + 4, 6); ctx.fill();
     ctx.fillStyle = "rgba(255,255,255,0.18)";
