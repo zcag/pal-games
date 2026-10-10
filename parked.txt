@@ -2,7 +2,9 @@
 # not build them and takes them off its indexes (pal's docs/registry.md,
 # "Our registry"). Parked 2026-10-10 until they are reworked: Ramparts and
 # Seedfall were ported in whole and never polished (their NEXT.md). A
-# name moves back to registry-only.txt to ship again.
+# name moves back to registry-only.txt to ship again. Chip and Uphill:
+# playable prototypes, parked because no art found or drawn (CC0, paid,
+# hand-drawn on K) looked good enough.
 chip
 ramparts
 seedfall
