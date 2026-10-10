@@ -1,0 +1,118 @@
+{
+  "name": "chip",
+  "title": "Chip",
+  "description": "Side-on golf in the panel. Aim with the arrows, hold Space for the power, put spin on in the air: backspin bites, topspin runs on. One hole for now, The Needle, a par 4 with a pond, a cliff and an arch you can drive through.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "svg": "M5 1.5h1.2v10.2H5zM6.2 1.6l5.6 2.3-5.6 2.4zM10.8 13.2a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM1.5 13.6c1.6-.9 3.3-1.3 5-1.3v1.4c-1.4 0-2.8.3-4 .9z",
+      "bg": "green"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "keywords": [
+    "golf",
+    "physics",
+    "arcade"
+  ],
+  "settings": [
+    {
+      "id": "volume",
+      "label": "Volume",
+      "kind": "number",
+      "description": "How loud the shots, the bounces and the wind are.",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "slider": true,
+      "default": 70
+    }
+  ],
+  "sync": {
+    "best": "min"
+  },
+  "store": {
+    "tagline": "Side-on golf: aim, time the power, spin it in the air",
+    "category": "fun",
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "actions": [
+      {
+        "title": "Aim",
+        "description": "Up raises the shot, down lowers it; hold Shift to move it finely.",
+        "keys": "up, down"
+      },
+      {
+        "title": "Face the other way",
+        "description": "Before the shot, the arrow toward the other side turns you round.",
+        "keys": "left, right"
+      },
+      {
+        "title": "Shoot",
+        "description": "Hold for the power, which rises and falls; let go to hit.",
+        "keys": "space"
+      },
+      {
+        "title": "Spin",
+        "description": "In the air, before it lands: back (the arrow away from where it flies) bites, forward runs on.",
+        "keys": "left, right"
+      },
+      {
+        "title": "Start the hole again",
+        "keys": "r"
+      }
+    ],
+    "features": [
+      "Aim, hold Space and let go at the power you want: the meter lingers at the top and the bottom, so a full drive and a soft putt can both be repeated",
+      "Spin it in the air: backspin lifts the flight and bites on landing, topspin dips it and runs on",
+      "Every surface plays its own way: the fairway rolls, the rough grabs, sand stops the ball dead, the green rolls true, rock kicks it off",
+      "The Needle, a par 4: over the pond, up the cliff and onto the green behind a spire of rock, or through the arch at its foot from the tee"
+    ],
+    "screenshots": [
+      {
+        "file": "1-tee.png",
+        "caption": "The tee: the aim, the power meter, and the flag 84 m off over a pond and a cliff",
+        "cover": [
+          300,
+          240,
+          960,
+          470
+        ]
+      },
+      {
+        "file": "2-aim.png",
+        "caption": "Up and down aim the shot; hold space for power, and the arrows spin the ball in flight"
+      }
+    ]
+  },
+  "palettes": {
+    "chip": {
+      "title": "Chip",
+      "kind": "view",
+      "description": "Side-on golf. Escape or closing the panel pauses a shot in the air.",
+      "keys": [
+        {
+          "keys": "up",
+          "title": "Aim higher (down: lower; Shift: finely)"
+        },
+        {
+          "keys": "space",
+          "title": "Hold for power, let go to hit"
+        },
+        {
+          "keys": "left",
+          "title": "Face the other way, or spin in the air"
+        },
+        {
+          "keys": "r",
+          "title": "Start the hole again"
+        }
+      ]
+    }
+  }
+}
