@@ -153,8 +153,7 @@ async function write() {
   await Bun.write(p, src.replace(/const BEST: Record<string, number> = \{[^}]*\};/, `const BEST: Record<string, number> = {${body}\n};`));
   // each best run's choices, for the page to replay ("watch the best run": game/bestrun.ts)
   await Bun.write(`${root}surface/best.json`, JSON.stringify(Object.fromEntries(fresh.filter((s) => cache[s.id].choices).map((s) => [s.id, cache[s.id].choices]))) + "\n");
-  const stale = SPRINTS.filter((s) => !fresh.includes(s)).map((s) => s.id);
-  console.log(`${fresh.length} of ${SPRINTS.length} best times written${stale.length ? `; still to search: ${stale.join(" ")}` : ""}`);
+  console.log(`${fresh.length} of ${SPRINTS.length} best times written`);
 }
 
 if (!isMainThread) {
