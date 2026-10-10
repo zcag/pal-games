@@ -1,0 +1,8 @@
+{
+  "name": "pal-ext-uphill",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "planck": "1.5.0"
+  }
+}

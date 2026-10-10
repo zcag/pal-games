@@ -1,0 +1,134 @@
+{
+  "name": "uphill",
+  "title": "Uphill",
+  "description": "Drive a little buggy as far as it goes over endless hills: the gas sits it back, the brake tips it forward, and in the air the same two keys lean it, so every crest is a landing to get right. Fuel cans keep you going, coins line the road, a kicker, a wall and a gap wait along the way, and the hills grow the further you get.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "svg": "M0 16V14L16 7.28V16ZM3.18 8.33 10.92 5.07 11.54 6.55 3.8 9.8ZM4.65 7.71 7.88 6.35 6.48 5.09 4.36 5.98ZM4.08 9.55a1.35 1.35 0 1 1 2.7 0a1.35 1.35 0 1 1 -2.7 0ZM8.87 7.54a1.35 1.35 0 1 1 2.7 0a1.35 1.35 0 1 1 -2.7 0Z",
+      "bg": "orange"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "keywords": [
+    "hill climb",
+    "driving",
+    "physics",
+    "racing",
+    "arcade"
+  ],
+  "settings": [
+    {
+      "id": "volume",
+      "label": "Volume",
+      "kind": "number",
+      "description": "How loud the engine and the sounds are; M in the game turns them off.",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "slider": true,
+      "default": 70
+    }
+  ],
+  "sync": {
+    "best": "max",
+    "scene": "local"
+  },
+  "store": {
+    "tagline": "Drive as far as the fuel goes over endless hills",
+    "category": "fun",
+    "play": true,
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "actions": [
+      {
+        "title": "Gas",
+        "description": "On the ground it drives and sits the car back; in the air it leans the nose up. W too.",
+        "keys": "up"
+      },
+      {
+        "title": "Brake and back up",
+        "description": "On the ground it brakes, then reverses, and tips the nose down; in the air it leans the nose down. S too.",
+        "keys": "down"
+      },
+      {
+        "title": "Drive again",
+        "description": "At any time; after a run, Space too.",
+        "keys": "r"
+      },
+      {
+        "title": "Pause",
+        "keys": "p"
+      },
+      {
+        "title": "Sound on or off",
+        "keys": "m"
+      }
+    ],
+    "features": [
+      "A real little car: a sprung chassis on two wheels, so the suspension squats on the climbs and soaks up the landings",
+      "Gas and brake lean the car in the air: land every crest on both wheels, or flip it for a bonus",
+      "Fuel runs down as you drive; the cans along the road fill the tank, each a little further on than the last",
+      "Endless hills that grow taller and bumpier the further you get, with a kicker, a wall and a gap along the way",
+      "Your best distance marked on the road with a flag, and kept on your other machines when you're signed in"
+    ],
+    "screenshots": [
+      {
+        "file": "1-climb.png",
+        "caption": "A climb with the suspension squatting under it, the hills growing behind"
+      },
+      {
+        "file": "2-gap.png",
+        "caption": "Over the gap: the same keys that drive lean the car in the air, so you land on both wheels",
+        "cover": [
+          300,
+          240,
+          960,
+          470
+        ]
+      },
+      {
+        "file": "3-crash.png",
+        "caption": "The gas held through the kicker 450 m in: driver down, and how far your best went"
+      },
+      {
+        "file": "4-start.png",
+        "caption": "The start: the gas, the brake and the fuel the cans along the road keep topped up"
+      }
+    ]
+  },
+  "palettes": {
+    "uphill": {
+      "title": "Uphill",
+      "kind": "view",
+      "description": "The road. Escape leaves and pauses the run.",
+      "keys": [
+        {
+          "keys": "up",
+          "title": "Gas; in the air, lean back"
+        },
+        {
+          "keys": "down",
+          "title": "Brake and back up; in the air, lean forward"
+        },
+        {
+          "keys": "r",
+          "title": "Drive again"
+        },
+        {
+          "keys": "p",
+          "title": "Pause"
+        },
+        {
+          "keys": "m",
+          "title": "Sound on or off"
+        }
+      ]
+    }
+  }
+}

@@ -3,5 +3,7 @@
 # "Our registry"). Parked 2026-10-10 until they are reworked: Ramparts and
 # Seedfall were ported in whole and never polished (their NEXT.md). A
 # name moves back to registry-only.txt to ship again.
+chip
 ramparts
 seedfall
+uphill

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Uphill</title>
+<script src="/__pal/surface.js"></script>
+<link rel="stylesheet" href="./style.css">
+<script type="module" src="./main.ts"></script>
+</head>
+<body>
+<canvas id="game" aria-label="The road"></canvas>
+<div id="hud">
+  <div class="left">
+    <div id="fuel" title="Fuel"><span class="can"></span><div class="bar"><i></i></div></div>
+    <div id="coins"><span class="coin"></span><b>0</b></div>
+  </div>
+  <div class="right">
+    <div id="dist">0 m</div>
+    <div id="best"></div>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="hint"><kbd>↑</kbd> gas <span class="dot">·</span> <kbd>↓</kbd> brake <span class="dot">·</span> in the air, the same keys lean</div>
+<div id="paused" hidden><div class="card"><h2>Paused</h2><p><kbd>↑</kbd> to carry on</p></div></div>
+<div id="end" hidden>
+  <div class="card">
+    <div id="why"></div>
+    <div id="end-dist"></div>
+    <div id="end-note"></div>
+    <div class="row"><span class="coin"></span><span id="end-coins"></span></div>
+    <p class="again"><kbd>Space</kbd> drive again</p>
+  </div>
+</div>
+</body>
+</html>
