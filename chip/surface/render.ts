@@ -250,12 +250,15 @@ export class Renderer {
     const ls = this.layers;
     if (!ls) return;
     const { ctx, w, h } = this;
+    // At the unzoomed scale: the camera zooms with the shot, and scaling the offset by it slid every layer by the
+    // hole's distance times the change.
+    const ref = this.baseScale();
     for (let i = ls.length - 1; i >= 0; i--) {
       const img = ls[i], rate = F.rates[i];
       const lw = img.width / this.dpr, lh = img.height / this.dpr;
-      const bottom = h * 1.12 + (cam.y - 8) * cam.scale * rate * 0.7;
+      const bottom = h * 1.12 + (cam.y - 8) * ref * rate * 0.7;
       const top = bottom - lh;
-      const off = (((cam.x * cam.scale * rate) % lw) + lw) % lw;
+      const off = (((cam.x * ref * rate) % lw) + lw) % lw;
       // Whole device pixels and a pixel of overlap, so no hairline shows where a tile meets the next.
       const snap = (v: number) => Math.round(v * this.dpr) / this.dpr;
       for (let x = -off; x < w; x += lw) ctx.drawImage(img, snap(x), snap(top), snap(lw) + 1 / this.dpr, snap(lh));
