@@ -462,11 +462,14 @@ export class Renderer {
     const sc = this.scene!;
     const k = (this.h * 1.22) / L.h, top = -this.h * (0.36 - (sc.drop ?? 0));
     this.yRef = this.yRef === null ? f.cam.y : this.yRef + (f.cam.y - this.yRef) * 0.02;
-    const dy = Math.max(-0.12, Math.min(0.12, ((f.cam.y - this.yRef) * f.cam.ppm) / this.h)) * this.h;
+    // The layers move at the unzoomed scale: the zoom follows speed, and scaling the offset by it shifted every layer
+    // by the whole run's distance times the change, a jump on each brake.
+    const ppm = this.h / 10;
+    const dy = Math.max(-0.12, Math.min(0.12, ((f.cam.y - this.yRef) * ppm) / this.h)) * this.h;
     L.layers.forEach((l, i) => {
       const front = i === L.layers.length - 1;
       const b = l.band, tw = b.w * k;
-      const off = (((f.cam.x * f.cam.ppm * l.rate + (l.rate < 0.02 ? f.t * 6 : 0)) % tw) + tw) % tw;
+      const off = (((f.cam.x * ppm * l.rate + (l.rate < 0.02 ? f.t * 6 : 0)) % tw) + tw) % tw;
       const y = top + dy * l.rate * 4 + b.y0 * k, hh = (b.y1 - b.y0) * k;
       ctx.globalAlpha = l.alpha;
       for (let x = -off; x < this.w; x += tw) ctx.drawImage(l.canvas, Math.floor(x), y, Math.ceil(tw) + 1, hh);

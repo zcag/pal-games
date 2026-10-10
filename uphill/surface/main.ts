@@ -179,7 +179,9 @@ function follow(p: Pose, dt: number) {
   const tx = p.x + look;
   // Height: between the car and the ground ahead of it, so a climb shows where it goes.
   const ty = lerp(p.y, ground(SEED, tx + 6), 0.3) + 0.8;
-  cam.x = lerp(cam.x, tx, 1 - Math.exp(-dt * 6));
+  // Never back while the car goes forward (or forward while it backs): the look-ahead pulling in on a brake moved the camera, and the land with it, the wrong way.
+  const nx = lerp(cam.x, tx, 1 - Math.exp(-dt * 6));
+  cam.x = !s.ended && (nx - cam.x) * v.x < 0 && Math.abs(v.x) > 0.3 ? cam.x : nx;
   cam.y = lerp(cam.y, ty, 1 - Math.exp(-dt * 4.5));
   cam.shake = Math.max(0, cam.shake - dt * 22);
   cam.ppm = (gfx.h / 10) * zoom;
