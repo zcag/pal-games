@@ -145,6 +145,10 @@ const readCache = (): Cached => (existsSync(CACHE) ? JSON.parse(readFileSync(CAC
 async function write() {
   const cache = readCache(), p = `${root}game/sprint.ts`, src = readFileSync(p, "utf8");
   const fresh = SPRINTS.filter((s) => cache[s.id]?.key === keyOf(s));
+  // never a road dropped: one not searched since a change (its key stale) would lose its time and its stars. Search it,
+  // or --rekey it when the change does not touch it
+  const stale = SPRINTS.filter((s) => !fresh.includes(s)).map((s) => s.id);
+  if (stale.length) { console.error(`not written: ${stale.length} roads not searched since a change (${stale.join(" ")}); search them, or --rekey those it does not touch`); process.exit(1); }
   const body = fresh.map((s) => `\n  "${s.id}": ${cache[s.id].best},`).join("");
   await Bun.write(p, src.replace(/const BEST: Record<string, number> = \{[^}]*\};/, `const BEST: Record<string, number> = {${body}\n};`));
   // each best run's choices, for the page to replay ("watch the best run": game/bestrun.ts)
