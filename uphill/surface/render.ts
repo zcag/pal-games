@@ -6,6 +6,8 @@ import { STEP, ground, noise, profile } from "../game/terrain.ts";
 import type { Can, Coin, Pose } from "../game/sim.ts";
 import { FEEL } from "../game/sim.ts";
 import { SCENES, layers, type Layer, type LookId, type Scene } from "./looks.ts";
+import { Fore } from "./fore.ts";
+import type { StyleId } from "./paint.ts";
 
 export type Scheme = "light" | "dark";
 type Palette = {
@@ -48,6 +50,15 @@ export class Renderer {
   scene: Scene | null = null;
   layers: { layers: Layer[]; h: number } | null = null;
   look: LookId = "classic";
+  /** The foreground's style (K), and its sprites for the look, the style and the screen's scale. */
+  style: StyleId = "cartoon";
+  fore: Fore | null = null;
+  foreFor(sc: Scene) {
+    const px = (this.h / 10) * this.dpr;
+    const f = this.fore;
+    if (!f || f.scene !== sc || f.style !== this.style || f.px !== px) this.fore = new Fore(this.style, sc, px);
+    return this.fore!;
+  }
   /** The camera's height, followed slowly: the layers part by how far the camera is off it. */
   yRef: number | null = null;
   constructor(public canvas: HTMLCanvasElement) {
@@ -441,13 +452,16 @@ export class Renderer {
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
     }
     this.parallax(f);
-    this.props(f, sc);
-    this.flatGround(f, sc);
+    const fore = this.foreFor(sc);
+    const v = { sx: (x: number) => this.sx(f, x), sy: (y: number) => this.sy(f, y), ppm: f.cam.ppm, w: this.w, h: this.h };
+    fore.backProps(ctx, v, f.cam.x, f.seed);
+    fore.ground(ctx, v, f.cam.x, f.seed);
     this.markers(f);
-    for (const c of f.cans) this.flatCan(f, c);
-    for (const c of f.coins) if (!c.taken) this.flatCoin(f, c);
+    for (const c of f.cans) fore.can(ctx, v, c, f.t);
+    for (const c of f.coins) if (!c.taken) fore.coin(ctx, v, c, f.t);
     this.particles(f, "dust");
-    this.flatCar(f, sc);
+    fore.car(ctx, v, f.pose, f.seed);
+    if (f.dizzy >= 0) this.stars(f);
     this.particles(f, "spark");
     this.floats(f);
     ctx.restore();
@@ -486,201 +500,5 @@ export class Renderer {
       }
     });
     ctx.globalAlpha = 1;
-  }
-
-  /** Sparse pines or rocks standing just behind the road, flat in the props tone. */
-  props(f: Frame, sc: Scene) {
-    const { ctx } = this;
-    const ppm = f.cam.ppm, span = this.w / 2 / ppm + 6;
-    ctx.fillStyle = sc.ink.props;
-    const cell = 7;
-    for (let c = Math.floor((f.cam.x - span) / cell); c * cell < f.cam.x + span; c++) {
-      const h = Math.abs(Math.sin(c * 12.9898 + 78.233) * 43758.5453) % 1;
-      if (h < 0.45) continue;
-      const x = c * cell + h * cell * 0.6;
-      const gx = this.sx(f, x), gy = this.sy(f, ground(f.seed, x) - 0.5);
-      const size = (0.75 + ((h * 7.13) % 1) * 0.6) * ppm;
-      ctx.beginPath();
-      if (sc.props === "pines") {
-        // A pine: three stacked tiers and a stub of trunk.
-        const H = size * 3.2, W = size * 0.95;
-        for (let t = 0; t < 3; t++) {
-          const y0 = gy - H * (0.18 + t * 0.26), y1 = y0 - H * 0.42, w = W * (1 - t * 0.22);
-          ctx.moveTo(gx - w, y0); ctx.lineTo(gx, y1); ctx.lineTo(gx + w, y0);
-        }
-        ctx.rect(gx - size * 0.09, gy - H * 0.2, size * 0.18, H * 0.22);
-      } else {
-        // A rock or a short butte: a rounded lump, flat on top when tall.
-        const W = size * (1.1 + h), H = size * (0.6 + ((h * 3.7) % 1) * 1.1);
-        ctx.moveTo(gx - W, gy);
-        ctx.quadraticCurveTo(gx - W * 0.9, gy - H, gx - W * 0.35, gy - H);
-        ctx.lineTo(gx + W * 0.4, gy - H * 0.96);
-        ctx.quadraticCurveTo(gx + W * 0.95, gy - H * 0.9, gx + W, gy);
-      }
-      ctx.fill();
-    }
-  }
-
-  /** The ground: one flat fill and a thin top edge in another tone; nothing else. */
-  flatGround(f: Frame, sc: Scene) {
-    const { ctx } = this;
-    const span = this.w / 2 / f.cam.ppm + 2;
-    const x0 = Math.floor((f.cam.x - span) / STEP) * STEP, x1 = f.cam.x + span;
-    const pts = profile(f.seed, x0, x1);
-    const bottom = this.h + 40;
-    const band = (dy: number, color: string) => {
-      ctx.beginPath();
-      pts.forEach((p, i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, this.sx(f, p.x), this.sy(f, p.y - dy)));
-      ctx.lineTo(this.sx(f, pts[pts.length - 1].x), bottom);
-      ctx.lineTo(this.sx(f, pts[0].x), bottom);
-      ctx.closePath();
-      ctx.fillStyle = color;
-      ctx.fill();
-    };
-    band(0, sc.ink.edge);
-    band(0.22, sc.ink.ground);
-  }
-
-  flatCoin(f: Frame, c: Coin) {
-    const { ctx } = this;
-    const k = this.scene!.ink;
-    const x = this.sx(f, c.x), y = this.sy(f, c.y), r = 0.3 * f.cam.ppm;
-    const sx = Math.max(0.15, Math.abs(Math.cos(f.t * 2.6 + c.x * 0.7)));
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(sx, 1);
-    ctx.fillStyle = k.coinDark;
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = k.coin;
-    ctx.beginPath(); ctx.arc(-r * 0.08, 0, r * 0.86, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = k.coinDark;
-    ctx.fillRect(-r * 0.14, -r * 0.42, r * 0.2, r * 0.84);
-    ctx.restore();
-  }
-
-  flatCan(f: Frame, c: Can) {
-    if (c.taken) return;
-    const { ctx } = this;
-    const k = this.scene!.ink;
-    const ppm = f.cam.ppm;
-    const x = this.sx(f, c.x), y = this.sy(f, c.y + Math.sin(f.t * 3 + c.x) * 0.08);
-    const w = 0.64 * ppm, h = 0.82 * ppm;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(-0.08);
-    // A jerrycan: a body with a cut corner, its handle and spout, the other tone down one side.
-    ctx.fillStyle = k.can;
-    ctx.beginPath();
-    ctx.moveTo(-w / 2, h / 2); ctx.lineTo(w / 2, h / 2); ctx.lineTo(w / 2, -h / 2 + w * 0.3); ctx.lineTo(w / 2 - w * 0.3, -h / 2); ctx.lineTo(-w / 2, -h / 2); ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = k.canDark;
-    ctx.fillRect(w * 0.22, -h / 2 + w * 0.3, w * 0.28, h - w * 0.3);
-    ctx.fillRect(-w * 0.38, -h / 2 - 0.12 * ppm, w * 0.4, 0.12 * ppm);
-    ctx.fillRect(w * 0.12, -h / 2 - 0.14 * ppm, w * 0.14, 0.16 * ppm);
-    ctx.beginPath();
-    ctx.moveTo(-w * 0.32, -h * 0.18); ctx.lineTo(w * 0.1, h * 0.3); ctx.lineTo(-w * 0.32, h * 0.3); ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
-
-  /** The car in flat tones: the tub in the scene's colour, lit on top and darker below, a dark frame and driver, a light helmet. */
-  flatCar(f: Frame, sc: Scene) {
-    const { ctx } = this;
-    const k = sc.ink, p = f.pose, ppm = f.cam.ppm;
-    const ca = Math.cos(p.a), sa = Math.sin(p.a);
-    const world = (lx: number, ly: number) => ({ x: p.x + lx * ca - ly * sa, y: p.y + lx * sa + ly * ca });
-    // The struts, behind everything: a plain dark arm from the tub to each hub.
-    ctx.strokeStyle = k.frame;
-    ctx.lineCap = "round";
-    p.wheels.forEach((w, i) => {
-      const a = world((i ? 1 : -1) * (FEEL.wheel.x - 0.12), -0.02);
-      ctx.lineWidth = 0.16 * ppm;
-      ctx.beginPath(); ctx.moveTo(this.sx(f, a.x), this.sy(f, a.y)); ctx.lineTo(this.sx(f, w.x), this.sy(f, w.y)); ctx.stroke();
-    });
-    for (const w of p.wheels) this.flatWheel(f, w, k);
-
-    ctx.save();
-    ctx.translate(this.sx(f, p.x), this.sy(f, p.y));
-    ctx.scale(ppm, -ppm);
-    ctx.rotate(p.a);
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    // The roll cage and the windscreen frame.
-    ctx.strokeStyle = k.frame;
-    ctx.lineWidth = 0.1;
-    ctx.beginPath(); ctx.moveTo(-0.84, 0.22); ctx.lineTo(-0.7, 1.16); ctx.lineTo(-0.34, 1.2); ctx.stroke();
-    ctx.lineWidth = 0.08;
-    ctx.beginPath(); ctx.moveTo(0.66, 0.22); ctx.lineTo(0.42, 0.72); ctx.stroke();
-    // The driver: shoulders and an arm to the wheel, a helmet with a dark visor.
-    ctx.fillStyle = k.driver;
-    ctx.beginPath(); ctx.moveTo(-0.52, 0.2); ctx.lineTo(-0.5, 0.58); ctx.quadraticCurveTo(-0.44, 0.74, -0.24, 0.74); ctx.lineTo(-0.02, 0.7); ctx.lineTo(0.04, 0.2); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = k.driver;
-    ctx.lineWidth = 0.13;
-    ctx.beginPath(); ctx.moveTo(-0.12, 0.56); ctx.lineTo(0.18, 0.46); ctx.lineTo(0.34, 0.54); ctx.stroke();
-    // The helmet: light, a stripe of the car's colour over the crown, the visor dark across the front.
-    ctx.save();
-    ctx.beginPath(); ctx.arc(-0.18, 0.88, 0.26, 0, Math.PI * 2);
-    ctx.fillStyle = k.helmet;
-    ctx.fill();
-    ctx.clip();
-    ctx.fillStyle = k.body;
-    ctx.fillRect(-0.5, 1.0, 1, 0.07);
-    ctx.fillStyle = k.visor;
-    ctx.beginPath(); ctx.roundRect(-0.12, 0.8, 0.4, 0.15, 0.06); ctx.fill();
-    ctx.restore();
-    // The tub: a long low body with a sloped nose and a rounded tail.
-    const tub = () => {
-      ctx.beginPath();
-      ctx.moveTo(-1.3, 0.26);
-      ctx.lineTo(0.62, 0.26);
-      ctx.quadraticCurveTo(1.08, 0.24, 1.32, 0.04);
-      ctx.quadraticCurveTo(1.4, -0.06, 1.3, -0.2);
-      ctx.lineTo(-1.2, -0.28);
-      ctx.quadraticCurveTo(-1.42, -0.24, -1.4, 0.0);
-      ctx.quadraticCurveTo(-1.38, 0.22, -1.3, 0.26);
-      ctx.closePath();
-    };
-    tub();
-    ctx.fillStyle = k.body;
-    ctx.fill();
-    ctx.save();
-    tub();
-    ctx.clip();
-    ctx.fillStyle = k.bodyDark;
-    ctx.fillRect(-1.5, -0.4, 3, 0.3);
-    ctx.fillStyle = k.bodyLight;
-    ctx.fillRect(-1.5, 0.16, 3, 0.12);
-    ctx.restore();
-    // A fender over each wheel in the tub's dark tone.
-    ctx.strokeStyle = k.bodyDark;
-    ctx.lineWidth = 0.12;
-    ctx.lineCap = "round";
-    for (const x of [-FEEL.wheel.x, FEEL.wheel.x]) { ctx.beginPath(); ctx.arc(x, -0.36, 0.6, Math.PI * 0.18, Math.PI * 0.82); ctx.stroke(); }
-    ctx.fillStyle = k.helmet;
-    ctx.beginPath(); ctx.arc(1.24, 0.06, 0.07, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-    if (f.dizzy >= 0) this.stars(f);
-  }
-
-  flatWheel(f: Frame, w: { x: number; y: number; a: number }, k: Scene["ink"]) {
-    const { ctx } = this;
-    const ppm = f.cam.ppm, r = FEEL.wheel.r;
-    ctx.save();
-    ctx.translate(this.sx(f, w.x), this.sy(f, w.y));
-    ctx.scale(ppm, -ppm);
-    ctx.rotate(w.a);
-    ctx.fillStyle = k.tire;
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = k.hub;
-    ctx.beginPath(); ctx.arc(0, 0, r * 0.56, 0, Math.PI * 2); ctx.fill();
-    // Five holes in the rim, so the spin reads.
-    ctx.fillStyle = k.tire;
-    for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * Math.PI * 2;
-      ctx.beginPath(); ctx.arc(Math.cos(a) * r * 0.33, Math.sin(a) * r * 0.33, r * 0.09, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.fillStyle = k.body;
-    ctx.beginPath(); ctx.arc(0, 0, r * 0.12, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
   }
 }

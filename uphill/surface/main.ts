@@ -10,6 +10,7 @@ import { KEYS } from "../game/keys.ts";
 import { decide, type Style } from "../game/bot.ts";
 import { Renderer, type Camera, type Float, type Particle, type Scheme } from "./render.ts";
 import { LOOKS, SCENES, type LookId } from "./looks.ts";
+import { STYLES, STYLE_NAMES, type StyleId } from "./paint.ts";
 import { Sound } from "./audio.ts";
 
 declare const pal: SurfaceKit;
@@ -234,15 +235,26 @@ function applyLook(id: LookId) {
   else document.documentElement.dataset.hud = SCENES[id].hud;
 }
 let lookTimer = 0;
+/** The look's or the style's name, briefly, at the top. */
+function say(html: string) {
+  const el = $("#look");
+  el.innerHTML = html;
+  el.classList.add("show");
+  clearTimeout(lookTimer);
+  lookTimer = window.setTimeout(() => el.classList.remove("show"), 1600);
+}
 function nextLook() {
   const id = LOOKS[(LOOKS.indexOf(lookId) + 1) % LOOKS.length];
   applyLook(id);
   void pal.storage.set("look", id);
-  const el = $("#look");
-  el.innerHTML = `${id === "classic" ? "Classic" : SCENES[id].name} <span><kbd>L</kbd> next look</span>`;
-  el.classList.add("show");
-  clearTimeout(lookTimer);
-  lookTimer = window.setTimeout(() => el.classList.remove("show"), 1600);
+  say(`${id === "classic" ? "Classic" : SCENES[id].name} <span><kbd>L</kbd> next look</span>`);
+}
+/** K: the next style for everything in front of the landscape, on any look but Classic, which keeps its own drawing. */
+function nextStyle() {
+  const id = STYLES[(STYLES.indexOf(gfx.style) + 1) % STYLES.length];
+  gfx.style = id;
+  void pal.storage.set("style", id);
+  say(`${STYLE_NAMES[id]} <span>${lookId === "classic" ? "on the other looks; Classic keeps its own" : "<kbd>K</kbd> next style"}</span>`);
 }
 
 // ---- keys -------------------------------------------------------------------------------------------------------
@@ -267,6 +279,7 @@ addEventListener("keydown", (e: KeyboardEvent) => {
   if (c === "KeyP") { if (!over(s)) paused = !paused; showPause(); return; }
   if (c === "KeyM") { sound.toggle(); return; }
   if (c === "KeyL") { nextLook(); return; }
+  if (c === "KeyK") { nextStyle(); return; }
 });
 addEventListener("keyup", (e: KeyboardEvent) => {
   if (GAS.has(e.code)) keys.gas = false;
@@ -283,6 +296,7 @@ pal.onAction((id) => {
   else if (id === "pause") { paused = !paused; showPause(); }
   else if (id === "mute") sound.toggle();
   else if (id === "look") nextLook();
+  else if (id === "style") nextStyle();
 });
 pal.onHidden(() => { hidden = true; keys.gas = keys.brake = false; if (!over(s) && s.started) paused = true; sound.suspend(); });
 pal.onShown(() => { hidden = false; last = performance.now(); showPause(); if (!paused) sound.start(); });
@@ -297,6 +311,7 @@ pal.onTheme((sc) => gfx.scheme(sc));
 pal.storage.onChange((key, value) => {
   if (key === "best" && typeof value === "number" && value > best) best = value;
   if (key === "look" && LOOKS.includes(value as LookId)) applyLook(value as LookId);
+  if (key === "style" && STYLES.includes(value as StyleId)) gfx.style = value as StyleId;
 });
 
 // ---- start ------------------------------------------------------------------------------------------------------
@@ -323,8 +338,9 @@ function stage(sc: Scene) {
 }
 
 (async () => {
-  const [b, set, scene, lk] = await Promise.all([pal.storage.get("best"), pal.settings(), pal.storage.get("scene").catch(() => null), pal.storage.get("look").catch(() => null)]);
+  const [b, set, scene, lk, st] = await Promise.all([pal.storage.get("best"), pal.settings(), pal.storage.get("scene").catch(() => null), pal.storage.get("look").catch(() => null), pal.storage.get("style").catch(() => null)]);
   if (typeof b === "number") best = b;
+  if (STYLES.includes(st as StyleId)) gfx.style = st as StyleId;
   // The layers are recoloured before the first frame, so the page never opens on an empty sky.
   applyLook(LOOKS.includes(lk as LookId) ? (lk as LookId) : "forest");
   await gfx.setLook(lookId);

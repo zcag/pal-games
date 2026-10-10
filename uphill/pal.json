@@ -36,6 +36,7 @@
   "sync": {
     "best": "max",
     "look": "latest",
+    "style": "latest",
     "scene": "local"
   },
   "store": {
@@ -74,6 +75,11 @@
         "title": "Next look",
         "description": "Forest, Desert, Dusk and Classic; the choice is kept and follows you to your other machines.",
         "keys": "l"
+      },
+      {
+        "title": "Next style",
+        "description": "Cartoon, Soft or Silhouette for the car, the ground and the pickups, over any look but Classic; kept like the look.",
+        "keys": "k"
       }
     ],
     "features": [
@@ -137,6 +143,10 @@
         {
           "keys": "l",
           "title": "Next look"
+        },
+        {
+          "keys": "k",
+          "title": "Next style"
         }
       ]
     }
