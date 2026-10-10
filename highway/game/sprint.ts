@@ -125,62 +125,16 @@ const ROWS: Row[] = [
 /** The roads' version: a run kept as its keys (a replay) plays out as it did only on the roads it was driven on, so
  *  this goes up with any change to where a road's traffic is placed or how it drives (2: no walls). */
 export const ROADS = 2;
-/** A road's own version where it changed since (3: the Saba V12 '95 fully upgraded, the car these are driven in). */
-const ROAD: Record<string, number> = { graveyard: 3, afterburn: 3, "legend-long-night": 3, "duel-kaz": 3 };
+/** A road's own version where it changed since (4: the Saba V12 '95 upgraded, the car these are driven in, at 230 km/h). */
+const ROAD: Record<string, number> = { graveyard: 4, afterburn: 4, "legend-long-night": 4, "duel-kaz": 4 };
 export const roadsOf = (id: string) => ROAD[id] ?? ROADS;
 
 /** The best times scripts/sprint.ts found, each in its stop's car (carAt). */
 const BEST: Record<string, number> = {
-  "first-light": 42.99,
-  "three-lanes": 46.99,
-  "commuters": 40.87,
-  "long-haul": 61.44,
-  "farm-road": 42.64,
-  "hedgerows": 55.62,
-  "squeeze": 43.96,
-  "last-light": 47.46,
-  "heat-haze": 44.78,
-  "dry-run": 48.33,
-  "old-road": 40.53,
-  "noon-rush": 51.21,
-  "long-straight": 59.27,
-  "white-lines": 50.02,
-  "overtaker": 44.3,
-  "glare": 48.52,
-  "big-block": 45.46,
-  "canyon-run": 47.46,
-  "head-on": 40.26,
-  "sundown": 51.73,
-  "the-mile": 62.33,
-  "low-sun": 53.66,
-  "dust": 46.5,
-  "rush-hour": 51.12,
-  "overcast": 44.85,
-  "drizzle": 48.29,
-  "b-road": 41.4,
-  "motorway": 49.43,
-  "grand-tour": 60.74,
-  "convoy": 53.33,
-  "fog-line": 44.51,
-  "slipstream": 47.68,
-  "neon": 44.03,
-  "midnight": 47.17,
-  "high-beams": 40.11,
-  "red-lights": 50.02,
-  "all-night": 61.18,
-  "tunnel-vision": 52.79,
-  "graveyard": 39.68,
-  "afterburn": 42.93,
-  "duel-ines": 52.22,
-  "duel-mika": 51.32,
-  "duel-rook": 53.8,
-  "duel-vega": 51.43,
-  "legend-harvest": 49.79,
-  "legend-mirage": 51.5,
-  "legend-red-sky": 53.41,
-  "legend-storm": 51.47,
-  "legend-long-night": 46.22,
-  "duel-kaz": 46.32,
+  "graveyard": 41.53,
+  "afterburn": 44.84,
+  "legend-long-night": 48.65,
+  "duel-kaz": 48.46,
 };
 const RIVALS: Record<string, { rival: string; car: string }> = {
   "duel-ines": { rival: "Ines", car: "tozzo-98" }, "duel-mika": { rival: "Mika", car: "thunderbolt-96" },

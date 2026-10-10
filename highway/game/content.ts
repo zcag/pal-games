@@ -64,9 +64,10 @@ export const CARS: PlayerCar[] = [
   { id: "libeccio-v6-91", name: "Libeccio V6 '91", top: 200, mass: 1250, grip: 1.44, agility: 1.58, brake: 1.14, engine: "gt", paint: "#1d6b43" },
   { id: "roadster-00", name: "Roadster '00", top: 205, mass: 980, grip: 1.46, agility: 1.62, brake: 1.16, engine: "super", paint: "#f0c419" },
   { id: "cheetah-84", name: "Cheetah '84", top: 215, mass: 1500, grip: 1.45, agility: 1.66, brake: 1.18, engine: "super", paint: "#c0111d" },
-  // the trip's last car, as the garage's upgrades would have left it at their top (every one at level 5: +7.5% top speed,
-  // half again the pull, +0.15 grip, +0.25 agility, +0.3 g of brakes); the others are as they came
-  { id: "saba-v12-95", name: "Saba V12 '95", top: 242, mass: 1450, grip: 1.65, agility: 1.95, brake: 1.52, pull: 1.5, engine: "super", paint: "#e85d04" },
+  // the trip's last car, as the garage's upgrades would have left it at their top (every one at level 5: half again the
+  // pull, +0.15 grip, +0.25 agility, +0.3 g of brakes), but for its top speed: at the upgrades' 242 km/h you closed on
+  // the traffic at 173 km/h (158 before), each car coming at you too fast to answer; 230 closes at about 162
+  { id: "saba-v12-95", name: "Saba V12 '95", top: 230, mass: 1450, grip: 1.65, agility: 1.95, brake: 1.52, pull: 1.5, engine: "super", paint: "#e85d04" },
 ];
 
 /** Every colour a car can wear, free on any car you own. */
