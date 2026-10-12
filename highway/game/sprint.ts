@@ -107,7 +107,7 @@ const ROWS: Row[] = [
   [4, "red-lights", "Red Lights", "Packed four lanes.", 4, 3, 0.56, 5103],
   [4, "all-night", "All Night", "The longest road of the trip.", 4, 3.75, 0.44, 5106],
   [4, "tunnel-vision", "Tunnel Vision", "Three lanes, heavy.", 3, 3.2, 0.56, 5105],
-  [4, "graveyard", "Graveyard Shift", "Two-Way, packed.", 2, 2.75, 0.52, 5108],
+  [4, "graveyard", "Graveyard Shift", "Four lanes, packed, and the fastest car yet.", 4, 2.75, 0.52, 5108],
   [4, "afterburn", "Afterburn", "Everything at once.", 4, 3, 0.65, 5107],
   // the duels: a rival in the next class's first car
   [0, "duel-ines", "Ines", "Her sister wants the empty house too. Get there first, and her Tozzo is yours.", 4, 1.9, 0.4, 1909],
@@ -125,8 +125,9 @@ const ROWS: Row[] = [
 /** The roads' version: a run kept as its keys (a replay) plays out as it did only on the roads it was driven on, so
  *  this goes up with any change to where a road's traffic is placed or how it drives (2: no walls). */
 export const ROADS = 2;
-/** A road's own version where it changed since (4: the Saba V12 '95 upgraded, the car these are driven in, at 230 km/h). */
-const ROAD: Record<string, number> = { graveyard: 4, afterburn: 4, "legend-long-night": 4, "duel-kaz": 4 };
+/** A road's own version where it changed since (4: the Saba V12 '95 upgraded, the car these are driven in, at 230 km/h;
+ *  5: Graveyard Shift one way, Two-Way too hard at the Saba's speed). */
+const ROAD: Record<string, number> = { graveyard: 5, afterburn: 4, "legend-long-night": 4, "duel-kaz": 4 };
 export const roadsOf = (id: string) => ROAD[id] ?? ROADS;
 
 /** The best times scripts/sprint.ts found, each in its stop's car (carAt). */
@@ -169,7 +170,7 @@ const BEST: Record<string, number> = {
   "red-lights": 50.02,
   "all-night": 61.18,
   "tunnel-vision": 52.79,
-  "graveyard": 41.53,
+  "graveyard": 41.56,
   "afterburn": 44.84,
   "duel-ines": 52.22,
   "duel-mika": 51.32,
