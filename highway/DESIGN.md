@@ -280,7 +280,9 @@ on the same road and makes the last one funny.
   Legend): Sunday, everyone from the road in one group chat, then the whole
   road in numbers and the trip's last paint, Lina's rose, for every car. It
   plays after the ending when that run takes the last star, else after
-  whichever run does; both are in Actions to watch again.
+  whichever run does; both are in Actions to watch again. Each is marked
+  seen, so one earned and never shown (won before it existed, or on another
+  machine) plays when the map next opens.
 - **Texts while driving** (a setting, off by default): halfway down a stop
   not yet finished, its text lands in a corner for four seconds. Off, the
   run is only the road.

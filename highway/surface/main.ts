@@ -562,9 +562,14 @@ function tripNow(): TripFacts {
 }
 
 /** The trip's end over what is up: the ending (`arrive`, the last duel won), then the epilogue when every star is
- *  yours; also from Actions. */
+ *  yours; each marked seen. Played when due and not seen (a run's results, else the map: one won before they
+ *  existed, or on another machine), and from Actions. */
+const endDue = () => !scene && !trial && won(bossOf(4).region, save.sprints) && !save.seen.includes("story:ending");
+const morningDue = () => !scene && !trial && complete(save.sprints) && !save.seen.includes("story:morning");
 function tripEnd(whole: boolean, arrive = true) {
   sound.play("ui_select", { gain: 0.5 });
+  for (const k of [arrive && "story:ending", whole && "story:morning"]) if (k && !save.seen.includes(k)) save.seen.push(k);
+  persist();
   const back = () => { sound.play("ui_confirm", { gain: 0.5 }); if (state === "map") mapShow(); };
   const epilogue = () => (whole ? playEpilogue(tripNow(), back) : back());
   if (arrive) playEnding(tripNow(), epilogue); else epilogue();
@@ -595,6 +600,7 @@ function openMap(at?: Sprint) {
   showMap(mapView());
   void stageMap();
   if (!scene && !trial && !save.seen.includes("story:opening")) opening();
+  else if (endDue() || morningDue()) tripEnd(morningDue(), endDue());
   setTimeout(() => { if (state === "map") void buildGarage(pickFor(save, mapRegion)?.id ?? save.car); }, 1500);
 }
 onPick((id) => { if (state !== "map") return; replaysAt = null; if (save.stop === id) mapKey("enter"); else { save.stop = id; persist(); sound.play("ui_select", { gain: 0.4 }); mapShow(); } });
@@ -1112,7 +1118,7 @@ function sprintResults() {
       ${targets(time)}</div>${wonCar ? wonKeys : hasBest && (next || (duel && !duel.won)) ? nudge("b", "See how the 3★ run drives it") + keys("b") : keys()}`);
   if (said.length) $("card").querySelector(".sign")!.insertAdjacentHTML("afterbegin", textsHtml(said, "above"));
   if (duel?.won) sound.play("bell_ding", { gain: 0.7 });
-  if (end && duel?.won && !won(sp.region, was)) tripEnd(!!pay.complete); else if (pay.complete) tripEnd(true, false);
+  if (endDue() || morningDue()) tripEnd(morningDue(), endDue());
   // your time on its board first, so the board read after it has it
   void post(`sprint/${sp.id}`, Math.round(time * 100) / 100, pay.record).then(() => showBoard(sp));
   if (pay.stars > pay.before) post("stars", totalStars(save.sprints), true, false);
