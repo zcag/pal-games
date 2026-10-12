@@ -276,8 +276,8 @@ function onKey(k: string) {
   if (state === "garage") { garageKey(k); return; }
   if (state === "free") { freeKey(k); return; }
   if (watching && watchKey(k)) return;
-  // a Sprint is tried again at once, from anywhere in it
-  if (k === "r" && trip && (state === "run" || state === "paused" || state === "over" || state === "results")) { drive(); return; }
+  // a Sprint or a Free Drive is tried again at once, from anywhere in it; a Free Drive crash is scored first
+  if (k === "r" && (state === "run" || state === "paused" || state === "over" || state === "results")) { if (!trip && state === "over") results(); drive(); return; }
   if (state === "run" && run && run.drive.intro > 0 && k !== "p") { while (run.drive.intro > 0) run.step(STEP, input()); run.settle(); return; }
   if (state === "run" && resuming > 0 && k !== "p") { resuming = Math.min(resuming, 0.001); return; }
   if (state === "run") {
@@ -991,7 +991,7 @@ function pause() {
     return;
   }
   card(`<h2>Paused</h2><div class="why">${!run ? "" : sp ? `${clock(run.score.time)}, ${(run.drive.toLine / 1000).toFixed(1)} km to go` : run.drive.calm ? `${(run.score.distance / 1000).toFixed(1)} km so far` : `${Math.round(run.score.points).toLocaleString("en-US")} points so far`}</div>
-    <div class="keys" style="margin-top:12px"><button data-key="enter"><kbd>enter</kbd> carry on</button>${sp ? `<button data-key="r"><kbd>r</kbd> try again</button>` : ""}<button data-key="q"><kbd>q</kbd> ${sp ? "back to the map" : run?.drive.calm ? "pull over" : "end the run"}</button></div>`);
+    <div class="keys" style="margin-top:12px"><button data-key="enter"><kbd>enter</kbd> carry on</button><button data-key="r"><kbd>r</kbd> try again</button><button data-key="q"><kbd>q</kbd> ${sp ? "back to the map" : run?.drive.calm ? "pull over" : "end the run"}</button></div>`);
 }
 function resume() { state = "run"; resuming = 1.5; wasRolling = 0; $("card").hidden = true; sound.start(); last = performance.now(); banner("3"); sound.play("countdown_beep", { gain: 0.5 }); }
 function giveUp() { if (trip) { if (run) { countRun(save, run.score); persist(); } openMap(trip.sprint); } else if (run) { crashInfo = null; results(); } }
