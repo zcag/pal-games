@@ -56,6 +56,14 @@ export function closed(s: Sprint, times: Times): string | null {
 /** The Legend paints you have: every Legend finished gives its own. */
 export const legendPaints = (times: Times) => SPRINTS.filter((s) => s.legend && times[s.id]).map((s) => s.legend!);
 
+/** Every star there is: three on each stop, its duel and Legend too. */
+export const MAX_STARS = SPRINTS.length * 3;
+/** The whole road: every star, and with them every car and Legend. Gives the trip's last paint. */
+export const complete = (times: Times) => totalStars(times) === MAX_STARS;
+export const COMPLETE_PAINT = { paint: "#e0607e", name: "Lina's rose" };
+/** Every paint the trip gave you: the Legends', and the whole road's. */
+export const tripPaints = (times: Times) => [...legendPaints(times), ...(complete(times) ? [COMPLETE_PAINT] : [])];
+
 /** The stop to play next: one open and never driven in the region just driven (`from`: the Legend a duel's three
  *  stars opened, a stop passed by), else the first open one without every star in the furthest open region, else
  *  the first. */
@@ -76,15 +84,17 @@ export type SprintResult = {
   cars: PlayerCar[]; // cars this run gave you: a duel's, or a class's next for the stars it brought
   paint?: { paint: string; name: string }; // a Legend's paint, the first time it is finished
   duel?: { won: boolean; opened?: string }; // a duel: won, and the region it opened
+  complete?: boolean; // this run took the last star there was
 };
 
 /** What a finished Sprint gives against the best times before it (`times` is updated). */
 export function finishSprint(s: Sprint, time: number, times: Times): SprintResult {
-  const before = starsOf(s, times), had = carsHad(times), wasWon = s.boss ? won(s.region, times) : false, first = !times[s.id];
+  const before = starsOf(s, times), had = carsHad(times), wasWon = s.boss ? won(s.region, times) : false, first = !times[s.id], was = complete(times);
   const record = !times[s.id] || time < times[s.id];
   if (record) times[s.id] = time;
   const res: SprintResult = { stars: starsOf(s, times), before, record, cars: carsHad(times).filter((c) => !had.includes(c)) };
   if (s.legend && first) res.paint = s.legend;
+  if (!was && complete(times)) res.complete = true;
   if (s.boss) {
     res.duel = { won: time < rivalTime(s) };
     if (won(s.region, times) && !wasWon && s.region + 1 < REGIONS.length) res.duel.opened = REGIONS[s.region + 1].name;

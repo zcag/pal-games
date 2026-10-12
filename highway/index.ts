@@ -9,6 +9,7 @@ export const ACTIONS: Action[] = [
   { id: "mute", title: "Sound on or off", shortcut: "m" },
   { id: "give-up", title: "End the run", style: "destructive", confirm: "End this run? What you earned so far is paid." },
   { id: "opening", title: "Watch the story's opening" },
+  { id: "ending", title: "Watch the story's ending" },
   { id: "start-over", title: "Start over", style: "destructive", confirm: "Start over from nothing? Your stars, cars and records are wiped; your settings stay." },
 ];
 

@@ -94,12 +94,36 @@ export const TEXTS: Record<string, Text[]> = {
   graveyard: [{ from: "kaz", text: "Landed early 🙂 home in 40.", to: "family group" }, { from: "lina", text: "💀💀💀" }],
 };
 
-/** The trip's two ends, after the last duel. */
+/** The trip's two ends, after the last duel. Won, it plays as a scene (surface/story.ts): the arrival, her chat, the
+ *  trip in numbers; lost, it is a line on the results. */
 export const ENDINGS = {
   won: { eyebrow: "You made it · 23:38", title: "The lights are off.", text: `A taxi turns into the street two minutes later and keeps going. ${HER} opens the door before you knock.`, her: "that was fast 😳" },
   lost: { eyebrow: "Too slow · 23:44", title: "The porch light comes on.", text: "It's her dad, still holding his suitcase. \"Can I help you?\"", her: "too slow lol 😴" },
 };
 export const LAST_DUEL = "duel-kaz";
+
+/** The won ending's chat: her texts as you pull up, your reply and hers, then her dad in the family group. */
+export const ARRIVAL = {
+  hers: ["wait", "is that you outside??", "that was fast 😳"],
+  replies: [
+    { you: "told you i'd hurry 😮‍💨", her: "get in here before my dad does" },
+    { you: "412 km. worth it?", her: "come in and find out 👀" },
+  ],
+  then: { from: "kaz", text: "Taxi driver took the long way. 20 more min 🙄", to: "family group" } as Text,
+};
+
+/** The morning after every star: everyone from the road in one group chat. */
+export const EPILOGUE = {
+  group: "the road trip 🚗",
+  lines: [
+    { from: "ines", text: "ok who added me to this" },
+    { from: "mika", text: "every star?? on every road?? show off" },
+    { from: "rook", text: "I have reviewed the footage. Flawless driving." },
+    { from: "vega", text: "the drummer wants your autograph 🥁" },
+    { from: "kaz", text: "Breakfast is at ten. You're driving." },
+    { from: "lina", text: "he likes you 😳" },
+  ] as Text[],
+};
 
 /** A stop's texts as they come: a duel's when it is won, any other's on its first finish. */
 const said = (s: Sprint, times: Times) => (s.boss ? won(s.region, times) : !!times[s.id]);
@@ -111,6 +135,9 @@ const TRIP = REGIONS.flatMap((_, r) => sprintsOf(r));
 const ROAD = TRIP.filter((s) => !s.legend);
 /** How far she still is, km: the trip's length less a share for each stop of the road done. */
 export const kmLeft = (times: Times) => Math.round(TRIP_KM * (1 - ROAD.filter((s) => said(s, times)).length / ROAD.length));
+
+/** The road to her end to end, s: your best time on every stop of it. */
+export const tripTime = (times: Times) => ROAD.reduce((a, s) => a + (times[s.id] ?? 0), 0);
 
 /** Everything said so far, in the trip's order. */
 export const textsSoFar = (times: Times): Text[] => TRIP.filter((s) => said(s, times)).flatMap(textsOf);

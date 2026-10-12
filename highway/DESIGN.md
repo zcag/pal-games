@@ -272,6 +272,15 @@ on the same road and makes the last one funny.
 - **Two endings**, from the last duel: win and the lights are off and she
   opens the door ("that was fast 😳"); lose and the porch light comes on and
   it is her dad with his suitcase. Raced again, the trip can still be won.
+  Won, it is a scene like the opening, over the results: the arrival, her
+  chat as you pull up (your answer, then her dad in the family group: the
+  taxi took the long way), and the trip in numbers, stars, cars and Legends
+  of all there are, with what is still out there.
+- **The morning after**, every star (150: three on each stop, duel and
+  Legend): Sunday, everyone from the road in one group chat, then the whole
+  road in numbers and the trip's last paint, Lina's rose, for every car. It
+  plays after the ending when that run takes the last star, else after
+  whichever run does; both are in Actions to watch again.
 - **Texts while driving** (a setting, off by default): halfway down a stop
   not yet finished, its text lands in a corner for four seconds. Off, the
   run is only the road.

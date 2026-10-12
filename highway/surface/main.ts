@@ -16,8 +16,8 @@ import { Streaks } from "./rush.ts";
 import { BUILT } from "./terrain.ts";
 import { showMap, hideMap, onPick, onRegion, onReplay, pinsAt, hold, reveal, framing, PLAY, type MapView, type Replay } from "./trip.ts";
 import { MapWorld } from "./mapworld.ts";
-import { playOpening, openingKey, playing, textsHtml, face } from "./story.ts";
-import { DUELS, OPENING, PEOPLE, HER, LAST_DUEL, kmLeft, latest, brought, pending, ending } from "../game/story.ts";
+import { playOpening, playEnding, playEpilogue, playNotYet, storyKey, playing, textsHtml, face, type TripFacts } from "./story.ts";
+import { DUELS, OPENING, PEOPLE, HER, LAST_DUEL, kmLeft, latest, brought, pending, ending, tripTime } from "../game/story.ts";
 import { ONE_WAY, TWO_WAY, laneX, type Layout } from "../game/layout.ts";
 import { CARS, LOCATIONS, MODES, PAINTS, FEEL, stats, classOf, type PlayerCar, type Location } from "../game/content.ts";
 import { load, stored, fresh, carOf, paintOf, has, places, pickFor, finishSprintRun, finishFree, countRun, type Save, type Scene } from "../game/meta.ts";
@@ -26,7 +26,7 @@ import { ROLLING_START, type Drive, type End, type Packed } from "../game/drive.
 import { acrossAt, type Input } from "../game/vehicle.ts";
 import { bestDrive, chooser, decode, HUMAN, type Hulls } from "../game/bestrun.ts";
 import { REGIONS, SPRINTS, BOSS_STARS, roadsOf, sprintOf, sprintsOf, starTimes, rivalTime, clock, GHOST_DT, ghostAt, ghostTimeAt, packGhost, unpackGhost, type Ghost, type Sprint } from "../game/sprint.ts";
-import { bossOf, won, carNeeds, carsHad, legendPaints, closed, nextStop, regionOfCar, regionOpen, stopsForCar, starsIn, starsOf, totalStars, type SprintResult } from "../game/trip.ts";
+import { bossOf, won, carNeeds, carsHad, tripPaints, complete, MAX_STARS, COMPLETE_PAINT, closed, nextStop, regionOfCar, regionOpen, stopsForCar, starsIn, starsOf, totalStars, type SprintResult } from "../game/trip.ts";
 
 declare const pal: SurfaceKit;
 const $ = (id: string) => document.getElementById(id)!;
@@ -268,7 +268,7 @@ const dir = (k: string) => (k === "arrowleft" || k === "a" ? -1 : k === "arrowri
 const vdir = (k: string) => (k === "arrowup" || k === "w" ? -1 : k === "arrowdown" || k === "s" ? 1 : 0);
 
 function onKey(k: string) {
-  if (openingKey(k)) return;
+  if (storyKey(k)) return;
   if (k === "m") { muted = !muted; sound.setVolume(muted ? 0 : save.settings.sound); return; }
   if (state === "garage" && garageScene?.showing) { garageScene.skip(); return; }
   if (PLACES.includes(state as Place) && tabKey(k)) return;
@@ -514,7 +514,7 @@ function mapView(): MapView {
       name: g.name, about: g.about, open: regionOpen(i, times),
       why: regionOpen(i, times) ? undefined : `Win the duel in ${REGIONS[i - 1].name}`,
       stars: starsIn(i, times), max: sprintsOf(i).length * 3, duelAt: BOSS_STARS, next: nextCar(i),
-      km: kmLeft(times) ? `${kmLeft(times)} km to ${HER}'s` : `At ${HER}'s`, text: latest(times, i)?.text,
+      km: kmLeft(times) ? `${kmLeft(times)} km to ${HER}'s` : complete(times) ? `At ${HER}'s · every star` : `At ${HER}'s`, text: latest(times, i)?.text,
     })),
     stops: sprintsOf(mapRegion).map((s) => ({
       id: s.id, name: s.boss ? `Duel: ${s.name}` : s.name, about: s.about, facts: factsOf(s),
@@ -549,6 +549,25 @@ function opening() {
     sound.play("ui_confirm", { gain: 0.5 });
     if (state === "map") mapShow();
   });
+}
+
+/** The trip in numbers, as the ending and the epilogue show them. */
+function tripNow(): TripFacts {
+  const t = tripTime(save.sprints), legends = SPRINTS.filter((s) => s.legend);
+  return {
+    time: `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`, stars: totalStars(save.sprints), max: MAX_STARS,
+    cars: carsHad(save.sprints).length, allCars: CARS.length, legends: legends.filter((s) => save.sprints[s.id]).length, allLegends: legends.length,
+    km: Math.round(save.totals.distance / 1000), misses: save.totals.misses, paint: COMPLETE_PAINT.paint, paintName: COMPLETE_PAINT.name,
+  };
+}
+
+/** The trip's end over what is up: the ending (`arrive`, the last duel won), then the epilogue when every star is
+ *  yours; also from Actions. */
+function tripEnd(whole: boolean, arrive = true) {
+  sound.play("ui_select", { gain: 0.5 });
+  const back = () => { sound.play("ui_confirm", { gain: 0.5 }); if (state === "map") mapShow(); };
+  const epilogue = () => (whole ? playEpilogue(tripNow(), back) : back());
+  if (arrive) playEnding(tripNow(), epilogue); else epilogue();
 }
 
 /** The stop the map moves on to once it is up, after a Sprint that finished its own (three stars, a duel). */
@@ -697,8 +716,8 @@ const browsable = () => (garageFor.region === undefined ? CARS : CARS.filter((c)
 function bayOf(car: PlayerCar): Bay {
   return { id: car.id, state: has(save, car) ? "owned" : "locked", paint: paintOf(save, car) };
 }
-/** The colours a car can wear: every ordinary one, and the Legend paints you have earned. */
-const paintsHad = () => [...PAINTS, ...legendPaints(save.sprints).map((l) => l.paint)];
+/** The colours a car can wear: every ordinary one, and the paints the trip gave you (the Legends', the whole road's). */
+const paintsHad = () => [...PAINTS, ...tripPaints(save.sprints).map((l) => l.paint)];
 /** A car you have that the garage has not shown off yet (the first car aside): its showcase is due. */
 const unseen = (c: PlayerCar) => c !== CARS[0] && has(save, c) && !save.seen.includes(`car:${c.id}`);
 
@@ -1077,13 +1096,14 @@ function sprintResults() {
   wonCar = pay.cars[0]?.id ?? null;
   const got = pay.cars.map((c) => c.name).join(" and ");
   const reward = got ? `<div class="reward">${got} ${pay.cars.length > 1 ? "are" : "is"} yours${duel?.opened ? `, and ${duel.opened} is open` : ""}</div>` : duel?.opened ? `<div class="reward">${duel.opened} is open</div>`
-    : pay.paint ? `<div class="reward">A Legend: ${pay.paint.name} is yours, for every car</div>` : "";
+    : pay.paint ? `<div class="reward">A Legend: ${pay.paint.name} is yours, for every car</div>`
+    : pay.complete ? `<div class="reward">Every star: ${COMPLETE_PAINT.name} is yours, for every car</div>` : "";
   // the story: what this run brought, a rival's word after a duel lost, the trip's end after the last
   const said = scene || trial ? [] : brought(was, save.sprints);
   if (duel && !duel.won && DUELS[sp.id]) said.push({ from: DUELS[sp.id].who, text: DUELS[sp.id].lost });
   const end = sp.id === LAST_DUEL && !scene && !trial ? ending(save.sprints) : null;
-  // until the trip is won: once it is, a faster win is only a time
-  const finale = end && !won(sp.region, was) ? `<div class="ending"><div class="eyebrow">${end.eyebrow}</div><h2>${end.title}</h2><p>${end.text}</p>${textsHtml([{ from: "lina", text: end.her }])}</div>` : "";
+  // until the trip is won: once it is, a faster win is only a time; won, it is a scene over this card (tripEnd)
+  const finale = end && !duel?.won && !won(sp.region, was) ? `<div class="ending"><div class="eyebrow">${end.eyebrow}</div><h2>${end.title}</h2><p>${end.text}</p>${textsHtml([{ from: "lina", text: end.her }])}</div>` : "";
   card(`${finale}<div class="sprint-end">
       <div class="headline"><h2>${clock(time)}</h2>${pay.record && before ? `<span class="plate">New best, ${(before - time).toFixed(2)} s faster</span>` : pay.record ? `<span class="plate">First finish</span>` : ""}</div>
       <div class="big">${stars(pay.stars)}</div>
@@ -1092,6 +1112,7 @@ function sprintResults() {
       ${targets(time)}</div>${wonCar ? wonKeys : hasBest && (next || (duel && !duel.won)) ? nudge("b", "See how the 3★ run drives it") + keys("b") : keys()}`);
   if (said.length) $("card").querySelector(".sign")!.insertAdjacentHTML("afterbegin", textsHtml(said, "above"));
   if (duel?.won) sound.play("bell_ding", { gain: 0.7 });
+  if (end && duel?.won && !won(sp.region, was)) tripEnd(!!pay.complete); else if (pay.complete) tripEnd(true, false);
   // your time on its board first, so the board read after it has it
   void post(`sprint/${sp.id}`, Math.round(time * 100) / 100, pay.record).then(() => showBoard(sp));
   if (pay.stars > pay.before) post("stars", totalStars(save.sprints), true, false);
@@ -1377,6 +1398,7 @@ pal.onAction((id: string) => {
   if (id === "give-up" && (state === "run" || state === "paused")) giveUp();
   if (id === "start-over" && state !== "loading") startOver();
   if (id === "opening" && state === "map" && !playing()) opening();
+  if (id === "ending" && state === "map" && !playing()) { if (won(bossOf(4).region, save.sprints)) tripEnd(complete(save.sprints)); else playNotYet(() => mapShow()); }
 });
 pal.onHidden(() => { if (state === "run") pause(); sound.suspend(); keepRun(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) keepRun(); });
@@ -1437,7 +1459,7 @@ pal.onSettings((s: Record<string, unknown>) => {
 const resolution = (v: unknown) => { if (typeof v === "string" && +v > 0) r.setResolution(+v); };
 
 // `?dev`: the page's state on window.hw, so a headless check can look inside
-if (q.has("dev")) Object.assign(window, { hw: { get run() { return run; }, get save() { return save; }, get state() { return state; }, get camera() { return r.camera; }, get world() { return world; }, get map() { return mapWorld; }, r, THREE } });
+if (q.has("dev")) Object.assign(window, { hw: { get run() { return run; }, get save() { return save; }, get state() { return state; }, get camera() { return r.camera; }, get world() { return world; }, get map() { return mapWorld; }, tripEnd, notYet: () => playNotYet(() => mapShow()), r, THREE } });
 
 /** Play a staged scene: the map, the garage, a Free Drive run already going, or its end; a Sprint with `sprint`. */
 async function stage(sc: Scene) {
